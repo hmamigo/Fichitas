@@ -1,0 +1,58 @@
+{
+ "format": 1,
+ "id": "geo",
+ "name": "Geografía",
+ "unlock": 6,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "París está a orillas del río Sena."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Tokio es una de las áreas metropolitanas más pobladas del mundo."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Dentro de Roma está el Vaticano, el país más pequeño del mundo."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "El Cairo está junto al río Nilo, cerca de las pirámides de Guiza."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Lima está en la costa del océano Pacífico."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "La capital de Canadá no es Toronto ni Montreal, sino Ottawa."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Canberra no es Sídney ni Melbourne: se construyó para ser capital."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "La capital de Marruecos es Rabat, no Casablanca."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Buenos Aires está en la orilla del Río de la Plata."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "La capital de Turquía es Ankara, no Estambul."
+  }
+ ]
+}

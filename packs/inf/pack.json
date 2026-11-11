@@ -1,0 +1,58 @@
+{
+ "format": 1,
+ "id": "inf",
+ "name": "Informática",
+ "unlock": 8,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "CPU significa «unidad central de procesamiento»."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "La RAM se vacía al apagar el equipo."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "URL significa «localizador uniforme de recursos»."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "HTML significa «lenguaje de marcado de hipertexto»."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "«Bit» viene de «binary digit», dígito binario."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Un byte permite 256 valores distintos."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "IP significa «protocolo de internet»."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Un SSD guarda datos en memoria flash, sin discos giratorios."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "«Bug» significa «bicho» en inglés."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "La palabra viene del matemático persa Al-Juarismi."
+  }
+ ]
+}

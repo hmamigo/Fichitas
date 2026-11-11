@@ -1,0 +1,48 @@
+{
+ "format": 1,
+ "id": "ing",
+ "name": "Inglés",
+ "unlock": 4,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Un «hot dog» no lleva perro: es una salchicha en pan."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "El dicho «an apple a day keeps the doctor away» elogia una manzana al día."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "«House» es el edificio; «home» es el hogar."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "«Family tree» es el árbol genealógico."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "«Car» viene del latín «carrus», un carro."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "«Book» se relaciona con una palabra antigua para «haya», un árbol."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "«Sunday» es, literalmente, el día del sol."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Su plural suele ser igual: one fish, two fish."
+  }
+ ]
+}

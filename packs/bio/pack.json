@@ -1,0 +1,48 @@
+{
+ "format": 1,
+ "id": "bio",
+ "name": "Biología",
+ "unlock": 5,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Las mitocondrias tienen su propio ADN, que se hereda de la madre."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Hay ribosomas en casi todas las células vivas."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Las bacterias no tienen núcleo: su ADN flota en el citoplasma."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Las hojas se ven verdes porque la clorofila refleja la luz verde."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Las enzimas aceleran reacciones químicas sin gastarse."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "La glucosa es el combustible principal del cerebro."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El ADN de una célula humana, estirado, mediría unos 2 metros."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "El cuerpo humano tiene decenas de billones de células."
+  }
+ ]
+}

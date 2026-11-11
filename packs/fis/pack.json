@@ -1,0 +1,48 @@
+{
+ "format": 1,
+ "id": "fis",
+ "name": "Física",
+ "unlock": 3,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "El newton honra a Isaac Newton."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "El joule honra a James Prescott Joule."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "El watt honra a James Watt, que mejoró la máquina de vapor."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "El pascal honra a Blaise Pascal; 1 Pa es una presión muy pequeña."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "El hertz honra a Heinrich Hertz, que demostró las ondas de radio."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "El ohm honra a Georg Ohm; su símbolo es la letra griega omega."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El volt honra a Alessandro Volta, inventor de la pila."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "El ampere honra a André-Marie Ampère."
+  }
+ ]
+}

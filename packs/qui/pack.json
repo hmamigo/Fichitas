@@ -1,0 +1,48 @@
+{
+ "format": 1,
+ "id": "qui",
+ "name": "Química",
+ "unlock": 2,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Au viene del latín «aurum»."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Fe viene del latín «ferrum»."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Na viene del latín «natrium»."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "K viene del latín científico «kalium»."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Ag viene del latín «argentum»; de ahí el nombre de Argentina."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Pb viene del latín «plumbum»; de ahí la palabra «plomería»."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El helio se detectó primero en el Sol; su nombre viene de «helios»."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Tu cuerpo y el diamante comparten el mismo elemento: el carbono."
+  }
+ ]
+}

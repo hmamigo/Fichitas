@@ -1,0 +1,48 @@
+{
+ "format": 1,
+ "id": "mat",
+ "name": "Matemáticas",
+ "unlock": 1,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "El 5 es un número primo y aparece en la serie de Fibonacci."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "42 es el producto de los tres primeros primos distintos de 2, 3 y 7."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Una raíz cuadrada deshace una potencia al cuadrado: 9² = 81."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Con 5 bits se pueden escribir 32 valores distintos."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Dividir entre 4 es lo mismo que tomar la cuarta parte."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Los números negativos ya se usaban en la China antigua para representar deudas."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El factorial cuenta formas de ordenar: 3 objetos se ordenan de 6 maneras."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Para sumar fracciones se busca un denominador común: 2/4 + 1/4 = 3/4."
+  }
+ ]
+}

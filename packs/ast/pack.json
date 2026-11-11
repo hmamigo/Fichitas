@@ -1,0 +1,58 @@
+{
+ "format": 1,
+ "id": "ast",
+ "name": "Astronomía",
+ "unlock": 7,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "El Sol contiene casi toda la masa del sistema solar."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "La Luna siempre nos muestra la misma cara."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Marte es rojo por el óxido de hierro de su suelo."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Júpiter es tan grande que cabrían más de mil Tierras dentro."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Saturno es menos denso que el agua."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Venus es más caliente que Mercurio por su atmósfera densa."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El sistema solar está en uno de sus brazos espirales."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "La cola de un cometa apunta siempre lejos del Sol."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Un año en Mercurio dura unos 88 días terrestres."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Neptuno fue descubierto gracias a cálculos matemáticos."
+  }
+ ]
+}

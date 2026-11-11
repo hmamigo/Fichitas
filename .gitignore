@@ -1,0 +1,11 @@
+.godot/
+*.translation
+export_presets.cfg
+*.keystore
+*.jks
+
+# Artefactos generados por las exportaciones
+android/build/
+*.apk
+*.aab
+*.idsig
