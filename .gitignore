@@ -1,11 +1,34 @@
+# --- Godot: caché e importación ---
 .godot/
 *.translation
+*.tmp
+
+# --- Exportaciones y credenciales ---
 export_presets.cfg
+export_credentials.cfg
 *.keystore
 *.jks
 
 # Artefactos generados por las exportaciones
-android/build/
+/android/build/
+/build/
+/export/
 *.apk
 *.aab
+*.apks
 *.idsig
+*.pck
+*.log
+
+# --- Sistema y editores ---
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# --- Herramientas locales del editor ---
+addons/.godot_ai_update/
+@icons picker.html

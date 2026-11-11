@@ -5,6 +5,7 @@ extends Node3D
 
 signal won
 signal pair_done(pair_id: String, clean: bool)
+signal sfx(sound: String)  # "flip", "ok", "err", "win"
 
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
@@ -17,7 +18,6 @@ const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
 const AMBIENT_ENERGY := 0.26  # luz ambiental
 const SKY_ENERGY := 0.55      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.6        # barniz de las caras
-const GROUND_EDGE := Color("6f92bd")  # color del suelo en los bordes de la pantalla
 
 class Tile:
 	var node: Node3D
@@ -70,6 +70,33 @@ var face_up: ArrayMesh
 var face_down: ArrayMesh
 var ring_mesh: ArrayMesh
 var halo_mesh: ArrayMesh
+var dark: bool = false
+var ground_mat: StandardMaterial3D
+var far_mat: StandardMaterial3D
+var fill: DirectionalLight3D
+
+## Color de la escena según la paleta clara u oscura.
+func _c(light: Color, night: Color) -> Color:
+	return night if dark else light
+
+func _ground_edge() -> Color:
+	return _c(Color("6f92bd"), Color("0b1120"))
+
+## Cambia la paleta de la escena 3D (suelo, marco, losa, luces y cielo).
+func apply_theme(is_dark: bool) -> void:
+	dark = is_dark
+	_make_textures()
+	if env == null:
+		return
+	env.background_color = _ground_edge()
+	env.sky = _make_sky()
+	env.ambient_light_color = _c(Color("cfe0f5"), Color("6f86b8"))
+	sun.light_color = _c(Color("fff4e2"), Color("cfe0ff"))
+	fill.light_color = _c(Color("cfe2ff"), Color("7893c8"))
+	far_mat.albedo_color = _ground_edge()
+	ground_mat.albedo_texture = _ground_texture()
+	if board != null:
+		_build_board()
 
 func _ready() -> void:
 	_make_textures()
@@ -154,11 +181,11 @@ func _make_textures() -> void:
 func _back_texture() -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var top := Color("e8f0fb")
-	var bot := Color("c3d6f2")
-	var line := Color("9cbce4")
-	var mark := Color("4a8ff5")
-	var inner := Color("eef5ff")
+	var top := _c(Color("e8f0fb"), Color("2a3550"))
+	var bot := _c(Color("c3d6f2"), Color("1e2740"))
+	var line := _c(Color("9cbce4"), Color("3b4a6b"))
+	var mark := _c(Color("4a8ff5"), Color("7fb0ff"))
+	var inner := _c(Color("eef5ff"), Color("c9d8f5"))
 	for y in n:
 		var t: float = float(y) / float(n - 1)
 		for x in n:
@@ -196,8 +223,8 @@ func _bezel_texture() -> ImageTexture:
 func _ground_texture() -> ImageTexture:
 	var n := 96
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var mid := Color("a8bfda")
-	var out := GROUND_EDGE
+	var mid := _c(Color("a8bfda"), Color("141d2e"))
+	var out := _ground_edge()
 	for y in n:
 		for x in n:
 			var p := Vector2((float(x) + 0.5) / n * 2.0 - 1.0, (float(y) + 0.5) / n * 2.0 - 1.0)
@@ -208,9 +235,9 @@ func _ground_texture() -> ImageTexture:
 func _plate_texture(hx: float, hz: float) -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var base := Color("e9dab8")
-	var dot := Color("cbb287")
-	var line := Color("a6c7ea")
+	var base := _c(Color("e9dab8"), Color("2a3145"))
+	var dot := _c(Color("cbb287"), Color("3d4761"))
+	var line := _c(Color("a6c7ea"), Color("4a6f9e"))
 	for y in n:
 		var uy: float = (float(y) + 0.5) / n * 2.0 - 1.0
 		for x in n:
@@ -232,9 +259,9 @@ func _make_sky() -> Sky:
 		var t: float = float(y) / 255.0
 		var col: Color
 		if t < 0.5:
-			col = Color("ffffff").lerp(Color("dbe7ff"), t * 2.0)
+			col = _c(Color("ffffff"), Color("2a3550")).lerp(_c(Color("dbe7ff"), Color("3a4a6b")), t * 2.0)
 		else:
-			col = Color("93a8cf").lerp(Color("232a3c"), (t - 0.5) * 2.0)
+			col = _c(Color("93a8cf"), Color("202a40")).lerp(_c(Color("232a3c"), Color("0a0f1a")), (t - 0.5) * 2.0)
 		img.fill_rect(Rect2i(0, y, 512, 1), col)
 	for band in [[24, 48, 0.9], [104, 34, 0.6], [176, 40, 0.3]]:
 		var y0: int = band[0]
@@ -253,10 +280,10 @@ func _make_sky() -> Sky:
 func _build_environment() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = GROUND_EDGE
+	env.background_color = _ground_edge()
 	env.sky = _make_sky()
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("cfe0f5")
+	env.ambient_light_color = _c(Color("cfe0f5"), Color("6f86b8"))
 	env.ambient_light_energy = AMBIENT_ENERGY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.ssao_enabled = true
@@ -278,7 +305,7 @@ func _build_environment() -> void:
 	add_child(we)
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-62, -28, 0)
-	sun.light_color = Color("fff4e2")
+	sun.light_color = _c(Color("fff4e2"), Color("cfe0ff"))
 	sun.light_energy = LIGHT_ENERGY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
@@ -289,9 +316,9 @@ func _build_environment() -> void:
 	sun.directional_shadow_max_distance = 12.0
 	add_child(sun)
 	# Luz de relleno: quita dureza a las sombras sin coste (sin sombras propias)
-	var fill := DirectionalLight3D.new()
+	fill = DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-38, 152, 0)
-	fill.light_color = Color("cfe2ff")
+	fill.light_color = _c(Color("cfe2ff"), Color("7893c8"))
 	fill.light_energy = FILL_ENERGY
 	fill.shadow_enabled = false
 	add_child(fill)
@@ -300,11 +327,11 @@ func _build_environment() -> void:
 	ground_mesh = PlaneMesh.new()
 	ground_mesh.size = Vector2(9, 9)
 	ground_pad.mesh = ground_mesh
-	var gm := StandardMaterial3D.new()
-	gm.albedo_texture = _ground_texture()
-	gm.roughness = 0.95
-	gm.metallic = 0.0
-	ground_pad.material_override = gm
+	ground_mat = StandardMaterial3D.new()
+	ground_mat.albedo_texture = _ground_texture()
+	ground_mat.roughness = 0.95
+	ground_mat.metallic = 0.0
+	ground_pad.material_override = ground_mat
 	ground_pad.position.y = -0.45
 	add_child(ground_pad)
 	# Suelo lejano: el mismo color del borde, para que no se vea el límite
@@ -312,10 +339,10 @@ func _build_environment() -> void:
 	var fpm := PlaneMesh.new()
 	fpm.size = Vector2(300, 300)
 	far.mesh = fpm
-	var fm2 := StandardMaterial3D.new()
-	fm2.albedo_color = GROUND_EDGE
-	fm2.roughness = 0.95
-	far.material_override = fm2
+	far_mat = StandardMaterial3D.new()
+	far_mat.albedo_color = _ground_edge()
+	far_mat.roughness = 0.95
+	far.material_override = far_mat
 	far.position.y = -0.455
 	add_child(far)
 
@@ -404,7 +431,7 @@ func _build_board() -> void:
 	var h: float = float(rows) * ST + 0.5
 	# Marco azul con barniz
 	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color("2f86d6")
+	fm.albedo_color = _c(Color("2f86d6"), Color("1f4f86"))
 	fm.roughness = 0.30
 	fm.metallic = 0.25
 	fm.clearcoat_enabled = true
@@ -587,7 +614,7 @@ func _tap_mem(t: Tile) -> void:
 		return
 	t.seen = true
 	_flip(t, true)
-	Input.vibrate_handheld(8)
+	sfx.emit("flip")
 	revealed.append(t)
 	if revealed.size() < 2:
 		return
@@ -606,6 +633,7 @@ func _tap_mem(t: Tile) -> void:
 		var pa: Tile = _partner(a)
 		if pa != null and pa.seen:
 			err[a.pair] = true  # la pareja de la primera ya se había visto: error de memoria
+		sfx.emit("err")
 		await get_tree().create_timer(0.55).timeout
 		if g != gen:
 			return
@@ -619,8 +647,8 @@ func _tap_mem(t: Tile) -> void:
 func _tap_assoc(t: Tile) -> void:
 	if t.matched or lock:
 		return
-	Input.vibrate_handheld(8)
 	if sel == null:
+		sfx.emit("flip")
 		sel = t
 		_lift(t, 0.3)
 		_glow(t, Color("3b82f6"), 1.2)
@@ -636,6 +664,7 @@ func _resolve_assoc(a: Tile, b: Tile) -> void:
 		_resolve_ok(a, b)
 	else:
 		err[a.pair] = true  # error de la ficha elegida o arrastrada primero
+		sfx.emit("err")
 		_shake(a)
 		_shake(b)
 
@@ -670,6 +699,7 @@ func _resolve_ok(a: Tile, b: Tile) -> void:
 	_unglow(b)
 	_match(a)
 	_match(b)
+	sfx.emit("ok")
 	pair_done.emit(a.pair, not err.has(a.pair))
 	_check_win()
 
@@ -727,6 +757,7 @@ func _check_win() -> void:
 		tw.tween_property(t.node, "position:y", 0.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await get_tree().create_timer(1.1 + tiles.size() * 0.05).timeout
 	if g == gen and active:
+		sfx.emit("win")
 		won.emit()
 
 # ---------- Animaciones ----------

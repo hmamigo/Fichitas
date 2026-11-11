@@ -4,16 +4,23 @@ extends CanvasLayer
 
 signal play_general
 signal play_subject(id: String)
+signal play_review
 signal open_subjects
 signal back_pressed
 signal next_pressed
 signal mode_changed(mode: String)
+signal sound_toggled(on: bool)
+signal vib_toggled(on: bool)
+signal dark_toggled(on: bool)
 
 var hud_bar: Control
 var lv_label: Label
 var menu: Control
 var play_btn: Button
 var mode_btns: Dictionary = {}
+var sound_btn: Button
+var vib_btn: Button
+var dark_btn: Button
 var subjects: Control
 var grid: GridContainer
 var toast_label: Label
@@ -21,6 +28,7 @@ var win: Control
 var win_title: Label
 var win_msg: Label
 var win_btn: Button
+var dom_grid: GridContainer
 var _th: Theme
 var _menu_card: Control
 var _win_card: Control
@@ -36,17 +44,21 @@ func _ready() -> void:
 
 # ---------- Utilidades ----------
 
-func _label(text: String, size: int, title: bool = false, color: Color = UiTheme.INK, autowrap: bool = false) -> Label:
+func _label(text: String, size: int, title: bool = false, color: Color = Color(0, 0, 0, 0), autowrap: bool = false) -> Label:
 	var l := Label.new()
+	if color.a == 0.0:
+		color = UiTheme.INK
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
 	if title:
 		l.add_theme_font_override("font", UiTheme.title_font())
-		l.add_theme_color_override("font_outline_color", Color(1, 1, 1, 0.92))
+		var oc := UiTheme.CREAM
+		l.add_theme_color_override("font_outline_color", Color(oc.r, oc.g, oc.b, 0.92))
 		l.add_theme_constant_override("outline_size", maxi(5, int(size / 7.0)))
 	if autowrap:
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_constant_override("line_spacing", 6)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
 
@@ -74,7 +86,7 @@ func _backdrop(parent: Control, stops: Array, pattern: float = 0.0) -> void:
 	if pattern <= 0.0:
 		return
 	var pt := TextureRect.new()
-	pt.texture = UiTheme.pattern_tile(110, Color(1, 1, 1, pattern))
+	pt.texture = UiTheme.pattern_tile(110, Color(1, 1, 1, pattern * UiTheme.pattern_scale))
 	pt.stretch_mode = TextureRect.STRETCH_TILE
 	pt.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	pt.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -117,6 +129,28 @@ func _chips() -> Control:
 		row.add_child(p)
 	return row
 
+## Interruptor de ajustes: pastilla que se rellena cuando está activa.
+## `icon_on`/`icon_off` se tiñen según el estado (blanco al estar activo).
+func _toggle(text: String, icon_on: String, icon_off: String, parent: Control) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.toggle_mode = true
+	b.theme_type_variation = "Pill"
+	b.custom_minimum_size = Vector2(0, 76)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.add_theme_constant_override("h_separation", 10)
+	b.add_theme_font_size_override("font_size", UiTheme.T_SMALL)
+	b.set_meta("icon_on", icon_on)
+	b.set_meta("icon_off", icon_off)
+	b.toggled.connect(func(on: bool) -> void: _paint_toggle(b, on))
+	parent.add_child(b)
+	return b
+
+func _paint_toggle(b: Button, on: bool) -> void:
+	var name: String = str(b.get_meta("icon_on" if on else "icon_off"))
+	b.icon = UiTheme.icon(name, 34, Color.WHITE if on else UiTheme.INK)
+
 ## Pequeño rebote al aparecer una tarjeta.
 func _pop(c: Control) -> void:
 	c.scale = Vector2(0.92, 0.92)
@@ -124,6 +158,19 @@ func _pop(c: Control) -> void:
 	c.pivot_offset = c.size * 0.5
 	var tw := create_tween()
 	tw.tween_property(c, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Vuelve a construir las pantallas con la paleta actual (cambio de tema).
+func rebuild() -> void:
+	for c in get_children():
+		remove_child(c)
+		c.queue_free()
+	mode_btns.clear()
+	_th = UiTheme.build()
+	_build_hud()
+	_build_menu()
+	_build_subjects()
+	_build_win()
+	hide_all()
 
 func hide_all() -> void:
 	hud_bar.visible = false
@@ -147,19 +194,19 @@ func _build_hud() -> void:
 	var back := Button.new()
 	back.text = "Atrás"
 	back.theme_type_variation = "Alt"
-	back.icon = UiTheme.icon_chevron(30, UiTheme.INK)
-	back.add_theme_constant_override("h_separation", 4)
-	back.custom_minimum_size = Vector2(0, 68)
+	back.icon = UiTheme.icon_chevron(34, UiTheme.INK)
+	back.add_theme_constant_override("h_separation", 12)
+	back.custom_minimum_size = Vector2(0, 74)
 	back.pressed.connect(func() -> void: back_pressed.emit())
 	h.add_child(back)
 	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", UiTheme.box(Color(1, 1, 1, 0.92), Color(1, 1, 1, 0.0), 0, 10, 10, 26, 0, 8, 0.16))
-	lv_label = _label("", 27, true, UiTheme.BLUE_DARK)
+	pc.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.HUD_BG, Color(1, 1, 1, 0.0), 0, 10, 10, 26, 0, 8, 0.16))
+	lv_label = _label("", UiTheme.T_BODY, true, UiTheme.BLUE_DARK)
 	pc.add_child(lv_label)
 	h.add_child(pc)
 
 func _build_menu() -> void:
-	menu = _screen([[0.0, Color(0.84, 0.91, 1.0, 0.94)], [0.45, Color(0.93, 0.97, 1.0, 0.30)], [1.0, Color(0.68, 0.81, 0.97, 0.88)]], 0.26)
+	menu = _screen(UiTheme.MENU_STOPS, 0.26)
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -175,8 +222,8 @@ func _build_menu() -> void:
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(logo)
-	v.add_child(_label("Fichas del saber", 96, true, UiTheme.BLUE_DARK))
-	v.add_child(_label("Empareja fichas y practica a tu ritmo.", 27, false, UiTheme.INK_SOFT, true))
+	v.add_child(_label("Fichas del saber", UiTheme.T_HERO, true, UiTheme.BLUE_DARK))
+	v.add_child(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK_SOFT, true))
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 34)
 	v.add_child(gap)
@@ -188,7 +235,7 @@ func _build_menu() -> void:
 	var card := _panel(v, 700, 40)
 	_menu_card = card.get_parent() as Control
 	card.add_theme_constant_override("separation", 22)
-	card.add_child(_label("Modo de juego", 25, false, UiTheme.INK_SOFT))
+	card.add_child(_label("Modo de juego", UiTheme.T_SMALL, false, UiTheme.INK_SOFT))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	var grp := ButtonGroup.new()
@@ -215,13 +262,22 @@ func _build_menu() -> void:
 	play_btn.custom_minimum_size = Vector2(0, 100)
 	play_btn.pressed.connect(func() -> void: play_general.emit())
 	card.add_child(play_btn)
+	var opts := HBoxContainer.new()
+	opts.add_theme_constant_override("separation", 12)
+	card.add_child(opts)
+	sound_btn = _toggle("Sonido", "speaker", "speaker_mute", opts)
+	sound_btn.toggled.connect(func(on: bool) -> void: sound_toggled.emit(on))
+	vib_btn = _toggle("Vibración", "rumble_phone", "mobile_phone", opts)
+	vib_btn.toggled.connect(func(on: bool) -> void: vib_toggled.emit(on))
+	dark_btn = _toggle("Oscuro", "moon", "sun", opts)
+	dark_btn.toggled.connect(func(on: bool) -> void: dark_toggled.emit(on))
 	var gap2 := Control.new()
 	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap2)
-	v.add_child(_label("Sin cronómetro y sin puntuación.", 22, false, UiTheme.INK_SOFT))
+	v.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK_SOFT))
 
 func _build_subjects() -> void:
-	subjects = _screen([[0.0, Color(0.94, 0.97, 1.0, 0.97)], [1.0, Color(0.73, 0.85, 0.98, 0.97)]], 0.30)
+	subjects = _screen(UiTheme.SUBJECT_STOPS, 0.30)
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -236,19 +292,19 @@ func _build_subjects() -> void:
 	var back := Button.new()
 	back.text = "Menú"
 	back.theme_type_variation = "Alt"
-	back.icon = UiTheme.icon_chevron(30, UiTheme.INK)
-	back.add_theme_constant_override("h_separation", 4)
-	back.custom_minimum_size = Vector2(0, 72)
+	back.icon = UiTheme.icon_chevron(34, UiTheme.INK)
+	back.add_theme_constant_override("h_separation", 12)
+	back.custom_minimum_size = Vector2(0, 78)
 	back.pressed.connect(func() -> void: back_pressed.emit())
 	head.add_child(back)
 	var hb := VBoxContainer.new()
 	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_theme_constant_override("separation", 0)
 	head.add_child(hb)
-	var t := _label("Elige una materia", 52, true, UiTheme.BLUE_DARK)
+	var t := _label("Elige una materia", UiTheme.T_HEAD, true, UiTheme.BLUE_DARK)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(t)
-	var st := _label("Cada materia tiene sus propios niveles.", 23, false, UiTheme.INK_SOFT)
+	var st := _label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
 	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(st)
 	var sc := ScrollContainer.new()
@@ -261,8 +317,14 @@ func _build_subjects() -> void:
 	grid.add_theme_constant_override("h_separation", 18)
 	grid.add_theme_constant_override("v_separation", 18)
 	sc.add_child(grid)
-	toast_label = _label("", 24, false, UiTheme.INK, true)
+	toast_label = _label("", UiTheme.T_SMALL, false, UiTheme.INK, true)
 	v.add_child(toast_label)
+
+const WIN_PAD := 34        # margen interior de la tarjeta de nivel completado
+const WIN_MAX_W := 860     # ancho máximo de esa tarjeta
+const WIN_MIN_W := 660     # ancho mínimo (para que quepa el título)
+const DOM_MAX := 148       # lado máximo de cada miniatura de pareja
+const DOM_SEP := 10        # separación entre miniaturas
 
 func _build_win() -> void:
 	win = Control.new()
@@ -270,31 +332,35 @@ func _build_win() -> void:
 	win.theme = _th
 	add_child(win)
 	var dim := ColorRect.new()
-	dim.color = Color(0.06, 0.11, 0.26, 0.42)
+	dim.color = UiTheme.DIM
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(dim)
-	_backdrop(win, [[0.0, Color(0.45, 0.62, 0.92, 0.0)], [1.0, Color(0.30, 0.48, 0.84, 0.30)]], 0.18)
+	_backdrop(win, UiTheme.WIN_STOPS, 0.18)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(center)
-	var card := _panel(center, 640, 34)
+	var card := _panel(center, WIN_MAX_W, WIN_PAD)
 	_win_card = card.get_parent() as Control
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	for sp in [[32, Color("ffd45e")], [48, Color("ffc93c")], [32, Color("ffd45e")]]:
-		var spr := TextureRect.new()
-		spr.texture = UiTheme.sparkle(int(sp[0]), sp[1])
-		spr.custom_minimum_size = Vector2(float(sp[0]) * 1.25, float(sp[0]) * 1.25)
-		spr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		spr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		row.add_child(spr)
+	var spr := TextureRect.new()
+	spr.texture = UiTheme.icon("stars", 96, Color("ffd45e"))
+	spr.custom_minimum_size = Vector2(96, 96)
+	spr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	spr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(spr)
 	card.add_child(row)
-	win_title = _label("", 58, true, UiTheme.BLUE_DARK)
+	win_title = _label("", UiTheme.T_WIN, true, UiTheme.BLUE_DARK)
 	card.add_child(win_title)
-	win_msg = _label("", 26, false, UiTheme.INK, true)
+	win_msg = _label("", UiTheme.T_BODY, false, UiTheme.INK, true)
 	card.add_child(win_msg)
+	dom_grid = GridContainer.new()
+	dom_grid.columns = 5
+	dom_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	dom_grid.add_theme_constant_override("h_separation", DOM_SEP)
+	dom_grid.add_theme_constant_override("v_separation", DOM_SEP)
+	card.add_child(dom_grid)
 	win_btn = Button.new()
 	win_btn.custom_minimum_size = Vector2(0, 84)
 	win_btn.pressed.connect(func() -> void: next_pressed.emit())
@@ -302,10 +368,21 @@ func _build_win() -> void:
 
 # ---------- API ----------
 
-func show_menu(level: int, mode: String) -> void:
+## opts: {sound, vib, vib_visible, dark}
+func show_menu(level: int, mode: String, opts: Dictionary = {}) -> void:
 	hide_all()
 	(mode_btns[mode] as Button).button_pressed = true
 	play_btn.text = "Recorrido general · Nivel %d" % level
+	var snd: bool = bool(opts.get("sound", true))
+	var vb: bool = bool(opts.get("vib", true))
+	var dk: bool = bool(opts.get("dark", false))
+	sound_btn.set_pressed_no_signal(snd)
+	_paint_toggle(sound_btn, snd)
+	vib_btn.visible = bool(opts.get("vib_visible", false))
+	vib_btn.set_pressed_no_signal(vb)
+	_paint_toggle(vib_btn, vb)
+	dark_btn.set_pressed_no_signal(dk)
+	_paint_toggle(dark_btn, dk)
 	menu.visible = true
 	if _menu_card != null:
 		_pop(_menu_card)
@@ -327,13 +404,98 @@ func show_subjects(cards: Array) -> void:
 	_update_columns()
 	subjects.visible = true
 
-func show_win(title: String, msg: String, button: String) -> void:
+func show_win(title: String, msg: String, button: String, doms: Array = []) -> void:
 	win_title.text = title
 	win_msg.text = msg
 	win_btn.text = button
+	_fill_doms(doms)
 	win.visible = true
 	if _win_card != null:
 		_pop(_win_card)
+
+## Miniaturas de las parejas del nivel con su estado de dominio.
+## doms: Array de {tex, stage, up}; `up` = mejoró en esta partida (lleva contorno).
+## El tamaño se adapta a cuántas parejas hay: pocas → miniaturas grandes.
+func _fill_doms(doms: Array) -> void:
+	for c in dom_grid.get_children():
+		dom_grid.remove_child(c)
+		c.queue_free()
+	var n: int = doms.size()
+	dom_grid.visible = n > 0
+	if n == 0:
+		return
+	var cols: int = _dom_columns(n)
+	var side: int = _dom_side(cols)
+	dom_grid.columns = cols
+	for d in doms:
+		dom_grid.add_child(_dom_tile(d, side))
+	var grid_w: int = cols * (side + 10) + (cols - 1) * DOM_SEP
+	if _win_card != null:
+		_win_card.custom_minimum_size.x = clampi(grid_w + 2 * WIN_PAD, WIN_MIN_W, WIN_MAX_W)
+
+## Columnas y filas equilibradas (máximo 5 filas); menos huecos y miniaturas grandes.
+func _dom_columns(n: int) -> int:
+	var best: int = 3
+	var best_score: float = 1e9
+	for cols in range(3, 7):
+		var rows: int = ceili(float(n) / float(cols))
+		if rows > 5:
+			continue
+		var empty: int = rows * cols - n
+		var side: int = _dom_side(cols)
+		var score: float = float(empty * 20 + rows * 2) - float(side)
+		if score < best_score:
+			best_score = score
+			best = cols
+	return best
+
+## Lado de la imagen de cada miniatura: cabe en el ancho de la tarjeta y tiene tope.
+func _dom_side(cols: int) -> int:
+	var content: int = WIN_MAX_W - 2 * WIN_PAD
+	var by_w: int = int((content - (cols - 1) * DOM_SEP) / cols) - 10
+	return clampi(mini(DOM_MAX, by_w), 56, DOM_MAX)
+
+func _dom_tile(d: Dictionary, side: int = 72) -> Control:
+	var stage: int = int(d.get("stage", 0))
+	var up: bool = bool(d.get("up", false))
+	var pc := PanelContainer.new()
+	pc.custom_minimum_size = Vector2(side + 10, side + 46)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UiTheme.CREAM
+	sb.set_corner_radius_all(14)
+	sb.set_content_margin_all(5)
+	if up:
+		sb.set_border_width_all(4)
+		sb.border_color = Color("42cd84")
+	elif stage > 0:
+		sb.set_border_width_all(2)
+		sb.border_color = Color(0.26, 0.70, 0.44, 0.45)
+	pc.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(v)
+	var img := TextureRect.new()
+	img.texture = d.get("tex", null)
+	img.custom_minimum_size = Vector2(side, side)
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(img)
+	# Estado de dominio debajo de la miniatura: brote, dos hojas o árbol
+	var row := CenterContainer.new()
+	row.custom_minimum_size = Vector2(0, 34)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(row)
+	var icon: int = clampi(int(round(float(side) * 0.25)), 26, 34)
+	var pi := TextureRect.new()
+	pi.texture = UiTheme.icon_plant(stage, icon, UiTheme.PLANT)
+	pi.custom_minimum_size = Vector2(icon, icon)
+	pi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pi.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(pi)
+	return pc
 
 func toast(text: String) -> void:
 	toast_label.text = text
@@ -348,9 +510,9 @@ func _card(d: Dictionary) -> Button:
 	var locked: bool = d.get("locked", false)
 	var col: Color = d["color"]
 	if locked:
-		col = col.lerp(Color("c4cbd9"), 0.55)
+		col = col.lerp(UiTheme.LOCKED, 0.55)
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, 262)
+	b.custom_minimum_size = Vector2(0, 326)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var edge: Color = col.darkened(0.30)
 	b.add_theme_stylebox_override("normal", UiTheme.box(col, edge, 8, 14, 14, 32, 0, 14, 0.22))
@@ -367,26 +529,39 @@ func _card(d: Dictionary) -> Button:
 	# Medallón con la inicial de la materia
 	var badge := PanelContainer.new()
 	var bs := StyleBoxFlat.new()
-	bs.bg_color = Color(1, 1, 1, 0.45)
+	bs.bg_color = UiTheme.BADGE_BG
 	bs.set_corner_radius_all(56)
 	bs.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", bs)
 	badge.custom_minimum_size = Vector2(112, 112)
 	badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.add_child(_label(str(d["name"]).substr(0, 1).to_upper(), 58, true, ink))
+	var icon_name: String = str(d.get("icon", ""))
+	if icon_name != "":
+		var im := TextureRect.new()
+		im.texture = UiTheme.icon(icon_name, 66, ink)
+		im.custom_minimum_size = Vector2(66, 66)
+		im.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		im.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		im.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.add_child(im)
+	else:
+		badge.add_child(_label(str(d["name"]).substr(0, 1).to_upper(), UiTheme.T_WIN, true, ink))
 	v.add_child(badge)
 	var parts: Array = [
-		_label(str(d["name"]), 32, false, ink),
-		_label(str(d.get("sub", "")), 23, false, ink),
-		_label(str(d.get("sub2", "")), 21, false, ink),
+		_label(str(d["name"]), UiTheme.T_NAME, false, ink),
+		_label(str(d.get("sub", "")), UiTheme.T_SMALL, false, ink),
+		_label(str(d.get("sub2", "")), UiTheme.T_TINY, false, ink),
 	]
+	var sub3: String = str(d.get("sub3", ""))
+	if sub3 != "":
+		parts.append(_label(sub3, UiTheme.T_TINY, false, UiTheme.BLUE_DARK))
 	for l in parts:
 		(l as Label).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(l)
 	if locked:
 		var lk := TextureRect.new()
-		lk.texture = UiTheme.icon_lock(44, Color(0.15, 0.22, 0.36, 0.55))
+		lk.texture = UiTheme.icon_lock(44, UiTheme.INK_SOFT)
 		lk.custom_minimum_size = Vector2(44, 44)
 		lk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		lk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -400,6 +575,8 @@ func _card(d: Dictionary) -> Button:
 			toast(info)
 		elif id == "":
 			play_general.emit()
+		elif id == ":review":
+			play_review.emit()
 		else:
 			play_subject.emit(id))
 	return b

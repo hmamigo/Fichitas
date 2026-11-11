@@ -1,28 +1,138 @@
 class_name UiTheme
 extends RefCounted
-## Tema de interfaz con aspecto de juguete: relieve, fuentes redondeadas y texturas
-## dibujadas por código (pieles de botón, iconos, logotipo y patrón de fondo).
-## Aquí no se guardan archivos de imagen: todo se genera al arrancar.
+## Tema de interfaz con aspecto de juguete: relieve, fuentes redondeadas, texturas
+## dibujadas por código (pieles de botón, logotipo y patrón de fondo) e iconos SVG
+## de `assets/icons/` (copia de @icons, licencia MIT) teñidos al vuelo.
 
 const BODY := "res://fonts/fredoka-600.woff2"
 const TITLE := "res://fonts/lilita-one-400.woff2"
-const INK := Color("1d2a44")
-const INK_SOFT := Color("6b7a99")
-const BLUE := Color("3b82f6")
-const BLUE_DARK := Color("21539f")
-const CREAM := Color("fffdf7")
+const ICONS := "res://assets/icons/"
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
 	"bio": "d1b3ff", "geo": "7fd6d1", "ast": "a9b8ff", "inf": "ffc27a",
 }
+const PACK_ICONS := {
+	"mat": "calculator", "qui": "alembic", "fis": "atom", "ing": "book_open",
+	"bio": "leaf", "geo": "globe", "ast": "planet", "inf": "laptop",
+}
+static var _icon_cache: Dictionary = {}
+
+# ---------- Paleta (clara u oscura) ----------
+# Son variables y no constantes porque el tema se puede cambiar en caliente;
+# `apply()` las reescribe y la interfaz se vuelve a construir.
+static var dark: bool = false
+static var INK := Color("1d2a44")
+static var INK_SOFT := Color("6b7a99")
+static var BLUE := Color("3b82f6")
+static var BLUE_DARK := Color("21539f")
+static var CREAM := Color("fffdf7")
+static var ALT_BG := Color("dfe9ff")
+static var PILL_BG := Color("e8eefc")
+static var PILL_LINE := Color("c3cff0")
+static var HUD_BG := Color(1, 1, 1, 0.92)
+static var DIM := Color(0.06, 0.11, 0.26, 0.42)
+static var LOCKED := Color("c4cbd9")
+static var BADGE_BG := Color(1, 1, 1, 0.45)
+static var PLANT := Color("2f8f4e")
+static var pattern_scale := 1.0
+static var MENU_STOPS: Array = [
+	[0.0, Color(0.84, 0.91, 1.0, 0.94)],
+	[0.45, Color(0.93, 0.97, 1.0, 0.30)],
+	[1.0, Color(0.68, 0.81, 0.97, 0.88)],
+]
+static var SUBJECT_STOPS: Array = [
+	[0.0, Color(0.94, 0.97, 1.0, 0.97)],
+	[1.0, Color(0.73, 0.85, 0.98, 0.97)],
+]
+static var WIN_STOPS: Array = [
+	[0.0, Color(0.45, 0.62, 0.92, 0.0)],
+	[1.0, Color(0.30, 0.48, 0.84, 0.30)],
+]
+
+## Elige la paleta. La interfaz debe reconstruirse después (`GameUI.rebuild()`).
+static func apply(is_dark: bool) -> void:
+	dark = is_dark
+	if dark:
+		INK = Color("e8eefc")
+		INK_SOFT = Color("9db0d0")
+		BLUE = Color("3b82f6")
+		BLUE_DARK = Color("8db8ff")
+		CREAM = Color("161f33")
+		ALT_BG = Color("22304a")
+		PILL_BG = Color("1d2942")
+		PILL_LINE = Color("33456b")
+		HUD_BG = Color(0.09, 0.13, 0.22, 0.92)
+		DIM = Color(0, 0, 0, 0.55)
+		LOCKED = Color("39435c")
+		BADGE_BG = Color(1, 1, 1, 0.10)
+		PLANT = Color("6fd08e")
+		pattern_scale = 0.55
+		MENU_STOPS = [
+			[0.0, Color(0.05, 0.08, 0.15, 0.96)],
+			[0.45, Color(0.08, 0.12, 0.21, 0.55)],
+			[1.0, Color(0.12, 0.19, 0.32, 0.92)],
+		]
+		SUBJECT_STOPS = [
+			[0.0, Color(0.07, 0.10, 0.18, 0.97)],
+			[1.0, Color(0.11, 0.18, 0.30, 0.97)],
+		]
+		WIN_STOPS = [
+			[0.0, Color(0.10, 0.16, 0.28, 0.0)],
+			[1.0, Color(0.05, 0.09, 0.18, 0.55)],
+		]
+	else:
+		INK = Color("1d2a44")
+		INK_SOFT = Color("6b7a99")
+		BLUE = Color("3b82f6")
+		BLUE_DARK = Color("21539f")
+		CREAM = Color("fffdf7")
+		ALT_BG = Color("dfe9ff")
+		PILL_BG = Color("e8eefc")
+		PILL_LINE = Color("c3cff0")
+		HUD_BG = Color(1, 1, 1, 0.92)
+		DIM = Color(0.06, 0.11, 0.26, 0.42)
+		LOCKED = Color("c4cbd9")
+		BADGE_BG = Color(1, 1, 1, 0.45)
+		PLANT = Color("2f8f4e")
+		pattern_scale = 1.0
+		MENU_STOPS = [
+			[0.0, Color(0.84, 0.91, 1.0, 0.94)],
+			[0.45, Color(0.93, 0.97, 1.0, 0.30)],
+			[1.0, Color(0.68, 0.81, 0.97, 0.88)],
+		]
+		SUBJECT_STOPS = [
+			[0.0, Color(0.94, 0.97, 1.0, 0.97)],
+			[1.0, Color(0.73, 0.85, 0.98, 0.97)],
+		]
+		WIN_STOPS = [
+			[0.0, Color(0.45, 0.62, 0.92, 0.0)],
+			[1.0, Color(0.30, 0.48, 0.84, 0.30)],
+		]
+
+# ---------- Tipografía ----------
+## Tamaños de texto en píxeles lógicos (el lienzo mide 960 de ancho). En un celular
+## de 1080 px un píxel lógico equivale a poco más de un píxel físico, así que 36
+## puntos lógicos se leen como ~15 sp en la mano: el cuerpo de texto ya no queda
+## diminuto. Los títulos grandes no crecen porque el ancho es el mismo en todas
+## las pantallas y se saldrían de la tarjeta.
+const T_HERO := 96   # logotipo del menú
+const T_WIN := 64    # título de nivel completado y letra del medallón
+const T_HEAD := 56   # títulos de pantalla
+const T_NAME := 40   # nombre de la materia en su tarjeta
+const T_BODY := 36   # botones y textos principales
+const T_SMALL := 30  # datos secundarios y avisos
+const T_TINY := 28   # pies de pantalla y notas
 
 static func title_font() -> Font:
 	return load(TITLE)
 
+## Color de tarjeta: en oscuro se mezcla con el fondo para que el texto claro se lea.
+static func card_color(c: Color) -> Color:
+	return c.lerp(Color("141c2e"), 0.55) if dark else c
+
 static func pack_color(id: String) -> Color:
-	if PACK_COLORS.has(id):
-		return Color(PACK_COLORS[id])
-	return Color.from_hsv(float(id.hash() % 360) / 360.0, 0.4, 1.0)
+	var c: Color = Color(PACK_COLORS[id]) if PACK_COLORS.has(id) else Color.from_hsv(float(id.hash() % 360) / 360.0, 0.4, 1.0)
+	return card_color(c)
 
 # ---------- Geometría ----------
 
@@ -64,49 +174,49 @@ static func button_skin(pressed: bool = false) -> ImageTexture:
 			img.set_pixel(x, y, Color(k, k, k, edge_cov(d)))
 	return ImageTexture.create_from_image(img)
 
-## Flecha "<" para el botón de volver.
+## Icono de `assets/icons/` teñido de `col` y cacheado por nombre, tamaño y color.
+## El SVG se importa a 96 px (`svg/scale=6`) y se reduce a `size` para que quede nítido.
+static func icon(name: String, size: int = 32, col: Color = INK) -> ImageTexture:
+	var key: String = "%s|%d|%s" % [name, size, col.to_html(true)]
+	if _icon_cache.has(key):
+		return _icon_cache[key]
+	var tex := load(ICONS + name + ".svg") as Texture2D
+	if tex == null:
+		return null
+	var img: Image = tex.get_image()
+	if img == null:
+		return null
+	img.convert(Image.FORMAT_RGBA8)
+	if img.get_width() != size or img.get_height() != size:
+		img.resize(size, size, Image.INTERPOLATE_LANCZOS)
+	for y in size:
+		for x in size:
+			var a: float = img.get_pixel(x, y).a
+			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * a))
+	var out := ImageTexture.create_from_image(img)
+	_icon_cache[key] = out
+	return out
+
+## Flecha para el botón de volver.
 static func icon_chevron(size: int = 30, col: Color = INK) -> ImageTexture:
-	var s := float(size)
-	var hw: float = s * 0.08
-	var a := Vector2(0.32, 0.22) * s
-	var b := Vector2(0.60, 0.50) * s
-	var c := Vector2(0.32, 0.78) * s
-	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	for y in size:
-		for x in size:
-			var p := Vector2(float(x) + 0.5, float(y) + 0.5)
-			var d: float = minf(seg_dist(p, a, b), seg_dist(p, b, c)) - hw
-			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * edge_cov(d)))
-	return ImageTexture.create_from_image(img)
+	return icon("arrow_left", size, col)
 
-## Candado (cuerpo redondeado y arco) para las materias de pago.
+## Candado para las materias de pago.
 static func icon_lock(size: int = 44, col: Color = INK) -> ImageTexture:
-	var s := float(size)
-	var body_c := Vector2(s * 0.5, s * 0.64)
-	var body := Vector2(s * 0.29, s * 0.21)
-	var arc_c := Vector2(s * 0.5, s * 0.42)
-	var arc_r: float = s * 0.15
-	var arc_w: float = s * 0.06
-	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	for y in size:
-		for x in size:
-			var p := Vector2(float(x) + 0.5, float(y) + 0.5)
-			var d: float = sdf(p - body_c, body, s * 0.07)
-			if p.y < arc_c.y:
-				d = minf(d, absf((p - arc_c).length() - arc_r) - arc_w)
-			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * edge_cov(d)))
-	return ImageTexture.create_from_image(img)
+	return icon("lock", size, col)
 
-## Estrella de cuatro puntas para la pantalla de nivel completado.
+## Planta de dominio: 0 = brote, 1 = hoja, 2 = árbol.
+static func icon_plant(stage: int, size: int = 24, col: Color = PLANT) -> ImageTexture:
+	var names: Array[String] = ["sprout", "leaf", "tree"]
+	return icon(names[clampi(stage, 0, 2)], size, col)
+
+## Estrella para la pantalla de nivel completado.
 static func sparkle(size: int = 36, col: Color = Color("ffd45e")) -> ImageTexture:
-	var c := float(size) * 0.5
-	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	for y in size:
-		for x in size:
-			var p := (Vector2(float(x) + 0.5, float(y) + 0.5) - Vector2(c, c)) / c
-			var v: float = sqrt(absf(p.x)) + sqrt(absf(p.y))
-			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * clampf((1.0 - v) * 7.0, 0.0, 1.0)))
-	return ImageTexture.create_from_image(img)
+	return icon("star", size, col)
+
+## Nombre del icono de una materia (vacío si no hay).
+static func pack_icon(id: String) -> String:
+	return str(PACK_ICONS.get(id, ""))
 
 ## Logotipo: una ficha dorada con la cara azul, con bisel y brillo.
 static func logo(size: int = 150) -> ImageTexture:
@@ -226,17 +336,17 @@ static func _button(th: Theme, type: String, base: Color, flat: ImageTexture, do
 static func build() -> Theme:
 	var th := Theme.new()
 	th.default_font = load(BODY)
-	th.default_font_size = 28
+	th.default_font_size = T_BODY
 	var flat := button_skin(false)
 	var down := button_skin(true)
 	_button(th, "Button", BLUE, flat, down, Color.WHITE)
 	# Variante "Alt": botón secundario
 	th.set_type_variation("Alt", "Button")
-	_button(th, "Alt", Color("dfe9ff"), flat, down, INK)
+	_button(th, "Alt", ALT_BG, flat, down, INK)
 	# Variante "Pill": opción de un grupo, rellena cuando está activa
 	th.set_type_variation("Pill", "Button")
-	var soft := Color("e8eefc")
-	var line := Color("c3cff0")
+	var soft := PILL_BG
+	var line := PILL_LINE
 	th.set_stylebox("normal", "Pill", box(soft, line, 5, 10, 10, 30))
 	th.set_stylebox("hover", "Pill", box(soft.lightened(0.35), line, 5, 10, 10, 30))
 	th.set_stylebox("pressed", "Pill", box(BLUE, BLUE_DARK, 4, 12, 10, 30))

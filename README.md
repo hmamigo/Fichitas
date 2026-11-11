@@ -22,7 +22,7 @@ adb install -r fichas-del-saber.apk
 Es un APK de depuración, solo `arm64-v8a`. Para publicar hace falta un keystore de release (y, si hacen falta móviles de 32 bits o emuladores, activar `armeabi-v7a` / `x86_64` en el preset).
 
 ## Ajustar la luz
-En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `SKY_ENERGY`, `CLEARCOAT` y `GROUND_EDGE` (color del suelo al borde de la pantalla). Con el juego en ejecución desde el editor, las flechas ↑ ↓ del teclado suben o bajan la luz principal y la ambiental; la consola muestra los valores para copiarlos.
+En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `SKY_ENERGY` y `CLEARCOAT`; el color del suelo al borde de la pantalla lo da `_ground_edge()` según el tema. Con el juego en ejecución desde el editor, las flechas ↑ ↓ del teclado suben o bajan la luz principal y la ambiental; la consola muestra los valores para copiarlos.
 
 ## Qué incluye
 - Renderizador **Compatibility** (OpenGL): funciona en móviles y en equipos antiguos sin Vulkan.
@@ -30,17 +30,21 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 - Escena: luz principal con sombras + luz de relleno, oclusión ambiental (SSAO), brillo (glow) muy suave, suelo con degradado radial que enmarca el tablero y tablero con marco barnizado y losa de puntos.
 - Entrada unificada táctil + ratón (`scripts/board.gd`), cámara casi cenital sin rotación.
 - Dos modos de juego, menú, **pantalla de materias** con niveles propios (de 3 parejas hasta el tamaño del paquete) y **recorrido general** de 20 niveles. Las materias de pago se muestran bloqueadas (`"premium": true` en `pack.json`).
-- **Progreso en JSON** (`user://progress.json`): nivel, nivel por materia, dominio por pareja y calendario de repaso (se guarda, aún no se usa en pantalla).
-- Interfaz con fuentes **Fredoka SemiBold** y **Lilita One** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos).
+- **Progreso en JSON** (`user://progress.json`): nivel, nivel por materia, dominio por pareja, calendario de repaso, sonido, vibración y tema.
+- **Repaso espaciado:** cada nivel mezcla parejas pendientes (máximo 60 %, las más atrasadas primero), nuevas y el resto. La pantalla de materias muestra cuántas parejas esperan y una tarjeta **Repaso** (con ≥3 pendientes) que reúne hasta 10 de todas las materias en una sola sesión.
+- **Dominio al completar:** miniaturas grandes y adaptativas de las parejas del nivel (la cuadrícula y la tarjeta crecen según cuántas haya) con su planta (brote, dos hojas, árbol) y contorno verde en las que mejoraron.
+- **Audio y vibración:** efectos de giro, acierto, error y final sintetizados en memoria (`scripts/audio.gd`, sin archivos), vibración suave solo en móvil y ajustes en el menú. **Modo oscuro** para la interfaz y la escena 3D, también en el menú.
+- Interfaz con fuentes **Fredoka SemiBold** y **Lilita One** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos, plantas), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos).
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está
-Selección de parejas por repaso espaciado y pantalla de dominio (🌱🌿🌳), álbum con datos curiosos, audio, vibración configurable, ajustes y modo oscuro, chispas al acertar (hay destello en anillo al emparejar).
+Álbum con datos curiosos, chispas al acertar (hay destello en anillo al emparejar), paquetes externos, carga de imágenes de usuario y detección automática del modo oscuro del sistema.
 
 ## Pruebas (sin pantalla)
 ```
 godot --headless --path . --import
 godot --headless --path . --script res://tests/run_tests.gd
-godot --headless --path . --script res://tests/test_game.gd   # tablero, memoria y asociación
-godot --headless --path . --script res://tests/test_flow.gd   # menús, niveles, materias y guardado
+godot --headless --path . --script res://tests/test_game.gd     # tablero, memoria y asociación
+godot --headless --path . --script res://tests/test_flow.gd     # menús, niveles, materias y guardado
+godot --headless --path . --script res://tests/test_review.gd   # repaso, sesión Repaso, miniaturas y sonidos
 ```

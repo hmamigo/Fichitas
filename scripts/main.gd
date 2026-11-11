@@ -6,30 +6,44 @@ const COMING := ["Historia", "Más materias"]
 
 var board: Board
 var ui: GameUI
+var audio: GameAudio
 var packs: Array = []
 var state: int = S.MENU
 var cur_sid: String = ""
 var cur_level: int = 1
 var cur_last: bool = false
+var cur_review: bool = false
+var cur_pairs: Array = []
+var stage_before: Dictionary = {}
 
 func _ready() -> void:
 	Progress.load_data()
+	UiTheme.apply(str(Progress.data["theme"]) == "dark")
 	packs = Packs.load_all()
+	audio = GameAudio.new()
+	add_child(audio)
+	audio.enabled = bool(Progress.data["sound"])
 	board = Board.new()
 	add_child(board)
+	board.apply_theme(UiTheme.dark)
 	ui = GameUI.new()
 	add_child(ui)
 	board.blockers = [ui.hud_bar]
 	board.won.connect(_on_won)
+	board.sfx.connect(_on_sfx)
 	board.pair_done.connect(func(id: String, clean: bool) -> void: Progress.record(id, clean))
 	ui.play_general.connect(func() -> void: _play(""))
 	ui.play_subject.connect(_play)
+	ui.play_review.connect(_play_review)
 	ui.open_subjects.connect(_go_subjects)
 	ui.back_pressed.connect(_on_back)
 	ui.next_pressed.connect(_on_next)
 	ui.mode_changed.connect(func(m: String) -> void:
 		Progress.data["mode"] = m
 		Progress.save())
+	ui.sound_toggled.connect(_on_sound)
+	ui.vib_toggled.connect(_on_vib)
+	ui.dark_toggled.connect(_on_dark)
 	_go_menu()
 
 func _notification(what: int) -> void:
@@ -48,13 +62,51 @@ func _pack(id: String) -> Dictionary:
 func _go_menu() -> void:
 	state = S.MENU
 	board.stop()
-	ui.show_menu(Progress.level(), str(Progress.data["mode"]))
+	ui.show_menu(Progress.level(), str(Progress.data["mode"]), {
+		"sound": bool(Progress.data["sound"]),
+		"vib": bool(Progress.data["vib"]),
+		"vib_visible": OS.has_feature("mobile"),
+		"dark": UiTheme.dark,
+	})
+
+## Sonido y vibración: los efectos vienen de `board.sfx`.
+func _on_sfx(name: String) -> void:
+	audio.play(name)
+	if bool(Progress.data["vib"]) and OS.has_feature("mobile"):
+		Input.vibrate_handheld(35 if name == "err" else (60 if name == "win" else 12))
+
+func _on_sound(on: bool) -> void:
+	Progress.data["sound"] = on
+	Progress.save()
+	audio.enabled = on
+	if on:
+		audio.play("flip")
+
+func _on_vib(on: bool) -> void:
+	Progress.data["vib"] = on
+	Progress.save()
+	if on and OS.has_feature("mobile"):
+		Input.vibrate_handheld(35)
+
+func _on_dark(on: bool) -> void:
+	Progress.data["theme"] = "dark" if on else "light"
+	Progress.save()
+	UiTheme.apply(on)
+	ui.rebuild()
+	board.blockers = [ui.hud_bar]
+	board.apply_theme(on)
+	_go_menu()
 
 func _go_subjects() -> void:
 	state = S.SUBJECTS
 	board.stop()
 	var cards: Array = []
-	cards.append({"id": "", "name": "Recorrido general", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "color": Color("9cc8ff")})
+	var due: Array = Levels.due_pairs(packs)
+	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
+	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "sub3": due_txt, "color": UiTheme.card_color(Color("9cc8ff"))})
+	if due.size() >= 3:  # el repaso necesita al menos tres parejas
+		cards.append({"id": ":review", "name": "Repaso", "icon": "stars", "sub": "%d parejas esperando" % due.size(),
+			"sub2": "De todas las materias", "color": UiTheme.card_color(Color("ffce6b"))})
 	for p in packs:
 		var steps: Array = Levels.steps_for(p)
 		var v: int = Progress.subj_level(p["id"])
@@ -63,10 +115,12 @@ func _go_subjects() -> void:
 			if Progress.pair_stage(pr["id"]) == 2:
 				dom += 1
 		var locked: bool = not Levels.is_open(p)
+		var pdue: int = 0 if locked else Levels.due_count(p)
 		cards.append({
-			"id": p["id"], "name": p["name"],
+			"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
 			"sub": "De pago" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
 			"sub2": "" if locked else "Dominadas %d/%d" % [dom, (p["pairs"] as Array).size()],
+			"sub3": ("%d por repasar" % pdue) if pdue > 0 else "",
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
 			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"]})
 	for n in COMING:
@@ -75,12 +129,13 @@ func _go_subjects() -> void:
 			if p["name"] == n:
 				exists = true
 		if not exists:
-			cards.append({"id": "coming:" + n, "name": n, "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
+			cards.append({"id": "coming:" + n, "name": n, "icon": "book" if n == "Historia" else "stars", "sub": "Próximamente", "sub2": "", "color": UiTheme.card_color(Color("c9cfdb")), "locked": true,
 				"info": "«%s» llegará pronto. Algunas materias nuevas serán de pago." % n})
 	ui.show_subjects(cards)
 
 func _play(sid: String) -> void:
 	cur_sid = sid
+	cur_review = false
 	var pairs: Array = []
 	var label: String = ""
 	var last_level: int = Levels.max_level()
@@ -101,6 +156,24 @@ func _play(sid: String) -> void:
 	if pairs.size() < 3:
 		return
 	cur_last = cur_level >= last_level
+	_start(pairs, label)
+
+## Repaso: hasta 10 parejas pendientes de todas las materias abiertas, en una sola sesión.
+func _play_review() -> void:
+	var due: Array = Levels.due_pairs(packs)
+	if due.size() < 3:
+		return
+	cur_review = true
+	cur_sid = ""
+	cur_level = 0
+	cur_last = true
+	_start(due.slice(0, mini(10, due.size())), "Repaso")
+
+func _start(pairs: Array, label: String) -> void:
+	cur_pairs = pairs
+	stage_before.clear()
+	for pr in pairs:
+		stage_before[pr["id"]] = Progress.pair_stage(pr["id"])
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
 	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
@@ -108,19 +181,37 @@ func _play(sid: String) -> void:
 
 func _on_won() -> void:
 	state = S.WIN
-	if cur_sid != "" and cur_last:
-		var steps: Array = Levels.steps_for(_pack(cur_sid))
-		(Progress.data["subj"] as Dictionary)[cur_sid] = steps.size() + 1
-		Progress.save()
-	var msg: String = "Has emparejado %d parejas." % int(board.tiles.size() / 2.0)
-	if cur_last:
-		msg = "Has completado todos los niveles de %s. ¡Gran trabajo!" % _pack(cur_sid)["name"] if cur_sid != "" else "Has recorrido todas las colecciones disponibles. ¡Gran trabajo!"
-	var btn: String = "Siguiente nivel"
-	if cur_last:
-		btn = "Volver a materias" if cur_sid != "" else "Volver al menú"
-	ui.show_win("¡Nivel %d completado!" % cur_level, msg, btn)
+	var msg: String
+	var btn: String
+	if cur_review:
+		msg = "Has repasado %d parejas." % cur_pairs.size()
+		btn = "Volver a materias"
+	else:
+		if cur_sid != "" and cur_last:
+			var steps: Array = Levels.steps_for(_pack(cur_sid))
+			(Progress.data["subj"] as Dictionary)[cur_sid] = steps.size() + 1
+			Progress.save()
+		msg = "Has emparejado %d parejas." % int(board.tiles.size() / 2.0)
+		if cur_last:
+			msg = "Has completado todos los niveles de %s. ¡Gran trabajo!" % _pack(cur_sid)["name"] if cur_sid != "" else "Has recorrido todas las colecciones disponibles. ¡Gran trabajo!"
+		btn = "Siguiente nivel"
+		if cur_last:
+			btn = "Volver a materias" if cur_sid != "" else "Volver al menú"
+	var title: String = "¡Repaso completado!" if cur_review else "¡Nivel %d completado!" % cur_level
+	ui.show_win(title, msg, btn, _doms())
+
+## Estado de dominio de las parejas de la sesión, para las miniaturas de la victoria.
+func _doms() -> Array:
+	var out: Array = []
+	for pr in cur_pairs:
+		var st: int = Progress.pair_stage(pr["id"])
+		out.append({"tex": pr["a"], "stage": st, "up": st > int(stage_before.get(pr["id"], 0))})
+	return out
 
 func _on_next() -> void:
+	if cur_review:
+		_go_subjects()
+		return
 	if cur_last:
 		if cur_sid != "":
 			_go_subjects()
@@ -137,7 +228,7 @@ func _on_next() -> void:
 func _on_back() -> void:
 	match state:
 		S.GAME, S.WIN:
-			if cur_sid != "":
+			if cur_review or cur_sid != "":
 				_go_subjects()
 			else:
 				_go_menu()
