@@ -135,5 +135,29 @@ func _run() -> void:
 	b.start(_pairs(24))
 	await process_frame
 	check(b.tiles.size() == 48, "nivel de 24 parejas = 48 fichas")
+	print("Chispas")
+	b.start(_pairs(3))
+	for i in 3:
+		await process_frame
+	var ids2: Array = []
+	for t in b.tiles:
+		if not ids2.has(t.pair):
+			ids2.append(t.pair)
+	var S: Array = _of(b, ids2[0])
+	b._resolve_ok(S[0], S[1])
+	var sparks: Array = []
+	for t in S:
+		for c in t.node.get_children():
+			if c is CPUParticles3D:
+				sparks.append(c)
+	check(sparks.size() == 2 and (sparks[0] as CPUParticles3D).emitting, "cada ficha emparejada suelta chispas (%d)" % sparks.size())
+	check((sparks[0] as CPUParticles3D).amount == Board.SPARK_AMOUNT and (sparks[0] as CPUParticles3D).mesh != null and (sparks[0] as CPUParticles3D).color_ramp != null, "las chispas llevan malla y color")
+	await create_timer(1.2).timeout
+	var left: int = 0
+	for t in S:
+		for c in t.node.get_children():
+			if c is CPUParticles3D:
+				left += 1
+	check(left == 0, "las chispas se limpian solas")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)
