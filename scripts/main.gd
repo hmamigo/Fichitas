@@ -23,6 +23,7 @@ func _ready() -> void:
 	add_child(audio)
 	audio.enabled = bool(Progress.data["sound"])
 	board = Board.new()
+	board.view = 0.0  # arranca con la vista lejana del menú
 	add_child(board)
 	ui = GameUI.new()
 	add_child(ui)
@@ -57,8 +58,10 @@ func _pack(id: String) -> Dictionary:
 	return {}
 
 func _go_menu() -> void:
+	var from_game: bool = state == S.GAME or state == S.WIN
 	state = S.MENU
 	board.stop()
+	board.fly_to(0.0, 0.9 if from_game else 0.0)  # la cámara se aleja hasta la vista del menú
 	ui.show_menu(Progress.level(), str(Progress.data["mode"]), {
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
@@ -87,6 +90,7 @@ func _on_vib(on: bool) -> void:
 func _go_subjects() -> void:
 	state = S.SUBJECTS
 	board.stop()
+	board.fly_to(0.0, 0.0)  # esta pantalla tapa la escena; la cámara ya queda lejos
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
@@ -161,10 +165,15 @@ func _start(pairs: Array, label: String) -> void:
 	stage_before.clear()
 	for pr in pairs:
 		stage_before[pr["id"]] = Progress.pair_stage(pr["id"])
+	var next_level: bool = state == S.WIN
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
 	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
-	board.start(pairs)
+	# Desde las materias, la cámara baja desde lejos hasta el tablero; entre niveles, solo un acercamiento corto
+	var secs: float = 0.55 if next_level else 1.3
+	board.view = 0.88 if next_level else 0.0
+	board.start(pairs, secs * 0.6)
+	board.fly_to(1.0, secs)
 
 func _on_won() -> void:
 	state = S.WIN

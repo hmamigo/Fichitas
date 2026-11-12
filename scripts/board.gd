@@ -10,6 +10,9 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
+const MENU_DIST := 16.0   # vista lejana del menú
+const MENU_TILT := 1.0
+const MENU_LOOK := Vector3(0.0, -0.3, -2.5)
 const HY := 0.065     # mitad del grosor de la ficha
 const FACE := 0.425   # semiancho de la cara con la imagen
 const REST_Y := 0.06   # altura de las fichas pendientes: separadas de la losa
@@ -57,7 +60,10 @@ var cols: int = 0
 var rows: int = 0
 var fit: float = 10.0
 var zoom: float = 1.0
+var view: float = 1.0          # 1 = cámara de juego, 0 = vista lejana del menú
 var floor_cubes: FloorCubes
+var _fly: Tween
+var _clock: float = 0.0
 var cam_x: float = 0.0
 var cam_z: float = 0.0
 var lock: bool = false
@@ -112,7 +118,7 @@ func _ready() -> void:
 
 # ---------- API ----------
 
-func start(pairs: Array) -> void:
+func start(pairs: Array, pop_delay: float = 0.0) -> void:
 	_clear_tiles()
 	gen += 1
 	active = true
@@ -137,7 +143,7 @@ func start(pairs: Array) -> void:
 		var t: Tile = tiles[i]
 		t.node.scale = Vector3.ONE * 0.001
 		var tw := t.node.create_tween()
-		tw.tween_interval(i * 0.03)
+		tw.tween_interval(pop_delay + i * 0.03)
 		tw.tween_property(t.node, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func stop() -> void:
@@ -320,8 +326,6 @@ func _build_environment() -> void:
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_DEPTH
 	env.fog_light_color = FOG_COLOR
-	env.fog_depth_begin = 15.0
-	env.fog_depth_end = 40.0
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -482,15 +486,35 @@ func _build_board() -> void:
 
 # ---------- Cámara ----------
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_clock += delta
 	_update_cam()
 
 func _update_cam() -> void:
 	cam_x = clampf(cam_x, -float(cols) * ST * 0.5, float(cols) * ST * 0.5)
 	cam_z = clampf(cam_z, -float(rows) * ST * 0.5, float(rows) * ST * 0.5)
-	var d: float = fit / zoom
-	cam.position = Vector3(cam_x, d * cos(TILT), cam_z + d * sin(TILT))
-	cam.look_at(Vector3(cam_x, 0.0, cam_z), Vector3.UP)
+	var v: float = clampf(view, 0.0, 1.0)
+	var d: float = lerpf(MENU_DIST, fit / zoom, v)
+	var tilt: float = lerpf(MENU_TILT, TILT, v)
+	var target: Vector3 = MENU_LOOK.lerp(Vector3(cam_x, 0.0, cam_z), v)
+	# En el menú la vista se balancea despacio; en juego queda fija
+	var yaw: float = sin(_clock * 0.15) * 0.30 * (1.0 - v)
+	var off := Vector3(0.0, d * cos(tilt), d * sin(tilt)).rotated(Vector3.UP, yaw)
+	cam.position = target + off
+	# La niebla empieza detrás del tablero: no lo tiñe, pero difumina el fondo lejano
+	env.fog_depth_begin = d + 4.0
+	env.fog_depth_end = d + 22.0
+	cam.look_at(target, Vector3.UP)
+
+## Mueve la cámara entre la vista del menú (0) y la de juego (1).
+func fly_to(target: float, secs: float) -> void:
+	if _fly != null:
+		_fly.kill()
+	if secs <= 0.0:
+		view = target
+		return
+	_fly = create_tween()
+	_fly.tween_property(self, "view", target, secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 
 func _pan(delta: Vector2) -> void:
 	var h: float = maxf(get_viewport().get_visible_rect().size.y, 1.0)
@@ -535,7 +559,7 @@ func _unhandled_input(e: InputEvent) -> void:
 			light_scale = clampf(light_scale + (0.1 if k == KEY_UP else -0.1), 0.2, 2.0)
 			_apply_light()
 		return
-	if not active:
+	if not active or view < 0.97:
 		return
 	if e is InputEventScreenTouch:
 		var te := e as InputEventScreenTouch
