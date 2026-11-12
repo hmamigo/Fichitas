@@ -73,13 +73,21 @@ func _backdrop(parent: Control, kind: String) -> void:
 	parent.add_child(bg)
 	_bgs.append(bg.material)
 
+## Contorno claro alrededor del texto, para que se lea sobre la escena 3D.
+func _halo(l: Label) -> Label:
+	var oc := UiTheme.CREAM
+	l.add_theme_color_override("font_outline_color", Color(oc.r, oc.g, oc.b, 0.95))
+	l.add_theme_constant_override("outline_size", 8)
+	return l
+
 ## Pantalla completa con su propio fondo (`kind`: ver `UiTheme.backdrop`).
 func _screen(kind: String) -> Control:
 	var c := Control.new()
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	c.theme = _th
 	add_child(c)
-	_backdrop(c, kind)
+	if kind != "none":
+		_backdrop(c, kind)
 	return c
 
 ## Tarjeta clara con sombra; devuelve la caja vertical donde poner el contenido.
@@ -172,7 +180,7 @@ func _build_hud() -> void:
 	h.add_child(pc)
 
 func _build_menu() -> void:
-	menu = _screen("menu")
+	menu = _screen("none")  # sin fondo: detrás se ve el suelo de cubos 3D
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -189,14 +197,10 @@ func _build_menu() -> void:
 	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(logo)
 	v.add_child(_label("Fichas del saber", UiTheme.T_HERO, true, UiTheme.BLUE_DARK))
-	v.add_child(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK_SOFT, true))
-	var gap := Control.new()
-	gap.custom_minimum_size = Vector2(0, 34)
-	v.add_child(gap)
-	# Tres fichas de muestra, como decoración
-	v.add_child(_chips())
+	v.add_child(_halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK, true)))
 	var gap_mid := Control.new()
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	gap_mid.size_flags_stretch_ratio = 2.2  # deja ver la escena 3D entre el título y la tarjeta
 	v.add_child(gap_mid)
 	var card := _panel(v, 700, 40)
 	_menu_card = card.get_parent() as Control
@@ -239,7 +243,7 @@ func _build_menu() -> void:
 	var gap2 := Control.new()
 	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap2)
-	v.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK_SOFT))
+	v.add_child(_halo(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK)))
 
 func _build_subjects() -> void:
 	subjects = _screen("subjects")
