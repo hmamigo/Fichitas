@@ -15,7 +15,7 @@ const FACE := 0.425   # semiancho de la cara con la imagen
 const REST_Y := 0.06   # altura de las fichas pendientes: separadas de la losa
 const MATCH_Y := -0.09  # las resueltas se hunden en la losa
 const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
-const MATCH_ALPHA := 0.50  # opacidad de las fichas resueltas (un poco translúcidas)
+const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
 const LIGHT_ENERGY := 0.55    # luz direccional principal
 const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
@@ -248,7 +248,7 @@ func _plate_texture(hx: float, hz: float) -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
 	var base := Color("e9dab8")
-	var dot := Color("cbb287")
+	var dot := Color("d8c395")
 	var line := Color("a6c7ea")
 	for y in n:
 		var uy: float = (float(y) + 0.5) / n * 2.0 - 1.0
@@ -306,13 +306,7 @@ func _build_environment() -> void:
 	env.ambient_light_color = Color("cfe0f5")
 	env.ambient_light_energy = AMBIENT_ENERGY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.ssao_enabled = true
-	env.ssao_radius = 0.7
-	env.ssao_intensity = 2.2
 	env.glow_enabled = true
-	env.glow_intensity = 0.35
-	env.glow_bloom = 0.04
-	env.glow_hdr_threshold = 1.25
 	env.glow_intensity = 0.40
 	env.glow_bloom = 0.05
 	env.glow_hdr_threshold = 1.35
@@ -324,7 +318,7 @@ func _build_environment() -> void:
 	we.environment = env
 	add_child(we)
 	sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-62, -28, 0)
+	sun.rotation_degrees = Vector3(-62, 152, 0)
 	sun.light_color = Color("fff4e2")
 	sun.light_energy = LIGHT_ENERGY
 	sun.shadow_enabled = true
@@ -337,7 +331,7 @@ func _build_environment() -> void:
 	add_child(sun)
 	# Luz de relleno: quita dureza a las sombras sin coste (sin sombras propias)
 	fill = DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(-38, 152, 0)
+	fill.rotation_degrees = Vector3(-38, -28, 0)
 	fill.light_color = Color("cfe2ff")
 	fill.light_energy = FILL_ENERGY
 	fill.shadow_enabled = false
