@@ -22,6 +22,12 @@ const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
 const AMBIENT_ENERGY := 0.26  # luz ambiental
 const SKY_ENERGY := 0.55      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.6        # barniz de las caras
+# Chispas al emparejar (ajustables)
+const SPARK_AMOUNT := 16       # estrellas por ficha
+const SPARK_LIFE := 0.55       # segundos que viven
+const SPARK_SIZE := 0.13       # lado de cada estrella
+const SPARK_GOLD := Color("ffd45e")
+const SPARK_PALE := Color("fffdf2")
 
 class Tile:
 	var node: Node3D
@@ -68,39 +74,21 @@ var moved: bool = false
 var pinch_d: float = 0.0
 var back_tex: ImageTexture
 var bezel_tex: ImageTexture
+var spark_tex: ImageTexture
+var spark_mesh: QuadMesh
 var gold: StandardMaterial3D
 var tile_body: ArrayMesh
 var face_up: ArrayMesh
 var face_down: ArrayMesh
 var ring_mesh: ArrayMesh
 var halo_mesh: ArrayMesh
-var dark: bool = false
 var ground_mat: StandardMaterial3D
 var far_mat: StandardMaterial3D
 var fill: DirectionalLight3D
 
-## Color de la escena según la paleta clara u oscura.
-func _c(light: Color, night: Color) -> Color:
-	return night if dark else light
-
+## Color del suelo al borde de la pantalla: también es el fondo lejano de la escena.
 func _ground_edge() -> Color:
-	return _c(Color("6f92bd"), Color("0b1120"))
-
-## Cambia la paleta de la escena 3D (suelo, marco, losa, luces y cielo).
-func apply_theme(is_dark: bool) -> void:
-	dark = is_dark
-	_make_textures()
-	if env == null:
-		return
-	env.background_color = _ground_edge()
-	env.sky = _make_sky()
-	env.ambient_light_color = _c(Color("cfe0f5"), Color("6f86b8"))
-	sun.light_color = _c(Color("fff4e2"), Color("cfe0ff"))
-	fill.light_color = _c(Color("cfe2ff"), Color("7893c8"))
-	far_mat.albedo_color = _ground_edge()
-	ground_mat.albedo_texture = _ground_texture()
-	if board != null:
-		_build_board()
+	return Color("6f92bd")
 
 func _ready() -> void:
 	_make_textures()
@@ -170,6 +158,9 @@ func _clear_tiles() -> void:
 func _make_textures() -> void:
 	back_tex = _back_texture()
 	bezel_tex = _bezel_texture()
+	# Chispas: la estrella del tema, blanca, para poder teñirla desde el color de la partícula
+	spark_tex = UiTheme.icon("star", 64, Color.WHITE)
+	spark_mesh = _spark_mesh() if spark_tex != null else null
 	gold = StandardMaterial3D.new()
 	gold.albedo_color = Color("e9b949")
 	gold.albedo_texture = bezel_tex
@@ -186,11 +177,11 @@ func _make_textures() -> void:
 func _back_texture() -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var top := _c(Color("e8f0fb"), Color("2a3550"))
-	var bot := _c(Color("c3d6f2"), Color("1e2740"))
-	var line := _c(Color("9cbce4"), Color("3b4a6b"))
-	var mark := _c(Color("4a8ff5"), Color("7fb0ff"))
-	var inner := _c(Color("eef5ff"), Color("c9d8f5"))
+	var top := Color("e8f0fb")
+	var bot := Color("c3d6f2")
+	var line := Color("9cbce4")
+	var mark := Color("4a8ff5")
+	var inner := Color("eef5ff")
 	for y in n:
 		var t: float = float(y) / float(n - 1)
 		for x in n:
@@ -224,25 +215,41 @@ func _bezel_texture() -> ImageTexture:
 			img.set_pixel(x, y, Color(k, k, k))
 	return ImageTexture.create_from_image(img)
 
-## Suelo: degradado radial suave que da profundidad alrededor del tablero.
+## Suelo: foco de luz bajo el tablero, dos manchas de color suaves, el anillo que
+## enmarca la losa y la viñeta hacia los bordes; un grano fino evita las bandas.
+## La parte visible es la franja central del cuadrado (ver `_layout`), así que el
+## degradado se aprieta alrededor del tablero en lugar de repartirse por todo él.
 func _ground_texture() -> ImageTexture:
-	var n := 96
+	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var mid := _c(Color("a8bfda"), Color("141d2e"))
+	var mid := Color("f4f8ff")    # justo bajo el tablero
+	var ring := Color("b8cef0")   # anillo que lo enmarca
 	var out := _ground_edge()
+	var cool := Color("e2d8ff")   # mancha fría (arriba a la izquierda)
+	var warm := Color("d8f4e8")   # mancha verde (abajo a la derecha)
 	for y in n:
+		var fy: float = (float(y) + 0.5) / float(n)
 		for x in n:
-			var p := Vector2((float(x) + 0.5) / n * 2.0 - 1.0, (float(y) + 0.5) / n * 2.0 - 1.0)
-			img.set_pixel(x, y, mid.lerp(out, pow(clampf(p.length() / 1.15, 0.0, 1.0), 2.0)))
+			var fx: float = (float(x) + 0.5) / float(n)
+			var d: float = (Vector2(fx, fy) * 2.0 - Vector2.ONE).length()
+			var col: Color = mid
+			col = col.lerp(cool, 0.60 * pow(clampf(1.0 - Vector2(fx, fy).distance_to(Vector2(0.33, 0.30)) / 0.45, 0.0, 1.0), 1.5))
+			col = col.lerp(warm, 0.50 * pow(clampf(1.0 - Vector2(fx, fy).distance_to(Vector2(0.67, 0.72)) / 0.45, 0.0, 1.0), 1.5))
+			col = col.lerp(ring, smoothstep(0.22, 0.58, d))
+			col = col.lerp(out, smoothstep(0.62, 1.02, d))
+			# Grano fino: el degradado es de 8 bits y sin él se verían bandas
+			var r: float = sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
+			var g: float = (r - floorf(r) - 0.5) * 0.024
+			img.set_pixel(x, y, Color(clampf(col.r + g, 0.0, 1.0), clampf(col.g + g, 0.0, 1.0), clampf(col.b + g, 0.0, 1.0)))
 	return ImageTexture.create_from_image(img)
 
 ## Losa del tablero: cuadrícula de puntos y un borde fino.
 func _plate_texture(hx: float, hz: float) -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var base := _c(Color("e9dab8"), Color("2a3145"))
-	var dot := _c(Color("cbb287"), Color("3d4761"))
-	var line := _c(Color("a6c7ea"), Color("4a6f9e"))
+	var base := Color("e9dab8")
+	var dot := Color("cbb287")
+	var line := Color("a6c7ea")
 	for y in n:
 		var uy: float = (float(y) + 0.5) / n * 2.0 - 1.0
 		for x in n:
@@ -257,24 +264,32 @@ func _plate_texture(hx: float, hz: float) -> ImageTexture:
 			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
-## Entorno para los reflejos del metal: degradado con focos suaves (softbox).
+## Entorno para los reflejos del metal: degradado con focos suaves (softbox) y un
+## brillo cálido en el horizonte, que tiñe las partes bajas de la ficha dorada.
 func _make_sky() -> Sky:
 	var img := Image.create_empty(512, 256, false, Image.FORMAT_RGB8)
 	for y in 256:
 		var t: float = float(y) / 255.0
 		var col: Color
 		if t < 0.5:
-			col = _c(Color("ffffff"), Color("2a3550")).lerp(_c(Color("dbe7ff"), Color("3a4a6b")), t * 2.0)
+			col = Color("ffffff").lerp(Color("dbe7ff"), t * 2.0)
 		else:
-			col = _c(Color("93a8cf"), Color("202a40")).lerp(_c(Color("232a3c"), Color("0a0f1a")), (t - 0.5) * 2.0)
+			col = Color("93a8cf").lerp(Color("232a3c"), (t - 0.5) * 2.0)
 		img.fill_rect(Rect2i(0, y, 512, 1), col)
-	for band in [[24, 48, 0.9], [104, 34, 0.6], [176, 40, 0.3]]:
+	# Focos: [centro, alto, brillo]; el de arriba es la luz principal (cenit)
+	for band in [[18, 54, 0.95], [96, 30, 0.55], [168, 44, 0.28]]:
 		var y0: int = band[0]
-		var h: int = band[1]
-		for y in range(y0, y0 + h):
-			var f: float = 1.0 - absf(float(y - y0) / float(h) - 0.5) * 2.0
+		var bh: int = band[1]
+		for y in range(y0, mini(y0 + bh, 256)):
+			var f: float = 1.0 - absf(float(y - y0) / float(bh) - 0.5) * 2.0
 			f = pow(clampf(f, 0.0, 1.0), 0.6) * float(band[2])
 			img.fill_rect(Rect2i(0, y, 512, 1), (img.get_pixel(0, y) as Color).lerp(Color.WHITE, f))
+	# Brillo del horizonte: un tinte de color que separa el cielo del suelo
+	var glow := Color("ffe6c0")
+	for y in range(96, 180):
+		var f: float = 1.0 - absf(float(y) - 138.0) / 42.0
+		f = pow(clampf(f, 0.0, 1.0), 1.4) * 0.20
+		img.fill_rect(Rect2i(0, y, 512, 1), (img.get_pixel(0, y) as Color).lerp(glow, f))
 	var sm := PanoramaSkyMaterial.new()
 	sm.panorama = ImageTexture.create_from_image(img)
 	sm.energy_multiplier = SKY_ENERGY
@@ -288,7 +303,7 @@ func _build_environment() -> void:
 	env.background_color = _ground_edge()
 	env.sky = _make_sky()
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = _c(Color("cfe0f5"), Color("6f86b8"))
+	env.ambient_light_color = Color("cfe0f5")
 	env.ambient_light_energy = AMBIENT_ENERGY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.ssao_enabled = true
@@ -310,7 +325,7 @@ func _build_environment() -> void:
 	add_child(we)
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-62, -28, 0)
-	sun.light_color = _c(Color("fff4e2"), Color("cfe0ff"))
+	sun.light_color = Color("fff4e2")
 	sun.light_energy = LIGHT_ENERGY
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
@@ -323,7 +338,7 @@ func _build_environment() -> void:
 	# Luz de relleno: quita dureza a las sombras sin coste (sin sombras propias)
 	fill = DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-38, 152, 0)
-	fill.light_color = _c(Color("cfe2ff"), Color("7893c8"))
+	fill.light_color = Color("cfe2ff")
 	fill.light_energy = FILL_ENERGY
 	fill.shadow_enabled = false
 	add_child(fill)
@@ -436,7 +451,7 @@ func _build_board() -> void:
 	var h: float = float(rows) * ST + 0.5
 	# Marco azul con barniz
 	var fm := StandardMaterial3D.new()
-	fm.albedo_color = _c(Color("2f86d6"), Color("1f4f86"))
+	fm.albedo_color = Color("2f86d6")
 	fm.roughness = 0.30
 	fm.metallic = 0.25
 	fm.clearcoat_enabled = true
@@ -704,6 +719,8 @@ func _resolve_ok(a: Tile, b: Tile) -> void:
 	_unglow(b)
 	_match(a)
 	_match(b)
+	_sparks(a)
+	_sparks(b)
 	sfx.emit("ok")
 	pair_done.emit(a.pair, not err.has(a.pair))
 	_check_win()
@@ -744,6 +761,65 @@ func _flash(t: Tile, col: Color) -> void:
 	tw.tween_property(mi, "scale", Vector3.ONE * 1.45, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(mat, "albedo_color:a", 0.0, 0.45).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.chain().tween_callback(mi.queue_free)
+
+## Chispas al emparejar: un puñado de estrellas que saltan de la ficha y se apagan.
+## Cuelgan de la ficha (se liberan con ella) y van en coordenadas globales, para que
+## no la sigan cuando se hunde en la losa.
+func _sparks(t: Tile) -> void:
+	if spark_mesh == null:
+		return
+	var p := CPUParticles3D.new()
+	p.mesh = spark_mesh
+	p.amount = SPARK_AMOUNT
+	p.lifetime = SPARK_LIFE
+	p.one_shot = true
+	p.explosiveness = 1.0        # todas a la vez: un estallido, no un chorro
+	p.local_coords = false
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = 0.24
+	p.direction = Vector3.UP
+	p.spread = 180.0
+	p.initial_velocity_min = 1.3
+	p.initial_velocity_max = 2.6
+	p.gravity = Vector3(0, -3.2, 0)
+	p.damping_min = 0.5
+	p.damping_max = 1.3
+	p.angular_velocity_min = -240.0
+	p.angular_velocity_max = 240.0
+	p.scale_amount_min = SPARK_SIZE * 0.55
+	p.scale_amount_max = SPARK_SIZE * 1.30
+	p.color_ramp = _spark_ramp()
+	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	p.position = Vector3(0, 0.10, 0)
+	t.node.add_child(p)
+	p.emitting = true
+	# Se limpian solas; si la ficha se libera antes, el tween muere con el nodo
+	var tw := p.create_tween()
+	tw.tween_interval(SPARK_LIFE + 0.25)
+	tw.tween_callback(p.queue_free)
+
+## Quad con la estrella del tema, siempre de cara a la cámara.
+func _spark_mesh() -> QuadMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2(SPARK_SIZE, SPARK_SIZE)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.albedo_texture = spark_tex
+	m.vertex_color_use_as_albedo = true  # el color de la partícula tiñe la estrella
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	m.render_priority = 2                # por encima de las caras translúcidas
+	q.material = m
+	return q
+
+## Color de la chispa a lo largo de su vida: nace casi blanca y se apaga en dorado.
+func _spark_ramp() -> Gradient:
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.30, 1.0])
+	g.colors = PackedColorArray([SPARK_PALE, SPARK_GOLD, Color(SPARK_GOLD.r, SPARK_GOLD.g, SPARK_GOLD.b, 0.0)])
+	return g
 
 ## Anillo sin iluminar, translúcido, para halos y destellos.
 func _ring_node(col: Color, mesh: ArrayMesh) -> MeshInstance3D:
