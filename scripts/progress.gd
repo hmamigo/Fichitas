@@ -8,7 +8,7 @@ static var data: Dictionary = {}
 
 static func defaults() -> Dictionary:
 	return {"v": 1, "level": 1, "mode": "mem", "subj": {}, "mp": {}, "sr": {}, "owned": [],
-		"sound": true, "vib": true, "theme": "light"}
+		"sound": true, "vib": true}
 
 static func load_data() -> void:
 	data = defaults()

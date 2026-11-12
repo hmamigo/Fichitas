@@ -11,7 +11,6 @@ signal next_pressed
 signal mode_changed(mode: String)
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
-signal dark_toggled(on: bool)
 
 var hud_bar: Control
 var lv_label: Label
@@ -20,7 +19,6 @@ var play_btn: Button
 var mode_btns: Dictionary = {}
 var sound_btn: Button
 var vib_btn: Button
-var dark_btn: Button
 var subjects: Control
 var grid: GridContainer
 var toast_label: Label
@@ -32,6 +30,7 @@ var dom_grid: GridContainer
 var _th: Theme
 var _menu_card: Control
 var _win_card: Control
+var _bgs: Array = []   # materiales de los fondos, para reajustar el lienzo
 
 func _ready() -> void:
 	_th = UiTheme.build()
@@ -40,6 +39,7 @@ func _ready() -> void:
 	_build_subjects()
 	_build_win()
 	get_viewport().size_changed.connect(_update_columns)
+	_update_columns()
 	hide_all()
 
 # ---------- Utilidades ----------
@@ -62,44 +62,24 @@ func _label(text: String, size: int, title: bool = false, color: Color = Color(0
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return l
 
-## Fondo de pantalla: degradado vertical y, opcionalmente, un patrón de fichas.
-func _backdrop(parent: Control, stops: Array, pattern: float = 0.0) -> void:
-	var offs := PackedFloat32Array()
-	var cols := PackedColorArray()
-	for s in stops:
-		offs.append(float(s[0]))
-		cols.append(s[1])
-	var g := Gradient.new()
-	g.offsets = offs
-	g.colors = cols
-	var gt := GradientTexture2D.new()
-	gt.gradient = g
-	gt.fill = GradientTexture2D.FILL_LINEAR
-	gt.fill_from = Vector2(0.0, 0.0)
-	gt.fill_to = Vector2(0.0, 1.0)
-	var bg := TextureRect.new()
-	bg.texture = gt
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
+## Fondo de pantalla: degradado de malla con fichas flotantes, por shader
+## (`UiTheme.backdrop`). El material se guarda para reajustarlo al redimensionar.
+func _backdrop(parent: Control, kind: String) -> void:
+	var bg := ColorRect.new()
+	bg.color = Color.WHITE
+	bg.material = UiTheme.backdrop(kind)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	parent.add_child(bg)
-	if pattern <= 0.0:
-		return
-	var pt := TextureRect.new()
-	pt.texture = UiTheme.pattern_tile(110, Color(1, 1, 1, pattern * UiTheme.pattern_scale))
-	pt.stretch_mode = TextureRect.STRETCH_TILE
-	pt.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	pt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pt.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	parent.add_child(pt)
+	_bgs.append(bg.material)
 
-## Pantalla completa con su propio fondo.
-func _screen(stops: Array, pattern: float = 0.0) -> Control:
+## Pantalla completa con su propio fondo (`kind`: ver `UiTheme.backdrop`).
+func _screen(kind: String) -> Control:
 	var c := Control.new()
 	c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	c.theme = _th
 	add_child(c)
-	_backdrop(c, stops, pattern)
+	_backdrop(c, kind)
 	return c
 
 ## Tarjeta clara con sombra; devuelve la caja vertical donde poner el contenido.
@@ -137,7 +117,6 @@ func _toggle(text: String, icon_on: String, icon_off: String, parent: Control) -
 	b.toggle_mode = true
 	b.theme_type_variation = "Pill"
 	b.custom_minimum_size = Vector2(0, 76)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.add_theme_constant_override("h_separation", 10)
 	b.add_theme_font_size_override("font_size", UiTheme.T_SMALL)
@@ -158,19 +137,6 @@ func _pop(c: Control) -> void:
 	c.pivot_offset = c.size * 0.5
 	var tw := create_tween()
 	tw.tween_property(c, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-
-## Vuelve a construir las pantallas con la paleta actual (cambio de tema).
-func rebuild() -> void:
-	for c in get_children():
-		remove_child(c)
-		c.queue_free()
-	mode_btns.clear()
-	_th = UiTheme.build()
-	_build_hud()
-	_build_menu()
-	_build_subjects()
-	_build_win()
-	hide_all()
 
 func hide_all() -> void:
 	hud_bar.visible = false
@@ -206,7 +172,7 @@ func _build_hud() -> void:
 	h.add_child(pc)
 
 func _build_menu() -> void:
-	menu = _screen(UiTheme.MENU_STOPS, 0.26)
+	menu = _screen("menu")
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -263,21 +229,20 @@ func _build_menu() -> void:
 	play_btn.pressed.connect(func() -> void: play_general.emit())
 	card.add_child(play_btn)
 	var opts := HBoxContainer.new()
+	opts.alignment = BoxContainer.ALIGNMENT_CENTER
 	opts.add_theme_constant_override("separation", 12)
 	card.add_child(opts)
 	sound_btn = _toggle("Sonido", "speaker", "speaker_mute", opts)
 	sound_btn.toggled.connect(func(on: bool) -> void: sound_toggled.emit(on))
 	vib_btn = _toggle("Vibración", "rumble_phone", "mobile_phone", opts)
 	vib_btn.toggled.connect(func(on: bool) -> void: vib_toggled.emit(on))
-	dark_btn = _toggle("Oscuro", "moon", "sun", opts)
-	dark_btn.toggled.connect(func(on: bool) -> void: dark_toggled.emit(on))
 	var gap2 := Control.new()
 	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap2)
 	v.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK_SOFT))
 
 func _build_subjects() -> void:
-	subjects = _screen(UiTheme.SUBJECT_STOPS, 0.30)
+	subjects = _screen("subjects")
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -336,7 +301,7 @@ func _build_win() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(dim)
-	_backdrop(win, UiTheme.WIN_STOPS, 0.18)
+	_backdrop(win, "scrim")
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(center)
@@ -368,21 +333,18 @@ func _build_win() -> void:
 
 # ---------- API ----------
 
-## opts: {sound, vib, vib_visible, dark}
+## opts: {sound, vib, vib_visible}
 func show_menu(level: int, mode: String, opts: Dictionary = {}) -> void:
 	hide_all()
 	(mode_btns[mode] as Button).button_pressed = true
 	play_btn.text = "Recorrido general · Nivel %d" % level
 	var snd: bool = bool(opts.get("sound", true))
 	var vb: bool = bool(opts.get("vib", true))
-	var dk: bool = bool(opts.get("dark", false))
 	sound_btn.set_pressed_no_signal(snd)
 	_paint_toggle(sound_btn, snd)
 	vib_btn.visible = bool(opts.get("vib_visible", false))
 	vib_btn.set_pressed_no_signal(vb)
 	_paint_toggle(vib_btn, vb)
-	dark_btn.set_pressed_no_signal(dk)
-	_paint_toggle(dark_btn, dk)
 	menu.visible = true
 	if _menu_card != null:
 		_pop(_menu_card)
@@ -503,8 +465,11 @@ func toast(text: String) -> void:
 func _update_columns() -> void:
 	if grid == null:
 		return
-	var w: float = get_viewport().get_visible_rect().size.x - 48.0
-	grid.columns = maxi(2, floori(w / 330.0))
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	UiTheme.bg_resize(vp)
+	for m in _bgs:
+		(m as ShaderMaterial).set_shader_parameter("res", vp)
+	grid.columns = maxi(2, floori((vp.x - 48.0) / 330.0))
 
 func _card(d: Dictionary) -> Button:
 	var locked: bool = d.get("locked", false)

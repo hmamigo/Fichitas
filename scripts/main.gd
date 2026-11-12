@@ -18,14 +18,12 @@ var stage_before: Dictionary = {}
 
 func _ready() -> void:
 	Progress.load_data()
-	UiTheme.apply(str(Progress.data["theme"]) == "dark")
 	packs = Packs.load_all()
 	audio = GameAudio.new()
 	add_child(audio)
 	audio.enabled = bool(Progress.data["sound"])
 	board = Board.new()
 	add_child(board)
-	board.apply_theme(UiTheme.dark)
 	ui = GameUI.new()
 	add_child(ui)
 	board.blockers = [ui.hud_bar]
@@ -43,7 +41,6 @@ func _ready() -> void:
 		Progress.save())
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
-	ui.dark_toggled.connect(_on_dark)
 	_go_menu()
 
 func _notification(what: int) -> void:
@@ -66,7 +63,6 @@ func _go_menu() -> void:
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
 		"vib_visible": OS.has_feature("mobile"),
-		"dark": UiTheme.dark,
 	})
 
 ## Sonido y vibración: los efectos vienen de `board.sfx`.
@@ -88,25 +84,16 @@ func _on_vib(on: bool) -> void:
 	if on and OS.has_feature("mobile"):
 		Input.vibrate_handheld(35)
 
-func _on_dark(on: bool) -> void:
-	Progress.data["theme"] = "dark" if on else "light"
-	Progress.save()
-	UiTheme.apply(on)
-	ui.rebuild()
-	board.blockers = [ui.hud_bar]
-	board.apply_theme(on)
-	_go_menu()
-
 func _go_subjects() -> void:
 	state = S.SUBJECTS
 	board.stop()
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
-	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "sub3": due_txt, "color": UiTheme.card_color(Color("9cc8ff"))})
+	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "sub3": due_txt, "color": Color("9cc8ff")})
 	if due.size() >= 3:  # el repaso necesita al menos tres parejas
 		cards.append({"id": ":review", "name": "Repaso", "icon": "stars", "sub": "%d parejas esperando" % due.size(),
-			"sub2": "De todas las materias", "color": UiTheme.card_color(Color("ffce6b"))})
+			"sub2": "De todas las materias", "color": Color("ffce6b")})
 	for p in packs:
 		var steps: Array = Levels.steps_for(p)
 		var v: int = Progress.subj_level(p["id"])
@@ -129,7 +116,7 @@ func _go_subjects() -> void:
 			if p["name"] == n:
 				exists = true
 		if not exists:
-			cards.append({"id": "coming:" + n, "name": n, "icon": "book" if n == "Historia" else "stars", "sub": "Próximamente", "sub2": "", "color": UiTheme.card_color(Color("c9cfdb")), "locked": true,
+			cards.append({"id": "coming:" + n, "name": n, "icon": "book" if n == "Historia" else "stars", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
 				"info": "«%s» llegará pronto. Algunas materias nuevas serán de pago." % n})
 	ui.show_subjects(cards)
 

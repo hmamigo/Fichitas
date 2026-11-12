@@ -1,8 +1,9 @@
 class_name UiTheme
 extends RefCounted
-## Tema de interfaz con aspecto de juguete: relieve, fuentes redondeadas, texturas
-## dibujadas por código (pieles de botón, logotipo y patrón de fondo) e iconos SVG
-## de `assets/icons/` (copia de @icons, licencia MIT) teñidos al vuelo.
+## Tema de interfaz con aspecto de juguete: relieve, fuentes redondeadas, pieles de
+## botón y logotipo dibujados por código, fondos de pantalla por shader
+## (`assets/shaders/backdrop.gdshader`) e iconos SVG de `assets/icons/` (copia de
+## @icons, licencia MIT) teñidos al vuelo.
 
 const BODY := "res://fonts/fredoka-600.woff2"
 const TITLE := "res://fonts/lilita-one-400.woff2"
@@ -17,97 +18,47 @@ const PACK_ICONS := {
 }
 static var _icon_cache: Dictionary = {}
 
-# ---------- Paleta (clara u oscura) ----------
-# Son variables y no constantes porque el tema se puede cambiar en caliente;
-# `apply()` las reescribe y la interfaz se vuelve a construir.
-static var dark: bool = false
-static var INK := Color("1d2a44")
-static var INK_SOFT := Color("6b7a99")
-static var BLUE := Color("3b82f6")
-static var BLUE_DARK := Color("21539f")
-static var CREAM := Color("fffdf7")
-static var ALT_BG := Color("dfe9ff")
-static var PILL_BG := Color("e8eefc")
-static var PILL_LINE := Color("c3cff0")
-static var HUD_BG := Color(1, 1, 1, 0.92)
-static var DIM := Color(0.06, 0.11, 0.26, 0.42)
-static var LOCKED := Color("c4cbd9")
-static var BADGE_BG := Color(1, 1, 1, 0.45)
-static var PLANT := Color("2f8f4e")
-static var pattern_scale := 1.0
-static var MENU_STOPS: Array = [
-	[0.0, Color(0.84, 0.91, 1.0, 0.94)],
-	[0.45, Color(0.93, 0.97, 1.0, 0.30)],
-	[1.0, Color(0.68, 0.81, 0.97, 0.88)],
+# ---------- Paleta ----------
+# Colores fijos del tema claro. El tema oscuro se retiró, así que ya no hay cambio
+# de paleta en caliente: son constantes.
+const INK := Color("1d2a44")
+const INK_SOFT := Color("6b7a99")
+const BLUE := Color("3b82f6")
+const BLUE_DARK := Color("21539f")
+const CREAM := Color("fffdf7")
+const ALT_BG := Color("dfe9ff")
+const PILL_BG := Color("e8eefc")
+const PILL_LINE := Color("c3cff0")
+const HUD_BG := Color(1, 1, 1, 0.92)
+const DIM := Color(0.06, 0.11, 0.26, 0.42)
+const LOCKED := Color("c4cbd9")
+const BADGE_BG := Color(1, 1, 1, 0.45)
+const PLANT := Color("2f8f4e")
+# ---------- Fondos de pantalla ----------
+# El fondo de cada pantalla es un degradado de malla (focos de color muy suaves)
+# con fichas redondeadas flotando en profundidad, viñeta y un grano fino que evita
+# el bandeado. Se calcula en la GPU (`BACKDROP`), así que se ve nítido en cualquier
+# pantalla y respira despacio. Sin archivos de imagen, como el resto del tema.
+const BACKDROP := "res://assets/shaders/backdrop.gdshader"
+## Focos: centro (x, y) en UV, radio (fracción del alto), intensidad y color.
+const BG_BLOBS := [
+	{"x": 0.50, "y": -0.05, "r": 0.55, "k": 0.55, "col": Color("ffffff")},
+	{"x": 0.02, "y": 0.28, "r": 0.45, "k": 0.40, "col": Color("c9b6ff")},
+	{"x": 1.00, "y": 0.62, "r": 0.45, "k": 0.35, "col": Color("93ebc6")},
+	{"x": 0.20, "y": 1.02, "r": 0.45, "k": 0.30, "col": Color("ffd79e")},
 ]
-static var SUBJECT_STOPS: Array = [
-	[0.0, Color(0.94, 0.97, 1.0, 0.97)],
-	[1.0, Color(0.73, 0.85, 0.98, 0.97)],
-]
-static var WIN_STOPS: Array = [
-	[0.0, Color(0.45, 0.62, 0.92, 0.0)],
-	[1.0, Color(0.30, 0.48, 0.84, 0.30)],
-]
-
-## Elige la paleta. La interfaz debe reconstruirse después (`GameUI.rebuild()`).
-static func apply(is_dark: bool) -> void:
-	dark = is_dark
-	if dark:
-		INK = Color("e8eefc")
-		INK_SOFT = Color("9db0d0")
-		BLUE = Color("3b82f6")
-		BLUE_DARK = Color("8db8ff")
-		CREAM = Color("161f33")
-		ALT_BG = Color("22304a")
-		PILL_BG = Color("1d2942")
-		PILL_LINE = Color("33456b")
-		HUD_BG = Color(0.09, 0.13, 0.22, 0.92)
-		DIM = Color(0, 0, 0, 0.55)
-		LOCKED = Color("39435c")
-		BADGE_BG = Color(1, 1, 1, 0.10)
-		PLANT = Color("6fd08e")
-		pattern_scale = 0.55
-		MENU_STOPS = [
-			[0.0, Color(0.05, 0.08, 0.15, 0.96)],
-			[0.45, Color(0.08, 0.12, 0.21, 0.55)],
-			[1.0, Color(0.12, 0.19, 0.32, 0.92)],
-		]
-		SUBJECT_STOPS = [
-			[0.0, Color(0.07, 0.10, 0.18, 0.97)],
-			[1.0, Color(0.11, 0.18, 0.30, 0.97)],
-		]
-		WIN_STOPS = [
-			[0.0, Color(0.10, 0.16, 0.28, 0.0)],
-			[1.0, Color(0.05, 0.09, 0.18, 0.55)],
-		]
-	else:
-		INK = Color("1d2a44")
-		INK_SOFT = Color("6b7a99")
-		BLUE = Color("3b82f6")
-		BLUE_DARK = Color("21539f")
-		CREAM = Color("fffdf7")
-		ALT_BG = Color("dfe9ff")
-		PILL_BG = Color("e8eefc")
-		PILL_LINE = Color("c3cff0")
-		HUD_BG = Color(1, 1, 1, 0.92)
-		DIM = Color(0.06, 0.11, 0.26, 0.42)
-		LOCKED = Color("c4cbd9")
-		BADGE_BG = Color(1, 1, 1, 0.45)
-		PLANT = Color("2f8f4e")
-		pattern_scale = 1.0
-		MENU_STOPS = [
-			[0.0, Color(0.84, 0.91, 1.0, 0.94)],
-			[0.45, Color(0.93, 0.97, 1.0, 0.30)],
-			[1.0, Color(0.68, 0.81, 0.97, 0.88)],
-		]
-		SUBJECT_STOPS = [
-			[0.0, Color(0.94, 0.97, 1.0, 0.97)],
-			[1.0, Color(0.73, 0.85, 0.98, 0.97)],
-		]
-		WIN_STOPS = [
-			[0.0, Color(0.45, 0.62, 0.92, 0.0)],
-			[1.0, Color(0.30, 0.48, 0.84, 0.30)],
-		]
+const BG_TOP := Color("eaf4ff")
+const BG_BOTTOM := Color("9dc4f5")
+const BG_TILE := Color(1, 1, 1, 0.34)
+const BG_VIGNETTE := 0.12
+const BG_GRAIN := 0.012
+# Velo de la pantalla de nivel completado: va sobre el tablero, así que es azul
+# oscuro y translúcido en lugar del fondo claro de las demás pantallas.
+const BG_SCRIM_TOP := Color(0.20, 0.34, 0.62, 0.0)
+const BG_SCRIM_BOTTOM := Color(0.16, 0.30, 0.58, 0.52)
+const BG_SCRIM_BLOB := Color("3a5a94")
+static var _bg_shader: Shader = null
+static var _bg_res := Vector2(960.0, 1707.0)
 
 # ---------- Tipografía ----------
 ## Tamaños de texto en píxeles lógicos (el lienzo mide 960 de ancho). En un celular
@@ -126,13 +77,9 @@ const T_TINY := 28   # pies de pantalla y notas
 static func title_font() -> Font:
 	return load(TITLE)
 
-## Color de tarjeta: en oscuro se mezcla con el fondo para que el texto claro se lea.
-static func card_color(c: Color) -> Color:
-	return c.lerp(Color("141c2e"), 0.55) if dark else c
-
+## Color de la tarjeta de una materia: el de su paquete, o uno derivado de su id.
 static func pack_color(id: String) -> Color:
-	var c: Color = Color(PACK_COLORS[id]) if PACK_COLORS.has(id) else Color.from_hsv(float(id.hash() % 360) / 360.0, 0.4, 1.0)
-	return card_color(c)
+	return Color(PACK_COLORS[id]) if PACK_COLORS.has(id) else Color.from_hsv(float(id.hash() % 360) / 360.0, 0.4, 1.0)
 
 # ---------- Geometría ----------
 
@@ -253,24 +200,43 @@ static func logo(size: int = 150) -> ImageTexture:
 			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
-## Tesela repetible con dos fichas giradas en diagonal (fondo de las pantallas).
-static func pattern_tile(size: int = 110, col: Color = Color(1, 1, 1, 0.5), angle: float = 0.32) -> ImageTexture:
-	var s := float(size)
-	var half := Vector2.ONE * (s * 0.125)
-	var ca: float = cos(angle)
-	var sa: float = sin(angle)
-	var centers: Array = [Vector2(s * 0.27, s * 0.27), Vector2(s * 0.77, s * 0.77)]
-	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
-	for y in size:
-		for x in size:
-			var p := Vector2(float(x) + 0.5, float(y) + 0.5)
-			var d: float = 1e9
-			for c in centers:
-				var q: Vector2 = p - (c as Vector2)
-				q = Vector2(q.x * ca - q.y * sa, q.x * sa + q.y * ca)
-				d = minf(d, sdf(q, half, s * 0.04))
-			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * edge_cov(d)))
-	return ImageTexture.create_from_image(img)
+# ---------- Fondos de pantalla ----------
+
+static func _bg() -> Shader:
+	if _bg_shader == null:
+		_bg_shader = load(BACKDROP) as Shader
+	return _bg_shader
+
+## Tamaño del lienzo que usan los fondos (al cambiar el tamaño de la ventana).
+static func bg_resize(size: Vector2) -> void:
+	_bg_res = size
+
+## Material del fondo de una pantalla. `kind`: "menu" (portada), "subjects" (lista
+## de materias) o "scrim" (velo translúcido sobre el tablero, para el nivel
+## completado). Las pantallas comparten paleta pero mueven los focos, así que el
+## degradado se ve distinto en cada una sin perder la familia.
+static func backdrop(kind: String = "menu") -> ShaderMaterial:
+	var scrim: bool = kind == "scrim"
+	var calm: float = 1.0 if kind == "menu" else 0.72  # la lista de materias, más tranquila
+	var m := ShaderMaterial.new()
+	m.shader = _bg()
+	m.set_shader_parameter("res", _bg_res)
+	m.set_shader_parameter("base_top", BG_SCRIM_TOP if scrim else BG_TOP)
+	m.set_shader_parameter("base_bottom", BG_SCRIM_BOTTOM if scrim else BG_BOTTOM)
+	for i in 4:
+		var b: Dictionary = BG_BLOBS[i]
+		var x: float = float(b["x"]) if kind == "menu" else 1.0 - float(b["x"])
+		var k: float = float(b["k"]) * calm * (0.45 if scrim else 1.0)
+		m.set_shader_parameter("blob%d" % i, Vector4(x, float(b["y"]), float(b["r"]), k))
+		m.set_shader_parameter("col%d" % i, BG_SCRIM_BLOB if scrim else b["col"])
+	m.set_shader_parameter("tile_col", Vector3(BG_TILE.r, BG_TILE.g, BG_TILE.b))
+	m.set_shader_parameter("tile_amount", 0.0 if scrim else BG_TILE.a * calm)
+	m.set_shader_parameter("tile_scale", 0.10)
+	m.set_shader_parameter("tile_edge", 0.90 if kind == "menu" else 1.0)
+	m.set_shader_parameter("vignette", BG_VIGNETTE * (1.5 if scrim else 1.0))
+	m.set_shader_parameter("grain", BG_GRAIN)
+	m.set_shader_parameter("speed", 0.05)
+	return m
 
 # ---------- Cajas de estilo ----------
 
