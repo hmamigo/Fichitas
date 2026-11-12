@@ -22,23 +22,23 @@ adb install -r fichas-del-saber.apk
 Es un APK de depuración, solo `arm64-v8a`. Para publicar hace falta un keystore de release (y, si hacen falta móviles de 32 bits o emuladores, activar `armeabi-v7a` / `x86_64` en el preset).
 
 ## Ajustar la luz
-En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `SKY_ENERGY` y `CLEARCOAT`; el color del suelo al borde de la pantalla lo da `_ground_edge()` según el tema. Con el juego en ejecución desde el editor, las flechas ↑ ↓ del teclado suben o bajan la luz principal y la ambiental; la consola muestra los valores para copiarlos.
+En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `SKY_ENERGY` y `CLEARCOAT`; el color de fondo y de la niebla lo da `FOG_COLOR`, y el del suelo entre los cubos, `_ground_edge()`. Con el juego en ejecución desde el editor, las flechas ↑ ↓ del teclado suben o bajan la luz principal y la ambiental; la consola muestra los valores para copiarlos.
 
 ## Qué incluye
 - Renderizador **Compatibility** (OpenGL): funciona en móviles y en equipos antiguos sin Vulkan.
 - Ficha: losa dorada con bisel (malla procedural), hueco oscurecido alrededor de la cara, cara con la imagen y dorso con emblema azul, reflejos de estudio, sombra proyectada, destello al emparejar y halo del resaltado con la silueta de la ficha; las pendientes flotan sobre la losa y las resueltas se hunden en ella y quedan un poco translúcidas.
-- Escena: luz principal con sombras + luz de relleno, oclusión ambiental (SSAO), brillo (glow) muy suave, suelo con degradado radial que enmarca el tablero y tablero con marco barnizado y losa de puntos.
-- Entrada unificada táctil + ratón (`scripts/board.gd`), cámara casi cenital sin rotación.
+- Escena: luz principal con sombras que caen hacia abajo + luz de relleno, brillo (glow) muy suave, niebla de profundidad, suelo de cubos de colores (`scripts/floor_cubes.gd`, un solo `MultiMesh`) y tablero con marco barnizado y losa de puntos. No hay SSAO: el renderizador Compatibility no lo soporta.
+- Entrada unificada táctil + ratón (`scripts/board.gd`), cámara casi cenital sin rotación durante el juego. El menú es una vista lejana e inclinada del suelo de cubos; al jugar, la cámara baja hasta el tablero (`Board.view` y `fly_to()`).
 - Dos modos de juego, menú, **pantalla de materias** con niveles propios (de 3 parejas hasta el tamaño del paquete) y **recorrido general** de 20 niveles. Las materias de pago se muestran bloqueadas (`"premium": true` en `pack.json`).
-- **Progreso en JSON** (`user://progress.json`): nivel, nivel por materia, dominio por pareja, calendario de repaso, sonido, vibración y tema.
+- **Progreso en JSON** (`user://progress.json`): nivel, nivel por materia, dominio por pareja, calendario de repaso, sonido y vibración.
 - **Repaso espaciado:** cada nivel mezcla parejas pendientes (máximo 60 %, las más atrasadas primero), nuevas y el resto. La pantalla de materias muestra cuántas parejas esperan y una tarjeta **Repaso** (con ≥3 pendientes) que reúne hasta 10 de todas las materias en una sola sesión.
 - **Dominio al completar:** miniaturas grandes y adaptativas de las parejas del nivel (la cuadrícula y la tarjeta crecen según cuántas haya) con su planta (brote, dos hojas, árbol) y contorno verde en las que mejoraron.
-- **Audio y vibración:** efectos de giro, acierto, error y final sintetizados en memoria (`scripts/audio.gd`, sin archivos), vibración suave solo en móvil y ajustes en el menú. **Modo oscuro** para la interfaz y la escena 3D, también en el menú.
+- **Audio y vibración:** efectos de giro, acierto, error y final sintetizados en memoria (`scripts/audio.gd`, sin archivos), vibración suave solo en móvil y ajustes en el menú.
 - Interfaz con fuentes **Fredoka SemiBold** y **Lilita One** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos, plantas), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos).
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está
-Álbum con datos curiosos, chispas al acertar (hay destello con la silueta de la ficha al emparejar), paquetes externos, carga de imágenes de usuario y detección automática del modo oscuro del sistema.
+Álbum con datos curiosos, paquetes externos y carga de imágenes de usuario. El modo oscuro se retiró.
 
 ## Pruebas (sin pantalla)
 ```
