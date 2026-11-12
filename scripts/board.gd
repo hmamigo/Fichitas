@@ -57,6 +57,7 @@ var cols: int = 0
 var rows: int = 0
 var fit: float = 10.0
 var zoom: float = 1.0
+var floor_cubes: FloorCubes
 var cam_x: float = 0.0
 var cam_z: float = 0.0
 var lock: bool = false
@@ -85,6 +86,8 @@ var halo_mesh: ArrayMesh
 var ground_mat: StandardMaterial3D
 var far_mat: StandardMaterial3D
 var fill: DirectionalLight3D
+
+const FOG_COLOR := Color("b9d2ee")
 
 ## Color del suelo al borde de la pantalla: también es el fondo lejano de la escena.
 func _ground_edge() -> Color:
@@ -300,7 +303,7 @@ func _make_sky() -> Sky:
 func _build_environment() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = _ground_edge()
+	env.background_color = FOG_COLOR
 	env.sky = _make_sky()
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("cfe0f5")
@@ -314,6 +317,11 @@ func _build_environment() -> void:
 	env.set("glow_levels/2", 0.6)
 	env.set("glow_levels/3", 0.3)
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.fog_enabled = true
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_light_color = FOG_COLOR
+	env.fog_depth_begin = 15.0
+	env.fog_depth_end = 40.0
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
@@ -347,7 +355,10 @@ func _build_environment() -> void:
 	ground_mat.metallic = 0.0
 	ground_pad.material_override = ground_mat
 	ground_pad.position.y = -0.45
+	ground_pad.visible = false
 	add_child(ground_pad)
+	floor_cubes = FloorCubes.new()
+	add_child(floor_cubes)
 	# Suelo lejano: el mismo color del borde, para que no se vea el límite
 	var far := MeshInstance3D.new()
 	var fpm := PlaneMesh.new()
@@ -435,6 +446,8 @@ func _layout() -> void:
 	# El degradado del suelo se ajusta a lo que ve la cámara en este nivel
 	if ground_mesh != null:
 		ground_mesh.size = Vector2.ONE * (fit * 0.92)
+	if floor_cubes != null:
+		floor_cubes.set_clear_rect(w * 0.5 + 0.22, h * 0.5 + 0.22)
 
 func _build_board() -> void:
 	if board != null:
