@@ -246,7 +246,13 @@ func _build_menu() -> void:
 	v.add_child(_halo(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK)))
 
 func _build_subjects() -> void:
-	subjects = _screen("subjects")
+	subjects = _screen("none")  # sin fondo: se ve el suelo de cubos 3D
+	# Velo claro y translúcido: calma los cubos detrás de la lista sin taparlos del todo
+	var veil := ColorRect.new()
+	veil.color = Color(0.88, 0.93, 1.0, 0.58)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	subjects.add_child(veil)
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -273,7 +279,7 @@ func _build_subjects() -> void:
 	var t := _label("Elige una materia", UiTheme.T_HEAD, true, UiTheme.BLUE_DARK)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(t)
-	var st := _label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
+	var st := _halo(_label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK))
 	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(st)
 	var sc := ScrollContainer.new()
@@ -286,7 +292,7 @@ func _build_subjects() -> void:
 	grid.add_theme_constant_override("h_separation", 18)
 	grid.add_theme_constant_override("v_separation", 18)
 	sc.add_child(grid)
-	toast_label = _label("", UiTheme.T_SMALL, false, UiTheme.INK, true)
+	toast_label = _halo(_label("", UiTheme.T_SMALL, false, UiTheme.INK, true))
 	v.add_child(toast_label)
 
 const WIN_PAD := 34        # margen interior de la tarjeta de nivel completado

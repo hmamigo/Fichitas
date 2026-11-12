@@ -88,9 +88,10 @@ func _on_vib(on: bool) -> void:
 		Input.vibrate_handheld(35)
 
 func _go_subjects() -> void:
+	var from_game: bool = state == S.GAME or state == S.WIN
 	state = S.SUBJECTS
 	board.stop()
-	board.fly_to(0.0, 0.0)  # esta pantalla tapa la escena; la cámara ya queda lejos
+	board.fly_to(0.0, 0.9 if from_game else 0.0)  # desde el juego, la cámara se aleja hasta la vista lejana
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
