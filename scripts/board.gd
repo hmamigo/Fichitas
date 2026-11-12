@@ -12,6 +12,10 @@ const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const HY := 0.065     # mitad del grosor de la ficha
 const FACE := 0.425   # semiancho de la cara con la imagen
+const REST_Y := 0.06   # altura de las fichas pendientes: separadas de la losa
+const MATCH_Y := -0.09  # las resueltas se hunden en la losa
+const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
+const MATCH_ALPHA := 0.50  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
 const LIGHT_ENERGY := 0.55    # luz direccional principal
 const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
@@ -110,8 +114,9 @@ func _ready() -> void:
 	tile_body = TileMesh.slab(0.49, 0.49, 0.16, HY * 2.0, 0.03, 5, 8)
 	face_up = TileMesh.face(FACE, HY + 0.003, true)
 	face_down = TileMesh.face(FACE, -HY - 0.003, false)
-	ring_mesh = TileMesh.ring(0.50, 0.74, 0.0, 48)
-	halo_mesh = TileMesh.ring(0.50, 0.62, 0.0, 48)
+	# Destello y halo con la silueta de la ficha (losa de 0.49 y esquinas de 0.16, desplazada 0.01)
+	ring_mesh = TileMesh.ring(0.50, 0.74, 0.0, 8, 0.17)
+	halo_mesh = TileMesh.ring(0.50, 0.62, 0.0, 8, 0.17)
 	get_viewport().size_changed.connect(_layout)
 
 # ---------- API ----------
@@ -410,7 +415,7 @@ func _layout() -> void:
 		var in_row: int = cols if row < rows - 1 else n - cols * (rows - 1)
 		var col: int = i % cols
 		var tl: Tile = tiles[i]
-		tl.home = Vector3((float(col) - float(in_row - 1) * 0.5) * ST, 0.0, (float(row) - float(rows - 1) * 0.5) * ST)
+		tl.home = Vector3((float(col) - float(in_row - 1) * 0.5) * ST, MATCH_Y if tl.matched else REST_Y, (float(row) - float(rows - 1) * 0.5) * ST)
 		if not (dragging and drag_tile == tl):
 			tl.node.position = tl.home
 	_build_board()
@@ -705,14 +710,23 @@ func _resolve_ok(a: Tile, b: Tile) -> void:
 
 func _match(t: Tile) -> void:
 	t.matched = true
-	# Resuelta: bisel verde, imagen atenuada y ficha hundida, para distinguirla de las pendientes
+	t.home.y = MATCH_Y
+	# Resuelta: bisel verde, imagen atenuada, un poco translúcida y ficha hundida
 	t.body_mat.emission_enabled = false
-	t.body_mat.albedo_color = Color("5ac489")
+	var body := Color("5ac489")
+	body.a = MATCH_ALPHA
+	t.body_mat.albedo_color = body
 	t.body_mat.roughness = 0.38
-	t.face_mat.albedo_color = Color(0.70, 0.80, 0.74)
-	t.back_mat.albedo_color = Color(0.70, 0.80, 0.74)
+	t.face_mat.albedo_color = Color(0.70, 0.80, 0.74, MATCH_ALPHA)
+	t.back_mat.albedo_color = Color(0.70, 0.80, 0.74, MATCH_ALPHA)
+	# Las superficies transparentes no escriben profundidad: el cuerpo va antes que las caras
+	for m in [t.body_mat, t.face_mat, t.back_mat]:
+		(m as StandardMaterial3D).transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	t.body_mat.render_priority = 0
+	t.face_mat.render_priority = 1
+	t.back_mat.render_priority = 1
 	var tw := t.node.create_tween()
-	tw.tween_property(t.node, "position:y", -0.025, 0.1)
+	tw.tween_property(t.node, "position:y", MATCH_Y, 0.1)
 	tw.parallel().tween_property(t.node, "scale", Vector3.ONE * 1.12, 0.12)
 	tw.tween_property(t.node, "scale", Vector3.ONE * 0.95, 0.18)
 	_flash(t, Color(1.0, 0.94, 0.66, 1.0))
@@ -720,7 +734,8 @@ func _match(t: Tile) -> void:
 ## Anillo que se abre y se apaga sobre la ficha resuelta.
 func _flash(t: Tile, col: Color) -> void:
 	var mi := _ring_node(col, ring_mesh)
-	mi.position.y = 0.085
+	# La ficha se hunde al resolverse; el destello se mantiene por encima del resto
+	mi.position.y = FLASH_Y - MATCH_Y
 	mi.scale = Vector3.ONE * 0.8
 	t.node.add_child(mi)
 	var mat: StandardMaterial3D = mi.material_override
@@ -738,6 +753,8 @@ func _ring_node(col: Color, mesh: ArrayMesh) -> MeshInstance3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# Por encima de las caras translúcidas de las fichas resueltas
+	m.render_priority = 2
 	m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	m.albedo_color = col
 	mi.material_override = m
@@ -754,7 +771,7 @@ func _check_win() -> void:
 		var tw := t.node.create_tween()
 		tw.tween_interval(0.4 + i * 0.05)
 		tw.tween_property(t.node, "position:y", 0.45, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tw.tween_property(t.node, "position:y", 0.0, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tw.tween_property(t.node, "position:y", MATCH_Y, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await get_tree().create_timer(1.1 + tiles.size() * 0.05).timeout
 	if g == gen and active:
 		sfx.emit("win")
@@ -768,7 +785,7 @@ func _flip(t: Tile, up: bool) -> void:
 	tw.tween_property(t.flip, "rotation:z", 0.0 if up else PI, 0.33).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	var hop := t.node.create_tween()
 	hop.tween_property(t.node, "position:y", 0.5, 0.165).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	hop.tween_property(t.node, "position:y", 0.0, 0.165).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	hop.tween_property(t.node, "position:y", REST_Y, 0.165).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 func _lift(t: Tile, y: float) -> void:
 	var tw := t.node.create_tween()
@@ -794,7 +811,7 @@ func _unglow(t: Tile) -> void:
 		t.halo = null
 
 func _unsel(t: Tile) -> void:
-	_lift(t, 0.0)
+	_lift(t, MATCH_Y if t.matched else REST_Y)
 	_unglow(t)
 
 func _shake(t: Tile) -> void:

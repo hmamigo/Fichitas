@@ -38,6 +38,24 @@ func _init() -> void:
 	check(ok_uv and _tris_ok(f), "cara con UV en 0..1 y orientación correcta")
 	var fd: ArrayMesh = TileMesh.face(0.41, -0.0685, false)
 	check(_tris_ok(fd), "dorso orientado hacia abajo")
+	var rr: ArrayMesh = TileMesh.ring(0.50, 0.74, 0.0, 8, 0.17)
+	var rv: PackedVector3Array = rr.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var far: float = 0.0
+	for p in rv:
+		far = maxf(far, Vector2(p.x, p.z).length())
+	check(absf(rr.get_aabb().size.x - 1.48) < 0.01 and far > 0.80 and _tris_ok(rr), "destello con esquinas de la ficha (radio máx %.2f)" % far)
+	var rc: ArrayMesh = TileMesh.ring(0.50, 0.62, 0.0, 8, 0.17)
+	var rcv: PackedVector3Array = rc.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var fhalo: float = 0.0
+	for p in rcv:
+		fhalo = maxf(fhalo, Vector2(p.x, p.z).length())
+	check(absf(rc.get_aabb().size.x - 1.24) < 0.01 and fhalo > 0.68 and _tris_ok(rc), "halo con esquinas de la ficha (radio máx %.2f)" % fhalo)
+	var rcir: ArrayMesh = TileMesh.ring(0.50, 0.74, 0.0, 12)
+	var rcv2: PackedVector3Array = rcir.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var fcirc: float = 0.0
+	for p in rcv2:
+		fcirc = maxf(fcirc, Vector2(p.x, p.z).length())
+	check(absf(fcirc - 0.74) < 0.005 and _tris_ok(rcir), "anillo circular por omisión")
 	print("Paquetes")
 	var packs: Array = Packs.load_all()
 	var total: int = 0

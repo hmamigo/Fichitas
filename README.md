@@ -26,7 +26,7 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 
 ## Qué incluye
 - Renderizador **Compatibility** (OpenGL): funciona en móviles y en equipos antiguos sin Vulkan.
-- Ficha: losa dorada con bisel (malla procedural), hueco oscurecido alrededor de la cara, cara con la imagen y dorso con emblema azul, reflejos de estudio, sombra proyectada y destello en anillo al emparejar.
+- Ficha: losa dorada con bisel (malla procedural), hueco oscurecido alrededor de la cara, cara con la imagen y dorso con emblema azul, reflejos de estudio, sombra proyectada, destello al emparejar y halo del resaltado con la silueta de la ficha; las pendientes flotan sobre la losa y las resueltas se hunden en ella y quedan un poco translúcidas.
 - Escena: luz principal con sombras + luz de relleno, oclusión ambiental (SSAO), brillo (glow) muy suave, suelo con degradado radial que enmarca el tablero y tablero con marco barnizado y losa de puntos.
 - Entrada unificada táctil + ratón (`scripts/board.gd`), cámara casi cenital sin rotación.
 - Dos modos de juego, menú, **pantalla de materias** con niveles propios (de 3 parejas hasta el tamaño del paquete) y **recorrido general** de 20 niveles. Las materias de pago se muestran bloqueadas (`"premium": true` en `pack.json`).
@@ -38,7 +38,7 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está
-Álbum con datos curiosos, chispas al acertar (hay destello en anillo al emparejar), paquetes externos, carga de imágenes de usuario y detección automática del modo oscuro del sistema.
+Álbum con datos curiosos, chispas al acertar (hay destello con la silueta de la ficha al emparejar), paquetes externos, carga de imágenes de usuario y detección automática del modo oscuro del sistema.
 
 ## Pruebas (sin pantalla)
 ```

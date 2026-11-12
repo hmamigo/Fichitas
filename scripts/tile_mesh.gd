@@ -105,19 +105,23 @@ static func face(half: float, y: float, up: bool, radius: float = 0.09, seg: int
 	return st.commit()
 
 ## Anillo plano en el plano XZ, para el destello al emparejar.
-static func ring(inner: float, outer: float, y: float, seg: int = 48) -> ArrayMesh:
+## `seg` son los segmentos por esquina. Con `radius` negativo el anillo es circular;
+## con un radio positivo sigue la silueta redondeada de la ficha (misma banda de ancho).
+static func ring(inner: float, outer: float, y: float, seg: int = 8, radius: float = -1.0) -> ArrayMesh:
+	var r: float = inner if radius < 0.0 else clampf(radius, 0.0005, inner)
+	var band: float = outer - inner
+	var li: PackedVector2Array = loop(inner, inner, r, seg)[0]
+	var lo: PackedVector2Array = loop(outer, outer, r + band, seg)[0]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var up := Vector3.UP
-	for i in seg:
-		var a0: float = TAU * float(i) / float(seg)
-		var a1: float = TAU * float(i + 1) / float(seg)
-		var p0 := Vector2(cos(a0), sin(a0))
-		var p1 := Vector2(cos(a1), sin(a1))
-		var v0 := Vector3(p0.x * inner, y, p0.y * inner)
-		var v1 := Vector3(p1.x * inner, y, p1.y * inner)
-		var v2 := Vector3(p1.x * outer, y, p1.y * outer)
-		var v3 := Vector3(p0.x * outer, y, p0.y * outer)
-		_tri(st, [v0, v1, v2], [up, up, up], [Vector2.ZERO, Vector2.RIGHT, Vector2.ONE], up)
-		_tri(st, [v0, v2, v3], [up, up, up], [Vector2.ZERO, Vector2.ONE, Vector2.DOWN], up)
+	var z2 := Vector2.ZERO
+	for k in li.size():
+		var k2: int = (k + 1) % li.size()
+		var v0 := Vector3(li[k].x, y, li[k].y)
+		var v1 := Vector3(li[k2].x, y, li[k2].y)
+		var v2 := Vector3(lo[k2].x, y, lo[k2].y)
+		var v3 := Vector3(lo[k].x, y, lo[k].y)
+		_tri(st, [v0, v1, v2], [up, up, up], [z2, z2, z2], up)
+		_tri(st, [v0, v2, v3], [up, up, up], [z2, z2, z2], up)
 	return st.commit()

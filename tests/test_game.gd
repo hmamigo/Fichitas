@@ -67,6 +67,8 @@ func _run() -> void:
 	await create_timer(0.8).timeout
 	check(P[0].matched and P[1].matched, "pareja correcta queda resuelta")
 	check(P[0].body_mat.albedo_color != Color("e9b949") and Q[0].body_mat.albedo_color == Color("e9b949"), "resuelta se ve distinta de la pendiente")
+	check(is_equal_approx(P[0].node.position.y, Board.MATCH_Y) and is_equal_approx(Q[0].node.position.y, Board.REST_Y) and Board.MATCH_Y < Board.REST_Y, "resueltas más cerca del suelo que las pendientes")
+	check(P[0].face_mat.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA and P[0].face_mat.albedo_color.a < 1.0 and Q[0].face_mat.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED, "resueltas un poco translúcidas y pendientes opacas")
 	check(done.size() == 1 and done[0][0] == ids[0] and done[0][1] == false, "pareja con error previo no cuenta como limpia")
 	b._tap(Q[0])
 	await create_timer(0.1).timeout
