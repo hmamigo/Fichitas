@@ -196,7 +196,7 @@ func _build_menu() -> void:
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(logo)
-	v.add_child(_label("Fichas del saber", UiTheme.T_HERO, true, UiTheme.BLUE_DARK))
+	v.add_child(_label("Fichitas", UiTheme.T_HERO, true, UiTheme.BLUE_DARK))
 	v.add_child(_halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK, true)))
 	var gap_mid := Control.new()
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL

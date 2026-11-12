@@ -20,9 +20,9 @@ const MATCH_Y := -0.09  # las resueltas se hunden en la losa
 const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
 const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
-const LIGHT_ENERGY := 0.55    # luz direccional principal
+const LIGHT_ENERGY := 0.43    # luz direccional principal
 const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
-const AMBIENT_ENERGY := 0.26  # luz ambiental
+const AMBIENT_ENERGY := 0.20  # luz ambiental
 const SKY_ENERGY := 0.55      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.6        # barniz de las caras
 # Chispas al emparejar (ajustables)
@@ -113,7 +113,7 @@ func _ready() -> void:
 	face_down = TileMesh.face(FACE, -HY - 0.003, false)
 	# Destello y halo con la silueta de la ficha (losa de 0.49 y esquinas de 0.16, desplazada 0.01)
 	ring_mesh = TileMesh.ring(0.50, 0.74, 0.0, 8, 0.17)
-	halo_mesh = TileMesh.ring(0.50, 0.62, 0.0, 8, 0.17)
+	halo_mesh = TileMesh.ring(0.50, 0.565, 0.0, 8, 0.17)
 	get_viewport().size_changed.connect(_layout)
 
 # ---------- API ----------
@@ -283,7 +283,7 @@ func _make_sky() -> Sky:
 		if t < 0.5:
 			col = Color("ffffff").lerp(Color("dbe7ff"), t * 2.0)
 		else:
-			col = Color("93a8cf").lerp(Color("232a3c"), (t - 0.5) * 2.0)
+			col = Color("b4c2de").lerp(Color("5b6b8c"), (t - 0.5) * 2.0)
 		img.fill_rect(Rect2i(0, y, 512, 1), col)
 	# Focos: [centro, alto, brillo]; el de arriba es la luz principal (cenit)
 	for band in [[18, 54, 0.95], [96, 30, 0.55], [168, 44, 0.28]]:
@@ -702,7 +702,7 @@ func _tap_assoc(t: Tile) -> void:
 		sfx.emit("flip")
 		sel = t
 		_lift(t, 0.3)
-		_glow(t, Color("3b82f6"), 1.2)
+		_glow(t, Color("3b82f6"), 0.55)
 		return
 	var a: Tile = sel
 	sel = null
@@ -903,12 +903,12 @@ func _glow(t: Tile, col: Color, energy: float) -> void:
 	t.body_mat.emission = col
 	t.body_mat.emission_energy_multiplier = energy
 	if t.halo == null:
-		t.halo = _ring_node(Color(col.r, col.g, col.b, 0.60), halo_mesh)
+		t.halo = _ring_node(Color(col.r, col.g, col.b, 0.85), halo_mesh)
 		t.halo.position.y = -0.075
 		t.node.add_child(t.halo)
 		var tw := t.halo.create_tween()
 		tw.set_loops()
-		tw.tween_property(t.halo, "scale", Vector3.ONE * 1.08, 0.9).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(t.halo, "scale", Vector3.ONE * 1.05, 0.9).set_trans(Tween.TRANS_SINE)
 		tw.tween_property(t.halo, "scale", Vector3.ONE, 0.9).set_trans(Tween.TRANS_SINE)
 
 func _unglow(t: Tile) -> void:
