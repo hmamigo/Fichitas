@@ -41,6 +41,7 @@ var _menu_subtitle: Control
 var _menu_footer: Control
 var _menu_primary_glow: TextureRect
 var _menu_deco: Array = []
+var _menu_title_tiles: Array = []
 var _menu_tween: Tween
 var _menu_clock: float = 0.0
 var _logo_base: Vector2 = Vector2.ZERO
@@ -171,6 +172,55 @@ func _juice_scale(b: Button, s: float, secs: float) -> void:
 	tw.tween_property(b, "scale", Vector2.ONE * s, secs).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	b.set_meta("juice", tw)
 
+## Rótulo hecho con fichas: una ficha esmaltada por letra, con el filo dorado y el
+## borde inferior grueso de las fichas del tablero.
+func _title_tiles(word: String) -> HBoxContainer:
+	var faces: Array = [
+		[Color("fff0a8"), Color("6b4a14")], [Color("b9f3d3"), Color("1f6b45")],
+		[Color("bfdcff"), Color("1d4f9a")], [Color("ffd3c2"), Color("9a3d1f")],
+		[Color("e3d7ff"), Color("4b3a9a")],
+	]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_menu_title_tiles.clear()
+	for i in word.length():
+		var f: Array = faces[i % faces.size()]
+		var rim := PanelContainer.new()
+		rim.custom_minimum_size = Vector2(98, 104)
+		rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var rs := StyleBoxFlat.new()
+		rs.bg_color = Color("f0b232")
+		rs.set_corner_radius_all(26)
+		rs.border_color = Color("a8690f")
+		rs.border_width_bottom = 9
+		rs.content_margin_left = 7
+		rs.content_margin_right = 7
+		rs.content_margin_top = 7
+		rs.content_margin_bottom = 7
+		rs.shadow_color = Color(0.08, 0.16, 0.34, 0.30)
+		rs.shadow_size = 12
+		rs.shadow_offset = Vector2(0, 8)
+		rim.add_theme_stylebox_override("panel", rs)
+		var face := PanelContainer.new()
+		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fs := StyleBoxFlat.new()
+		fs.bg_color = f[0]
+		fs.set_corner_radius_all(19)
+		fs.border_color = (f[0] as Color).lightened(0.55)
+		fs.set_border_width_all(3)
+		rim.add_child(face)
+		face.add_theme_stylebox_override("panel", fs)
+		var l := _label(word.substr(i, 1), 90, true, f[1])
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		face.add_child(l)
+		rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
+		row.add_child(rim)
+		_menu_title_tiles.append(rim)
+	return row
+
 ## Fichas y destellos flotantes alrededor del menú. Se colocan por fracción de
 ## pantalla y se mecen en `_process`, sin tapar los controles.
 func _build_menu_deco(parent: Control) -> void:
@@ -297,6 +347,9 @@ func _process(delta: float) -> void:
 		_menu_primary_glow.pivot_offset = _menu_primary_glow.size * 0.5
 		_menu_primary_glow.modulate.a = 0.30 + 0.22 * (0.5 + 0.5 * sin(_menu_clock * 2.0))
 		_menu_primary_glow.scale = Vector2.ONE * (1.0 + 0.025 * sin(_menu_clock * 2.0))
+	for i in _menu_title_tiles.size():
+		var tile: Control = _menu_title_tiles[i]
+		tile.rotation = sin(_menu_clock * 0.9 + float(i) * 0.8) * 0.045
 	for d in _menu_deco:
 		var vis: Control = d["vis"]
 		var ph: float = float(d["phase"])
@@ -357,12 +410,6 @@ func _build_menu() -> void:
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(veil)
-	# Fichas y destellos que flotan a los lados, con los colores del suelo.
-	var deco := Control.new()
-	deco.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	deco.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(deco)
-	_build_menu_deco(deco)
 
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -374,63 +421,31 @@ func _build_menu() -> void:
 	m.add_child(v)
 	# Logotipo con halo cálido y balanceo lento.
 	var logo_wrap := Control.new()
-	logo_wrap.custom_minimum_size = Vector2(230, 230)
+	logo_wrap.custom_minimum_size = Vector2(210, 210)
 	logo_wrap.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	logo_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(logo_wrap)
 	_menu_logo_wrap = logo_wrap
-	_menu_logo_glow = TextureRect.new()
-	_menu_logo_glow.texture = UiTheme.radial_glow(256, Color("fff1b8"))
-	_menu_logo_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_menu_logo_glow.stretch_mode = TextureRect.STRETCH_SCALE
-	_menu_logo_glow.modulate = Color(1, 1, 1, 0.55)
-	_menu_logo_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_logo_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	logo_wrap.add_child(_menu_logo_glow)
 	_menu_logo = TextureRect.new()
-	_menu_logo.texture = UiTheme.logo(190)
-	_menu_logo.custom_minimum_size = Vector2(190, 190)
-	_menu_logo.size = Vector2(190, 190)
-	_menu_logo.position = Vector2(20, 20)
+	_menu_logo.texture = UiTheme.logo(165)
+	_menu_logo.custom_minimum_size = Vector2(165, 165)
+	_menu_logo.size = Vector2(165, 165)
+	_menu_logo.position = Vector2(22, 22)
 	_logo_base = _menu_logo.position
 	_menu_logo.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_menu_logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_menu_logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	logo_wrap.add_child(_menu_logo)
-	# Título con filo dorado (a juego con la ficha del logotipo) y halo propio.
-	_menu_title_wrap = Control.new()
-	_menu_title_wrap.custom_minimum_size = Vector2(0, 154)
-	_menu_title_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(_menu_title_wrap)
-	_menu_title_glow = TextureRect.new()
-	_menu_title_glow.texture = UiTheme.radial_glow(256, Color("f4f9ff"))
-	_menu_title_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_menu_title_glow.stretch_mode = TextureRect.STRETCH_SCALE
-	_menu_title_glow.modulate = Color(1, 1, 1, 0.46)
-	_menu_title_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_title_glow.anchor_left = 0.5
-	_menu_title_glow.anchor_right = 0.5
-	_menu_title_glow.anchor_top = 0.5
-	_menu_title_glow.anchor_bottom = 0.5
-	_menu_title_glow.offset_left = -390
-	_menu_title_glow.offset_right = 390
-	_menu_title_glow.offset_top = -155
-	_menu_title_glow.offset_bottom = 155
-	_menu_title_wrap.add_child(_menu_title_glow)
-	var title := _label("Fichitas", UiTheme.T_HERO + 8, true, UiTheme.BLUE_DARK)
-	title.add_theme_color_override("font_outline_color", UiTheme.GOLD)
-	title.add_theme_constant_override("outline_size", 15)
-	title.add_theme_color_override("font_shadow_color", Color(0.08, 0.16, 0.34, 0.30))
-	title.add_theme_constant_override("shadow_offset_x", 0)
-	title.add_theme_constant_override("shadow_offset_y", 7)
-	title.add_theme_constant_override("shadow_outline_size", 0)
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_menu_title_wrap.add_child(title)
+	# Título: una ficha esmaltada por letra, con filo dorado como las del tablero.
+	var title_wrap := CenterContainer.new()
+	title_wrap.custom_minimum_size = Vector2(0, 118)
+	title_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(title_wrap)
+	_menu_title_wrap = title_wrap
+	title_wrap.add_child(_title_tiles("FICHITAS"))
 	# Descripción en una pastilla translúcida, para que se lea sobre los cubos.
 	var sub_pill := PanelContainer.new()
-	sub_pill.add_theme_stylebox_override("panel", UiTheme.box(Color(1, 1, 1, 0.62), Color(1, 1, 1, 0.0), 0, 12, 14, 28, 0, 12, 0.10))
+	sub_pill.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 4, 12, 12, 28, 0, 10, 0.16))
 	sub_pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	sub_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(sub_pill)
@@ -440,9 +455,7 @@ func _build_menu() -> void:
 	sub_row.add_theme_constant_override("separation", 10)
 	sub_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub_pill.add_child(sub_row)
-	sub_row.add_child(_star_icon(22, UiTheme.GOLD))
 	sub_row.add_child(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK))
-	sub_row.add_child(_star_icon(22, UiTheme.GOLD))
 
 	var gap_mid := Control.new()
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -455,9 +468,7 @@ func _build_menu() -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 10)
 	card.add_child(head)
-	head.add_child(_star_icon(20, UiTheme.GOLD))
 	head.add_child(_label("Modo de juego", UiTheme.T_SMALL, false, UiTheme.INK_SOFT))
-	head.add_child(_star_icon(20, UiTheme.GOLD))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	var grp := ButtonGroup.new()
@@ -525,7 +536,7 @@ func _build_menu() -> void:
 	gap2.size_flags_stretch_ratio = 1.0
 	v.add_child(gap2)
 	var foot := PanelContainer.new()
-	foot.add_theme_stylebox_override("panel", UiTheme.box(Color(1, 1, 1, 0.55), Color(1, 1, 1, 0.0), 0, 8, 10, 20, 0, 8, 0.08))
+	foot.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 3, 8, 8, 20, 0, 8, 0.14))
 	foot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(foot)
@@ -535,7 +546,6 @@ func _build_menu() -> void:
 	foot_row.add_theme_constant_override("separation", 8)
 	foot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	foot.add_child(foot_row)
-	foot_row.add_child(_star_icon(18, UiTheme.GOLD))
 	foot_row.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK))
 
 func _build_subjects() -> void:

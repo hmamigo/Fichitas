@@ -294,15 +294,19 @@ static func panel_box(pad: int = 30, radius: int = 34) -> StyleBoxFlat:
 
 ## Tarjeta del menú: vidrio frío y translúcido, con filo blanco y sombra azul.
 static func menu_panel_box(pad: int = 38, radius: int = 40) -> StyleBoxFlat:
+	# Como el tablero: marco azul barnizado y interior crema.
 	var s := StyleBoxFlat.new()
-	s.bg_color = CARD_BG
+	s.bg_color = Color("fffbee")
 	s.set_corner_radius_all(radius)
 	s.set_content_margin_all(pad)
-	s.set_border_width_all(2)
-	s.border_color = Color(1, 1, 1, 0.88)
-	s.shadow_color = Color(0.08, 0.18, 0.38, 0.24)
-	s.shadow_size = 28
-	s.shadow_offset = Vector2(0, 13)
+	s.border_color = Color("2f86d6")
+	s.border_width_left = 12
+	s.border_width_right = 12
+	s.border_width_top = 12
+	s.border_width_bottom = 20
+	s.shadow_color = Color(0.08, 0.18, 0.38, 0.30)
+	s.shadow_size = 22
+	s.shadow_offset = Vector2(0, 12)
 	return s
 
 static func box(bg: Color, border: Color, bottom: int, pad_top: int, pad_bottom: int, radius: int = 18, all: int = 0, shadow: int = 0, shadow_alpha: float = 0.18) -> StyleBoxFlat:
