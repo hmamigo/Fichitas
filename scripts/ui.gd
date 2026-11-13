@@ -196,11 +196,15 @@ func _build_menu() -> void:
 	logo.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	logo.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	v.add_child(logo)
-	v.add_child(_label("Fichitas", UiTheme.T_HERO, true, UiTheme.BLUE_DARK))
-	v.add_child(_halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK, true)))
+	# Espacio push-down para que nombre y descripción no queden tan pegados arriba
+	v.add_child(Control.new())
+	v.add_child(Control.new())
+	v.add_child(Control.new())
+	v.add_child(_label("Fichitas", UiTheme.T_HERO + 12, true, UiTheme.BLUE_DARK))
+	v.add_child(_halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY + 4, false, UiTheme.INK, true)))
 	var gap_mid := Control.new()
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gap_mid.size_flags_stretch_ratio = 2.2  # deja ver la escena 3D entre el título y la tarjeta
+	gap_mid.size_flags_stretch_ratio = 3.0  # más push-down para separar del menú
 	v.add_child(gap_mid)
 	var card := _panel(v, 700, 40)
 	_menu_card = card.get_parent() as Control
