@@ -34,7 +34,7 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 - **Repaso espaciado:** cada nivel mezcla parejas pendientes (máximo 60 %, las más atrasadas primero), nuevas y el resto. La pantalla de materias muestra cuántas parejas esperan y una tarjeta **Repaso** (con ≥3 pendientes) que reúne hasta 10 de todas las materias en una sola sesión.
 - **Dominio al completar:** miniaturas grandes y adaptativas de las parejas del nivel (la cuadrícula y la tarjeta crecen según cuántas haya) con su planta (brote, dos hojas, árbol) y contorno verde en las que mejoraron.
 - **Audio y vibración:** efectos de giro, acierto, error y final sintetizados en memoria (`scripts/audio.gd`, sin archivos), vibración suave solo en móvil y ajustes en el menú.
-- Interfaz con fuentes **Fredoka SemiBold** y **Lilita One** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos, plantas), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos).
+- Interfaz con fuentes **Nunito Bold** y **Baloo 2 ExtraBold** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos, plantas), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos). El menú principal usa una tarjeta de vidrio, acción principal dorada, halos y fichas/destellos flotantes.
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está

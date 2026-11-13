@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://bb6uh3d4xtr34"
-path="res://.godot/imported/lilita-one-400.woff2-77705761a01a8120d2f2bb7a5de87017.fontdata"
+uid="uid://dejpwe5wgwfiv"
+path="res://.godot/imported/baloo2-800.woff2-1f4a500dcf6a775782ffab4dfa3d38ef.fontdata"
 
 [deps]
 
-source_file="res://fonts/lilita-one-400.woff2"
-dest_files=["res://.godot/imported/lilita-one-400.woff2-77705761a01a8120d2f2bb7a5de87017.fontdata"]
+source_file="res://fonts/baloo2-800.woff2"
+dest_files=["res://.godot/imported/baloo2-800.woff2-1f4a500dcf6a775782ffab4dfa3d38ef.fontdata"]
 
 [params]
 
@@ -22,8 +22,8 @@ msdf_size=48
 allow_system_fallback=true
 force_autohinter=false
 modulate_color_glyphs=false
-hinting=1
-subpixel_positioning=1
+hinting=3
+subpixel_positioning=4
 keep_rounding_remainders=true
 oversampling=0.0
 Fallbacks=null

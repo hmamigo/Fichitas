@@ -5,8 +5,8 @@ extends RefCounted
 ## (`assets/shaders/backdrop.gdshader`) e iconos SVG de `assets/icons/` (copia de
 ## @icons, licencia MIT) teñidos al vuelo.
 
-const BODY := "res://fonts/fredoka-600.woff2"
-const TITLE := "res://fonts/lilita-one-400.woff2"
+const BODY := "res://fonts/nunito-700.woff2"
+const TITLE := "res://fonts/baloo2-800.woff2"
 const ICONS := "res://assets/icons/"
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
@@ -17,6 +17,7 @@ const PACK_ICONS := {
 	"bio": "leaf", "geo": "globe", "ast": "planet", "inf": "laptop",
 }
 static var _icon_cache: Dictionary = {}
+static var _glow_cache: Dictionary = {}
 
 # ---------- Paleta ----------
 # Colores fijos del tema claro. El tema oscuro se retiró, así que ya no hay cambio
@@ -34,6 +35,14 @@ const DIM := Color(0.06, 0.11, 0.26, 0.42)
 const LOCKED := Color("c4cbd9")
 const BADGE_BG := Color(1, 1, 1, 0.45)
 const PLANT := Color("2f8f4e")
+# Acentos del menú: toman los colores de las fichas y de los cubos del suelo.
+const GOLD := Color("ffc93c")
+const GOLD_INK := Color("4a2d00")
+const MINT := Color("42cd84")
+const LAVENDER := Color("a78bfa")
+const CORAL := Color("ff9d7a")
+const SKY := Color("4a8ff5")
+const CARD_BG := Color(0.97, 0.99, 1.0, 0.95)
 # ---------- Fondos de pantalla ----------
 # El fondo de cada pantalla es un degradado de malla (focos de color muy suaves)
 # con fichas redondeadas flotando en profundidad, viñeta y un grano fino que evita
@@ -140,6 +149,38 @@ static func icon(name: String, size: int = 32, col: Color = INK) -> ImageTexture
 		for x in size:
 			var a: float = img.get_pixel(x, y).a
 			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * a))
+	var out := ImageTexture.create_from_image(img)
+	_icon_cache[key] = out
+	return out
+
+## Halo circular suave, generado por código. Sirve para dar luz a un logotipo,
+## a un título o a un botón sin añadir archivos de imagen.
+static func radial_glow(size: int = 128, col: Color = Color.WHITE) -> ImageTexture:
+	var key: String = "%d|%s" % [size, col.to_html(true)]
+	if _glow_cache.has(key):
+		return _glow_cache[key]
+	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var half: float = float(size) * 0.5
+	for y in size:
+		for x in size:
+			var d: float = Vector2(float(x) + 0.5 - half, float(y) + 0.5 - half).length() / half
+			var a: float = pow(clampf(1.0 - d, 0.0, 1.0), 2.2)
+			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * a))
+	var out := ImageTexture.create_from_image(img)
+	_glow_cache[key] = out
+	return out
+
+## Punto redondo teñido: marca el modo activo dentro de su pastilla.
+static func icon_dot(size: int = 18, col: Color = INK) -> ImageTexture:
+	var key: String = "dot|%d|%s" % [size, col.to_html(true)]
+	if _icon_cache.has(key):
+		return _icon_cache[key]
+	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var half: float = float(size) * 0.5
+	for y in size:
+		for x in size:
+			var d: float = Vector2(float(x) + 0.5 - half, float(y) + 0.5 - half).length() - (half - 1.0)
+			img.set_pixel(x, y, Color(col.r, col.g, col.b, clampf(0.5 - d, 0.0, 1.0) * col.a))
 	var out := ImageTexture.create_from_image(img)
 	_icon_cache[key] = out
 	return out
@@ -251,6 +292,19 @@ static func panel_box(pad: int = 30, radius: int = 34) -> StyleBoxFlat:
 	s.shadow_offset = Vector2(0, 8)
 	return s
 
+## Tarjeta del menú: vidrio frío y translúcido, con filo blanco y sombra azul.
+static func menu_panel_box(pad: int = 38, radius: int = 40) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = CARD_BG
+	s.set_corner_radius_all(radius)
+	s.set_content_margin_all(pad)
+	s.set_border_width_all(2)
+	s.border_color = Color(1, 1, 1, 0.88)
+	s.shadow_color = Color(0.08, 0.18, 0.38, 0.24)
+	s.shadow_size = 28
+	s.shadow_offset = Vector2(0, 13)
+	return s
+
 static func box(bg: Color, border: Color, bottom: int, pad_top: int, pad_bottom: int, radius: int = 18, all: int = 0, shadow: int = 0, shadow_alpha: float = 0.18) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
@@ -309,6 +363,12 @@ static func build() -> Theme:
 	# Variante "Alt": botón secundario
 	th.set_type_variation("Alt", "Button")
 	_button(th, "Alt", ALT_BG, flat, down, INK)
+	# Variante "Soft": secundario azul, para "Elegir materia"
+	th.set_type_variation("Soft", "Button")
+	_button(th, "Soft", Color("e6f0ff"), flat, down, BLUE_DARK)
+	# Variante "Gold": acción principal del menú, a juego con el logotipo
+	th.set_type_variation("Gold", "Button")
+	_button(th, "Gold", GOLD, flat, down, GOLD_INK)
 	# Variante "Pill": opción de un grupo, rellena cuando está activa
 	th.set_type_variation("Pill", "Button")
 	var soft := PILL_BG

@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://bxxa5h0w7uy18"
-path="res://.godot/imported/fredoka-600.woff2-92fdac1ef61e627a3129019cd55913dd.fontdata"
+uid="uid://v13nsbgw3fqo"
+path="res://.godot/imported/nunito-700.woff2-22eff4a81ccebf40736462e6ffd7b044.fontdata"
 
 [deps]
 
-source_file="res://fonts/fredoka-600.woff2"
-dest_files=["res://.godot/imported/fredoka-600.woff2-92fdac1ef61e627a3129019cd55913dd.fontdata"]
+source_file="res://fonts/nunito-700.woff2"
+dest_files=["res://.godot/imported/nunito-700.woff2-22eff4a81ccebf40736462e6ffd7b044.fontdata"]
 
 [params]
 
@@ -22,8 +22,8 @@ msdf_size=48
 allow_system_fallback=true
 force_autohinter=false
 modulate_color_glyphs=false
-hinting=1
-subpixel_positioning=1
+hinting=3
+subpixel_positioning=4
 keep_rounding_remainders=true
 oversampling=0.0
 Fallbacks=null
