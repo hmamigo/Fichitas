@@ -10,9 +10,9 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
-const MENU_DIST := 16.0   # vista lejana del menú
-const MENU_TILT := 0.85
-const MENU_LOOK := Vector3(0.0, -0.4, 5.2)
+const MENU_DIST := 13.0   # vista del menú: cerca de la mesa para leer las opciones
+const MENU_TILT := 0.40   # casi cenital, como el tablero (antes 0.85: muy escorzada)
+const MENU_LOOK := Vector3(0.0, -0.2, 5.9)
 const MENU_TABLE_Z := 6.6
 const SUBJ_Z := -9.5      # la mesa de materias está detrás del tablero
 const HY := 0.065     # mitad del grosor de la ficha
@@ -447,7 +447,7 @@ func _pose() -> Dictionary:
 		}
 	if station == "menu":
 		# Balanceo lento de la vista lejana; se captura al empezar un vuelo.
-		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": MENU_TILT, "yaw": 0.30 * sin(_clock * 0.15)}
+		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": MENU_TILT, "yaw": 0.05 * sin(_clock * 0.15)}
 	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
 
 ## Pose que se está viendo ahora mismo (a mitad de un vuelo, la mezcla).
