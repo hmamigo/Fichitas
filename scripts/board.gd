@@ -10,7 +10,7 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
-const MENU_DIST := 14.0   # distancia que encuadra la lista vertical de acciones
+const MENU_DIST := 22.0   # distancia que encuadra la lista vertical de acciones
 const MENU_LOOK := Vector3(0.0, -0.2, 5.9)
 const MENU_TABLE_Z := 6.6
 const SUBJ_Z := -9.5      # la mesa de materias está detrás del tablero

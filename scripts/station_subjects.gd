@@ -61,7 +61,7 @@ func fit_distance() -> float:
 	var w: float = CARD_W + 0.15
 	var by_w: float = w / (ar * 2.0 * tn)
 	var by_h: float = (2.6 * CARD_H) / (2.0 * tn)
-	return maxf(by_w, by_h) * 1.02
+	return maxf(by_w, by_h) * 2
 
 ## Cuánto se puede desplazar la cámara sin perder de vista la mesa.
 func pan_bounds(dist: float) -> Vector2:
