@@ -163,7 +163,7 @@ func _juice(b: Button) -> void:
 	b.button_down.connect(func() -> void: _juice_scale(b, 0.97, 0.08))
 	b.button_up.connect(func() -> void: _juice_scale(b, 1.0, 0.14))
 
-func _juice_scale(b: Button, s: float, secs: float) -> void:
+func _juice_scale(b: Control, s: float, secs: float) -> void:
 	var old: Variant = null
 	if b.has_meta("juice"):
 		old = b.get_meta("juice")
@@ -175,7 +175,7 @@ func _juice_scale(b: Button, s: float, secs: float) -> void:
 
 ## Ficha esmaltada: filo dorado, borde inferior grueso y cara de color. Devuelve el
 ## aro; el contenido va dentro de `get_child(0)` (la cara).
-func _enamel_tile(min_size: Vector2, face_col: Color) -> PanelContainer:
+func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0) -> PanelContainer:
 	var rim := PanelContainer.new()
 	rim.custom_minimum_size = min_size
 	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -196,6 +196,8 @@ func _enamel_tile(min_size: Vector2, face_col: Color) -> PanelContainer:
 	fs.set_corner_radius_all(19)
 	fs.border_color = face_col.lightened(0.55)
 	fs.set_border_width_all(3)
+	fs.content_margin_left = pad_h
+	fs.content_margin_right = pad_h
 	face.add_theme_stylebox_override("panel", fs)
 	rim.add_child(face)
 	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
@@ -391,19 +393,43 @@ func _build_hud() -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	m.add_child(h)
+	# "Atrás": ficha esmaltada con un botón transparente encima
+	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
+	var bface := back_tile.get_child(0) as Control
+	var brow := HBoxContainer.new()
+	brow.alignment = BoxContainer.ALIGNMENT_CENTER
+	brow.add_theme_constant_override("separation", 8)
+	brow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chev := TextureRect.new()
+	chev.texture = UiTheme.icon_chevron(34, UiTheme.INK)
+	chev.custom_minimum_size = Vector2(34, 34)
+	chev.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chev.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brow.add_child(chev)
+	var btxt := _label("Atrás", UiTheme.T_BODY, true, UiTheme.INK)
+	btxt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brow.add_child(btxt)
+	bface.add_child(brow)
 	var back := Button.new()
-	back.text = "Atrás"
-	back.theme_type_variation = "Alt"
-	back.icon = UiTheme.icon_chevron(34, UiTheme.INK)
-	back.add_theme_constant_override("h_separation", 12)
-	back.custom_minimum_size = Vector2(0, 74)
+	back.flat = true
+	back.focus_mode = Control.FOCUS_NONE
+	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	back.pressed.connect(func() -> void: back_pressed.emit())
-	h.add_child(back)
-	var pc := PanelContainer.new()
-	pc.add_theme_stylebox_override("panel", UiTheme.box(UiTheme.HUD_BG, Color(1, 1, 1, 0.0), 0, 10, 10, 26, 0, 8, 0.16))
+	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.03, 0.12))
+	back.mouse_exited.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.16))
+	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
+	back.button_up.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.14))
+	back_tile.add_child(back)  # sobre toda la ficha, no solo sobre el texto
+	h.add_child(back_tile)
+	# Nivel y modo: placa crema con el mismo filo dorado
+	var plate := _enamel_tile(Vector2(0, 90), Color("fffdf7"), 28)
 	lv_label = _label("", UiTheme.T_BODY, true, UiTheme.BLUE_DARK)
-	pc.add_child(lv_label)
-	h.add_child(pc)
+	lv_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	(plate.get_child(0) as Control).add_child(lv_label)
+	h.add_child(plate)
 
 func _build_menu() -> void:
 	menu = _screen("none")  # sin fondo: detrás se ve el suelo de cubos 3D
