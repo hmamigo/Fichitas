@@ -126,7 +126,7 @@ func _go_subjects() -> void:
 			"sub3": ("%d por repasar" % pdue) if pdue > 0 else "",
 			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
-			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"]})
+			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"] if locked else ""})
 	for n in COMING:
 		var exists: bool = false
 		for p in packs:

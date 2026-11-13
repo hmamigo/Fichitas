@@ -11,7 +11,6 @@ const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 13.0   # vista del menú: cerca de la mesa para leer las opciones
-const MENU_TILT := 0.40   # casi cenital, como el tablero (antes 0.85: muy escorzada)
 const MENU_LOOK := Vector3(0.0, -0.2, 5.9)
 const MENU_TABLE_Z := 6.6
 const SUBJ_Z := -9.5      # la mesa de materias está detrás del tablero
@@ -71,7 +70,6 @@ var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
 var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
 var _settled: bool = true      # la cámara ya llegó: se puede tocar
 var _pan_v: Vector2 = Vector2.ZERO  # inercia del arrastre, en píxeles por segundo
-var _clock: float = 0.0
 var cam_x: float = 0.0
 var cam_z: float = 0.0
 var lock: bool = false
@@ -422,7 +420,6 @@ func _build_board() -> void:
 # ---------- Cámara y estaciones ----------
 
 func _process(delta: float) -> void:
-	_clock += delta
 	_drift(delta)
 	_update_cam()
 
@@ -446,8 +443,7 @@ func _pose() -> Dictionary:
 			"yaw": 0.0,
 		}
 	if station == "menu":
-		# Balanceo lento de la vista lejana; se captura al empezar un vuelo.
-		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": MENU_TILT, "yaw": 0.05 * sin(_clock * 0.15)}
+		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
 	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
 
 ## Pose que se está viendo ahora mismo (a mitad de un vuelo, la mezcla).
@@ -497,7 +493,7 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 		_fly.kill()
 	_from = _pose_now()
 	station = name
-	_apply_station_visibility()
+	_apply_station_visibility(true)
 	cam_x = 0.0
 	cam_z = 0.0
 	zoom = 1.0
@@ -508,20 +504,24 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	if secs <= 0.0:
 		_t = 1.0
 		_settled = true
+		_apply_station_visibility()
 		return
 	_t = clampf(start_at, 0.0, 0.95)
 	_settled = false
 	_fly = create_tween()
 	_fly.tween_property(self, "_t", 1.0, secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	_fly.finished.connect(func() -> void: _settled = true)
+	_fly.finished.connect(func() -> void:
+		_settled = true
+		_apply_station_visibility()
+	)
 
-## Solo se ve la mesa de la estación activa: en el tablero grande las otras
-## mesas quedaban detrás del tablero y ensuciaban la vista.
-func _apply_station_visibility() -> void:
+## Mantiene ambas mesas visibles durante el vuelo para que el cambio de estación
+## se lea como un recorrido continuo, y oculta la inactiva al llegar.
+func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 	if menu_station != null:
-		menu_station.visible = station == "menu"
+		menu_station.visible = keep_stations_visible or station == "menu"
 	if subject_station != null:
-		subject_station.visible = station == "subjects"
+		subject_station.visible = keep_stations_visible or station == "subjects"
 	_refresh_floor()
 
 func _pan(delta: Vector2) -> void:

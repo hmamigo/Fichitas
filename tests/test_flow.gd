@@ -32,6 +32,13 @@ func _run() -> void:
 	for i in 3:
 		await process_frame
 	check(main.state == 0 and main.ui.menu.visible, "arranca en el menú")
+	var menu_tilt: float = float(main.board._pose()["tilt"])
+	main.board.station = "subjects"
+	var subjects_tilt: float = float(main.board._pose()["tilt"])
+	main.board.station = "game"
+	var game_tilt: float = float(main.board._pose()["tilt"])
+	main.board.station = "menu"
+	check(is_equal_approx(menu_tilt, subjects_tilt) and is_equal_approx(menu_tilt, game_tilt), "las tres estaciones mantienen el mismo ángulo de cámara")
 	main.board.fly_to_station("menu", 0.0)
 	await process_frame
 	var mtiles: Array = main.board.menu_station.tiles
@@ -56,9 +63,23 @@ func _run() -> void:
 	print("Materias (asociación)")
 	main._go_subjects()
 	check(main.state == 1 and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 11, "pantalla de materias con 11 losetas")
-	main.board.fly_to_station("subjects", 0.0)
-	await process_frame
+	check(main.board.menu_station.visible and main.board.subject_station.visible, "las mesas de origen y destino se ven durante el vuelo")
+	await create_timer(1.1).timeout
+	check(not main.board.menu_station.visible and main.board.subject_station.visible, "al llegar solo queda visible la mesa activa")
 	var stiles: Array = main.board.subject_station.tiles
+	var mat_tile: Plaque = null
+	for t in stiles:
+		if (t as Plaque).key == "mat":
+			mat_tile = t
+			break
+	check(mat_tile != null and mat_tile.info.is_empty(), "la materia gratuita no muestra aviso de pago")
+	if mat_tile != null:
+		var mat_spot: Vector2 = main.board.cam.unproject_position(mat_tile.global_position)
+		main.board.subject_station.tap(mat_spot, main.board.cam)
+	check(main.state == 2 and main.cur_sid == "mat" and not main.board.tiles.is_empty(), "tocar una materia gratuita inicia su nivel")
+	main._go_subjects()
+	await create_timer(1.1).timeout
+	stiles = main.board.subject_station.tiles
 	var spot: Vector2 = main.board.cam.unproject_position((stiles[0] as Plaque).global_position)
 	check(Pick3D.plaque(stiles, main.board.cam, spot) == stiles[0], "toque proyectado sobre una loseta de materia")
 	Progress.data["mode"] = "assoc"
