@@ -23,7 +23,6 @@ func _ready() -> void:
 	add_child(audio)
 	audio.enabled = bool(Progress.data["sound"])
 	board = Board.new()
-	board.view = 0.0  # arranca con la vista lejana del menú
 	add_child(board)
 	ui = GameUI.new()
 	add_child(ui)
@@ -31,18 +30,30 @@ func _ready() -> void:
 	board.won.connect(_on_won)
 	board.sfx.connect(_on_sfx)
 	board.pair_done.connect(func(id: String, clean: bool) -> void: Progress.record(id, clean))
-	ui.play_general.connect(func() -> void: _play(""))
-	ui.play_subject.connect(_play)
-	ui.play_review.connect(_play_review)
-	ui.open_subjects.connect(_go_subjects)
+	board.menu_station.play_general.connect(func() -> void: _play(""))
+	board.menu_station.open_subjects.connect(_go_subjects)
+	board.menu_station.mode_changed.connect(_on_mode)
+	board.subject_station.chosen.connect(_on_subject)
+	board.subject_station.info.connect(ui.toast)
 	ui.back_pressed.connect(_on_back)
 	ui.next_pressed.connect(_on_next)
-	ui.mode_changed.connect(func(m: String) -> void:
-		Progress.data["mode"] = m
-		Progress.save())
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
 	_go_menu()
+
+func _on_mode(m: String) -> void:
+	Progress.data["mode"] = m
+	Progress.save()
+	board.mode = m
+	_on_sfx("flip")
+
+func _on_subject(id: String) -> void:
+	if id == ":review":
+		_play_review()
+	elif id == "":
+		_play("")
+	else:
+		_play(id)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:  # botón Atrás de Android
@@ -58,11 +69,13 @@ func _pack(id: String) -> Dictionary:
 	return {}
 
 func _go_menu() -> void:
-	var from_game: bool = state == S.GAME or state == S.WIN
 	state = S.MENU
 	board.stop()
-	board.fly_to(0.0, 0.9 if from_game else 0.0)  # la cámara se aleja hasta la vista del menú
-	ui.show_menu(Progress.level(), str(Progress.data["mode"]), {
+	var mode: String = str(Progress.data["mode"])
+	board.mode = mode
+	board.build_menu(mode, Progress.level())
+	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
+	ui.show_menu({
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
 		"vib_visible": OS.has_feature("mobile"),
@@ -88,10 +101,8 @@ func _on_vib(on: bool) -> void:
 		Input.vibrate_handheld(35)
 
 func _go_subjects() -> void:
-	var from_game: bool = state == S.GAME or state == S.WIN
 	state = S.SUBJECTS
 	board.stop()
-	board.fly_to(0.0, 0.9 if from_game else 0.0)  # desde el juego, la cámara se aleja hasta la vista lejana
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
@@ -124,7 +135,9 @@ func _go_subjects() -> void:
 		if not exists:
 			cards.append({"id": "coming:" + n, "name": n, "icon": "book" if n == "Historia" else "stars", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
 				"info": "«%s» llegará pronto. Algunas materias nuevas serán de pago." % n})
-	ui.show_subjects(cards)
+	board.build_subjects(cards)
+	board.fly_to_station("subjects", 1.0)
+	ui.show_subjects()
 
 func _play(sid: String) -> void:
 	cur_sid = sid
@@ -171,11 +184,14 @@ func _start(pairs: Array, label: String) -> void:
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
 	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
-	# Desde las materias, la cámara baja desde lejos hasta el tablero; entre niveles, solo un acercamiento corto
-	var secs: float = 0.55 if next_level else 1.3
-	board.view = 0.88 if next_level else 0.0
-	board.start(pairs, secs * 0.6)
-	board.fly_to(1.0, secs)
+	# Desde las materias, la cámara baja hasta el tablero; entre niveles, un acercamiento corto
+	if next_level:
+		if board.station == "game":
+			board.zoom = 0.9  # el vuelo parte de un poco más lejos
+		board.fly_to_station("game", 0.55)
+	else:
+		board.fly_to_station("game", 1.3)
+	board.start(pairs, 0.33 if next_level else 0.78)
 
 func _on_won() -> void:
 	state = S.WIN

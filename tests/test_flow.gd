@@ -32,6 +32,15 @@ func _run() -> void:
 	for i in 3:
 		await process_frame
 	check(main.state == 0 and main.ui.menu.visible, "arranca en el menú")
+	main.board.fly_to_station("menu", 0.0)
+	await process_frame
+	var mtiles: Array = main.board.menu_station.tiles
+	var mspot: Vector2 = main.board.cam.unproject_position((mtiles[1] as Plaque).global_position)
+	main.board.menu_station.tap(mspot, main.board.cam)
+	check(str(Progress.data["mode"]) == "assoc", "toque en la loseta de Asociación cambia el modo")
+	Progress.data["mode"] = "mem"
+	main.board.mode = "mem"
+	main.board.menu_station.set_mode("mem")
 	print("Recorrido general (memoria)")
 	main._play("")
 	await process_frame
@@ -46,7 +55,12 @@ func _run() -> void:
 	check(int(saved["level"]) == 2 and (saved["mp"] as Dictionary).size() >= 3 and (saved["sr"] as Dictionary).size() >= 3, "progreso, dominio y repaso guardados en JSON")
 	print("Materias (asociación)")
 	main._go_subjects()
-	check(main.state == 1 and main.ui.subjects.visible and main.ui.grid.get_child_count() == 11, "pantalla de materias con 11 tarjetas")
+	check(main.state == 1 and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 11, "pantalla de materias con 11 losetas")
+	main.board.fly_to_station("subjects", 0.0)
+	await process_frame
+	var stiles: Array = main.board.subject_station.tiles
+	var spot: Vector2 = main.board.cam.unproject_position((stiles[0] as Plaque).global_position)
+	check(Pick3D.plaque(stiles, main.board.cam, spot) == stiles[0], "toque proyectado sobre una loseta de materia")
 	Progress.data["mode"] = "assoc"
 	main._play("qui")
 	await process_frame
@@ -69,7 +83,7 @@ func _run() -> void:
 	main._on_next()
 	check(main.state == 1 and Progress.subj_level("qui") == steps.size() + 1, "materia completada vuelve a materias")
 	main._go_subjects()
-	check(main.ui.grid.get_child_count() == 11, "materias se redibuja")
+	check(main.board.subject_station.tiles.size() == 11, "materias se redibuja")
 	main._on_back()
 	check(main.state == 0, "Atrás vuelve al menú")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))

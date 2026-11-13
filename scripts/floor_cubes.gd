@@ -18,8 +18,7 @@ const PALETTE: Array[Color] = [
 
 var mmi: MultiMeshInstance3D
 var _cells: Array = []   # {x, z, col: Color, n: float}
-var _clear_hw: float = 2.0
-var _clear_hh: float = 3.0
+var _clears: Array = [Rect2(-2.0, -3.0, 4.0, 6.0)]  # huecos en XZ (uno por mesa)
 
 func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -46,12 +45,25 @@ func _ready() -> void:
 	add_child(mmi)
 	_rebuild()
 
-## Zona libre alrededor del tablero (semiancho y semialto, ya con el marco).
+## Zona libre alrededor de una mesa (semiancho y semialto, ya con el marco).
 func set_clear_rect(hw: float, hh: float) -> void:
-	_clear_hw = hw
-	_clear_hh = hh
+	set_clears([Rect2(-hw, -hh, hw * 2.0, hh * 2.0)])
+
+## Huecos de todas las mesas del mundo (el tablero, las materias y el menú).
+func set_clears(rects: Array) -> void:
+	_clears = rects
 	if mmi != null:
 		_rebuild()
+
+## Distancia de un cubo al hueco más cercano.
+func _clear_dist(x: float, z: float) -> float:
+	var best: float = INF
+	for r in _clears:
+		var rect: Rect2 = (r as Rect2).grow(0.7)  # margen extra: que ningún cubo asome en el borde
+		var dx: float = maxf(maxf(rect.position.x - x, 0.0), x - rect.end.x)
+		var dz: float = maxf(maxf(rect.position.y - z, 0.0), z - rect.end.y)
+		best = minf(best, Vector2(dx, dz).length())
+	return 0.0 if best == INF else best
 
 func _rebuild() -> void:
 	var mm: MultiMesh = mmi.multimesh
@@ -59,15 +71,13 @@ func _rebuild() -> void:
 		var cell: Dictionary = _cells[k]
 		var x: float = cell["x"]
 		var z: float = cell["z"]
-		var dx: float = maxf(absf(x) - _clear_hw - 0.7, 0.0)
-		var dz: float = maxf(absf(z) - _clear_hh - 0.7, 0.0)
-		var d: float = Vector2(dx, dz).length()
+		var d: float = _clear_dist(x, z)
 		var n: float = cell["n"]
 		var rise: float = smoothstep(0.2, 7.0, d) * (0.10 + MAX_RISE * n * n)
 		var top: float = TOP_MIN + rise
 		var h: float = top - BASE_Y
 		var t := Transform3D(Basis.from_scale(Vector3(1.0, h, 1.0)), Vector3(x, BASE_Y + h * 0.5, z))
 		mm.set_instance_transform(k, t)
-		# Más cerca del tablero: más pálido, para que mande el color de las fichas
+		# Más cerca de una mesa: más pálido, para que mande el color de las fichas
 		var col: Color = (cell["col"] as Color).lerp(Color("eef4fd"), 0.25 * (1.0 - smoothstep(0.0, 3.0, d)))
 		mm.set_instance_color(k, col)

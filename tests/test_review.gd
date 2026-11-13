@@ -63,7 +63,7 @@ func _run() -> void:
 	check(Levels.due_pairs(packs).size() >= 4, "due_pairs junta las pendientes")
 	check(Levels.due_count(p) == 4, "due_count por materia")
 	main._go_subjects()
-	check(main.ui.grid.get_child_count() == 12, "la tarjeta Repaso aparece en materias")
+	check(main.board.subject_station.tiles.size() == 12, "la tarjeta Repaso aparece en materias")
 	main._play_review()
 	await process_frame
 	check(main.cur_review and main.state == 2, "entra en la sesión de repaso")

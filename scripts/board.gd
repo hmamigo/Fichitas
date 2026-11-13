@@ -11,8 +11,10 @@ const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 16.0   # vista lejana del menú
-const MENU_TILT := 1.0
-const MENU_LOOK := Vector3(0.0, -0.3, -2.5)
+const MENU_TILT := 0.85
+const MENU_LOOK := Vector3(0.0, -0.4, 5.2)
+const MENU_TABLE_Z := 6.6
+const SUBJ_Z := -9.5      # la mesa de materias está detrás del tablero
 const HY := 0.065     # mitad del grosor de la ficha
 const FACE := 0.425   # semiancho de la cara con la imagen
 const REST_Y := 0.06   # altura de las fichas pendientes: separadas de la losa
@@ -48,6 +50,9 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
+var station: String = "menu"  # "menu", "subjects" o "game"
+var menu_station: StationMenu
+var subject_station: StationSubjects
 var cam: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
@@ -60,9 +65,12 @@ var cols: int = 0
 var rows: int = 0
 var fit: float = 10.0
 var zoom: float = 1.0
-var view: float = 1.0          # 1 = cámara de juego, 0 = vista lejana del menú
 var floor_cubes: FloorCubes
 var _fly: Tween
+var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
+var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
+var _settled: bool = true      # la cámara ya llegó: se puede tocar
+var _pan_v: Vector2 = Vector2.ZERO  # inercia del arrastre, en píxeles por segundo
 var _clock: float = 0.0
 var cam_x: float = 0.0
 var cam_z: float = 0.0
@@ -114,11 +122,21 @@ func _ready() -> void:
 	# Destello y halo con la silueta de la ficha (losa de 0.49 y esquinas de 0.16, desplazada 0.01)
 	ring_mesh = TileMesh.ring(0.50, 0.74, 0.0, 8, 0.17)
 	halo_mesh = TileMesh.ring(0.50, 0.565, 0.0, 8, 0.17)
+	# Mesas de las otras dos estaciones del mundo (vacías hasta que main las vista)
+	menu_station = StationMenu.new()
+	menu_station.position = Vector3(0.0, 0.0, MENU_TABLE_Z)
+	add_child(menu_station)
+	subject_station = StationSubjects.new()
+	subject_station.position = Vector3(0.0, 0.0, SUBJ_Z)
+	add_child(subject_station)
 	get_viewport().size_changed.connect(_layout)
 
 # ---------- API ----------
 
 func start(pairs: Array, pop_delay: float = 0.0) -> void:
+	# El vuelo lo pide `main` antes de llamar aquí; si nadie lo hizo (pruebas), se salta.
+	if station != "game" and _settled:
+		fly_to_station("game", 0.0)
 	_clear_tiles()
 	gen += 1
 	active = true
@@ -139,11 +157,13 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 	cam_x = 0.0
 	cam_z = 0.0
 	_layout()
+	# Cascada de entrada: con 48 fichas un paso fijo de 0,03 s tardaría casi 1,5 s
+	var step: float = minf(0.03, 0.75 / float(maxi(tiles.size(), 1)))
 	for i in tiles.size():
 		var t: Tile = tiles[i]
 		t.node.scale = Vector3.ONE * 0.001
 		var tw := t.node.create_tween()
-		tw.tween_interval(pop_delay + i * 0.03)
+		tw.tween_interval(pop_delay + float(i) * step)
 		tw.tween_property(t.node, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func stop() -> void:
@@ -156,6 +176,16 @@ func stop() -> void:
 		board = null
 	cols = 0
 	rows = 0
+	_refresh_floor()
+
+## Construye las losetas de una estación y reajusta los huecos del suelo.
+func build_menu(mode_now: String, level: int) -> void:
+	menu_station.build(mode_now, level)
+	_refresh_floor()
+
+func build_subjects(cards: Array) -> void:
+	subject_station.build(cards)
+	_refresh_floor()
 
 func _clear_tiles() -> void:
 	for t in tiles:
@@ -165,64 +195,12 @@ func _clear_tiles() -> void:
 # ---------- Construcción de la escena ----------
 
 func _make_textures() -> void:
-	back_tex = _back_texture()
-	bezel_tex = _bezel_texture()
+	back_tex = TileLook.back_texture()
+	bezel_tex = TileLook.bezel_texture()
 	# Chispas: la estrella del tema, blanca, para poder teñirla desde el color de la partícula
 	spark_tex = UiTheme.icon("star", 64, Color.WHITE)
 	spark_mesh = _spark_mesh() if spark_tex != null else null
-	gold = StandardMaterial3D.new()
-	gold.albedo_color = Color("e9b949")
-	gold.albedo_texture = bezel_tex
-	gold.uv1_scale = Vector3(1.0 / 0.98, 1.0 / 0.98, 1.0)
-	gold.uv1_offset = Vector3(0.5, 0.5, 0.0)
-	gold.metallic = 1.0
-	gold.metallic_specular = 0.55
-	gold.roughness = 0.28
-	gold.clearcoat_enabled = true
-	gold.clearcoat = 0.25
-	gold.clearcoat_roughness = 0.18
-
-## Dorso de la ficha: tarjeta azulada con borde fino y un emblema en el centro.
-func _back_texture() -> ImageTexture:
-	var n := 128
-	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var top := Color("e8f0fb")
-	var bot := Color("c3d6f2")
-	var line := Color("9cbce4")
-	var mark := Color("4a8ff5")
-	var inner := Color("eef5ff")
-	for y in n:
-		var t: float = float(y) / float(n - 1)
-		for x in n:
-			var u := Vector2((float(x) + 0.5) / n * 2.0 - 1.0, (float(y) + 0.5) / n * 2.0 - 1.0)
-			var col: Color = top.lerp(bot, t)
-			var d: float = UiTheme.sdf(u, Vector2(0.88, 0.88), 0.22)
-			col = col.lerp(line, clampf(1.0 - absf(d + 0.02) / 0.04, 0.0, 1.0) * 0.9)
-			var m: float = UiTheme.sdf(u, Vector2(0.50, 0.50), 0.18)
-			if m < 0.0:
-				col = col.lerp(mark, 0.95)
-			var mi: float = UiTheme.sdf(u, Vector2(0.28, 0.28), 0.10)
-			if mi < 0.0:
-				col = col.lerp(inner, 0.97)
-			var mo: float = UiTheme.sdf(u, Vector2(0.13, 0.13), 0.055)
-			if mo < 0.0:
-				col = col.lerp(mark, 0.95)
-			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
-
-## Bisel dorado: oscurece el hueco donde encaja la cara (oclusión falsa).
-func _bezel_texture() -> ImageTexture:
-	var n := 128
-	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	for y in n:
-		for x in n:
-			var p := Vector2((float(x) + 0.5) / n * 2.0 - 1.0, (float(y) + 0.5) / n * 2.0 - 1.0) * 0.49
-			var d: float = UiTheme.sdf(p, Vector2(FACE, FACE), 0.09)
-			var k: float = 1.0 - 0.42 * exp(-pow(maxf(d, 0.0) / 0.015, 2.0))
-			var do: float = UiTheme.sdf(p, Vector2(0.49, 0.49), 0.16)
-			k *= lerpf(1.0, 0.86, clampf(1.0 + do / 0.05, 0.0, 1.0))
-			img.set_pixel(x, y, Color(k, k, k))
-	return ImageTexture.create_from_image(img)
+	gold = TileLook.gold_material(bezel_tex)
 
 ## Suelo: foco de luz bajo el tablero, dos manchas de color suaves, el anillo que
 ## enmarca la losa y la viñeta hacia los bordes; un grano fino evita las bandas.
@@ -250,27 +228,6 @@ func _ground_texture() -> ImageTexture:
 			var r: float = sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453
 			var g: float = (r - floorf(r) - 0.5) * 0.024
 			img.set_pixel(x, y, Color(clampf(col.r + g, 0.0, 1.0), clampf(col.g + g, 0.0, 1.0), clampf(col.b + g, 0.0, 1.0)))
-	return ImageTexture.create_from_image(img)
-
-## Losa del tablero: cuadrícula de puntos y un borde fino.
-func _plate_texture(hx: float, hz: float) -> ImageTexture:
-	var n := 128
-	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
-	var base := Color("e9dab8")
-	var dot := Color("d8c395")
-	var line := Color("a6c7ea")
-	for y in n:
-		var uy: float = (float(y) + 0.5) / n * 2.0 - 1.0
-		for x in n:
-			var ux: float = (float(x) + 0.5) / n * 2.0 - 1.0
-			var col: Color = base
-			var dx: float = absf(fposmod(ux * hx, 0.28) - 0.14)
-			var dz: float = absf(fposmod(uy * hz, 0.28) - 0.14)
-			col = col.lerp(dot, clampf(1.0 - sqrt(dx * dx + dz * dz) / 0.075, 0.0, 1.0))
-			var d: float = UiTheme.sdf(Vector2(ux * hx, uy * hz), Vector2(hx, hz) - Vector2(0.11, 0.11), 0.16)
-			col = col.lerp(line, clampf(1.0 - absf(d + 0.012) / 0.02, 0.0, 1.0) * 0.8)
-			col = col.darkened(0.10 * clampf(1.0 + d / 0.06, 0.0, 1.0))
-			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
 ## Entorno para los reflejos del metal: degradado con focos suaves (softbox) y un
@@ -451,7 +408,7 @@ func _layout() -> void:
 	if ground_mesh != null:
 		ground_mesh.size = Vector2.ONE * (fit * 0.92)
 	if floor_cubes != null:
-		floor_cubes.set_clear_rect(w * 0.5 + 0.22, h * 0.5 + 0.22)
+		_refresh_floor()
 
 func _build_board() -> void:
 	if board != null:
@@ -460,70 +417,137 @@ func _build_board() -> void:
 	add_child(board)
 	var w: float = float(cols) * ST + 0.5
 	var h: float = float(rows) * ST + 0.5
-	# Marco azul con barniz
-	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color("2f86d6")
-	fm.roughness = 0.30
-	fm.metallic = 0.25
-	fm.clearcoat_enabled = true
-	fm.clearcoat = 0.3
-	var frame := MeshInstance3D.new()
-	frame.mesh = TileMesh.slab((w + 0.45) * 0.5, (h + 0.45) * 0.5, 0.36, 0.16, 0.05, 5, 8)
-	frame.material_override = fm
-	frame.position.y = -0.245
-	board.add_child(frame)
-	# Losa clara con la cuadrícula de puntos
-	var pm := StandardMaterial3D.new()
-	pm.albedo_texture = _plate_texture(w * 0.5, h * 0.5)
-	pm.uv1_scale = Vector3(1.0 / w, 1.0 / h, 1.0)
-	pm.uv1_offset = Vector3(0.5, 0.5, 0.0)
-	pm.roughness = 0.85
-	var plate := MeshInstance3D.new()
-	plate.mesh = TileMesh.slab(w * 0.5, h * 0.5, 0.22, 0.09, 0.025, 5, 8)
-	plate.material_override = pm
-	plate.position.y = -0.15
-	board.add_child(plate)
+	TileLook.table(board, w, h)
 
-# ---------- Cámara ----------
+# ---------- Cámara y estaciones ----------
 
 func _process(delta: float) -> void:
 	_clock += delta
+	_drift(delta)
 	_update_cam()
 
+## Inercia del arrastre en las estaciones: sigue un poco después de soltar.
+func _drift(delta: float) -> void:
+	if station == "game" or _pan_v.length() < 2.0 or not ptrs.is_empty():
+		return
+	_pan(_pan_v * delta)
+	_pan_v *= exp(-7.0 * delta)
+	if _pan_v.length() < 2.0:
+		_pan_v = Vector2.ZERO
+
+## Pose de la estación activa: a dónde mira la cámara, a qué distancia y con cuánto balanceo.
+func _pose() -> Dictionary:
+	if station == "subjects" and subject_station != null:
+		var s: Vector3 = subject_station.position
+		return {
+			"target": Vector3(s.x + cam_x, s.y, s.z + cam_z),
+			"dist": subject_station.fit_distance() / zoom,
+			"tilt": subject_station.TILT,
+			"yaw": 0.0,
+		}
+	if station == "menu":
+		# Balanceo lento de la vista lejana; se captura al empezar un vuelo.
+		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": MENU_TILT, "yaw": 0.30 * sin(_clock * 0.15)}
+	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
+
+## Pose que se está viendo ahora mismo (a mitad de un vuelo, la mezcla).
+func _pose_now() -> Dictionary:
+	if _from.is_empty() or _t >= 1.0:
+		return _pose()
+	return _blend(_from, _pose(), _t)
+
+func _blend(a: Dictionary, b: Dictionary, t: float) -> Dictionary:
+	return {
+		"target": (a["target"] as Vector3).lerp(b["target"] as Vector3, t),
+		"dist": lerpf(float(a["dist"]), float(b["dist"]), t),
+		"tilt": lerpf(float(a["tilt"]), float(b["tilt"]), t),
+		"yaw": lerpf(float(a["yaw"]), float(b["yaw"]), t),
+	}
+
 func _update_cam() -> void:
-	cam_x = clampf(cam_x, -float(cols) * ST * 0.5, float(cols) * ST * 0.5)
-	cam_z = clampf(cam_z, -float(rows) * ST * 0.5, float(rows) * ST * 0.5)
-	var v: float = clampf(view, 0.0, 1.0)
-	var d: float = lerpf(MENU_DIST, fit / zoom, v)
-	var tilt: float = lerpf(MENU_TILT, TILT, v)
-	var target: Vector3 = MENU_LOOK.lerp(Vector3(cam_x, 0.0, cam_z), v)
-	# En el menú la vista se balancea despacio; en juego queda fija
-	var yaw: float = sin(_clock * 0.15) * 0.30 * (1.0 - v)
+	var to: Dictionary = _pose()
+	var b: Vector2 = _pan_bounds(float(to["dist"]))
+	cam_x = clampf(cam_x, -b.x, b.x)
+	cam_z = clampf(cam_z, -b.y, b.y)
+	to = _pose()  # con el paneo ya corregido
+	var p: Dictionary = to if _t >= 1.0 else _blend(_from, to, _t)
+	var d: float = float(p["dist"])
+	var tilt: float = float(p["tilt"])
+	var target: Vector3 = p["target"]
+	var yaw: float = float(p["yaw"])
 	var off := Vector3(0.0, d * cos(tilt), d * sin(tilt)).rotated(Vector3.UP, yaw)
 	cam.position = target + off
-	# La niebla empieza detrás del tablero: no lo tiñe, pero difumina el fondo lejano
+	# La niebla empieza detrás de la mesa: no la tiñe, pero difumina el fondo lejano
 	env.fog_depth_begin = d + 4.0
 	env.fog_depth_end = d + 22.0
 	cam.look_at(target, Vector3.UP)
 
-## Mueve la cámara entre la vista del menú (0) y la de juego (1).
-func fly_to(target: float, secs: float) -> void:
+## Límites del paneo (semiejes en X y Z) de la estación activa.
+func _pan_bounds(dist: float) -> Vector2:
+	if station == "subjects" and subject_station != null:
+		return subject_station.pan_bounds(dist)
+	if station == "menu":
+		return Vector2.ZERO
+	return Vector2(float(cols) * ST * 0.5, float(rows) * ST * 0.5)
+
+## Lleva la cámara de una estación a otra. `start_at` salta el principio del vuelo
+## (entre niveles basta un acercamiento corto).
+func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	if _fly != null:
 		_fly.kill()
+	_from = _pose_now()
+	station = name
+	_apply_station_visibility()
+	cam_x = 0.0
+	cam_z = 0.0
+	zoom = 1.0
+	_pan_v = Vector2.ZERO
+	# Las materias empiezan por la primera fila: la lista es más alta que la pantalla
+	if name == "subjects" and subject_station != null:
+		cam_z = subject_station.initial_z(subject_station.fit_distance())
 	if secs <= 0.0:
-		view = target
+		_t = 1.0
+		_settled = true
 		return
+	_t = clampf(start_at, 0.0, 0.95)
+	_settled = false
 	_fly = create_tween()
-	_fly.tween_property(self, "view", target, secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	_fly.tween_property(self, "_t", 1.0, secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	_fly.finished.connect(func() -> void: _settled = true)
+
+## Solo se ve la mesa de la estación activa: en el tablero grande las otras
+## mesas quedaban detrás del tablero y ensuciaban la vista.
+func _apply_station_visibility() -> void:
+	if menu_station != null:
+		menu_station.visible = station == "menu"
+	if subject_station != null:
+		subject_station.visible = station == "subjects"
+	_refresh_floor()
 
 func _pan(delta: Vector2) -> void:
 	var h: float = maxf(get_viewport().get_visible_rect().size.y, 1.0)
-	var upp: float = 2.0 * (fit / zoom) * tan(deg_to_rad(FOV * 0.5)) / h
+	var upp: float = 2.0 * float(_pose()["dist"]) * tan(deg_to_rad(FOV * 0.5)) / h
 	cam_x -= delta.x * upp
 	cam_z -= delta.y * upp
 
 func _zoom_by(f: float) -> void:
 	zoom = clampf(zoom * f, 0.5, 3.0)
+
+## Huecos del suelo: una mesa por estación (menú, materias y tablero).
+func _refresh_floor() -> void:
+	if floor_cubes == null:
+		return
+	var clears: Array = []
+	if cols > 0 and rows > 0:
+		var w: float = float(cols) * ST + 0.5
+		var h: float = float(rows) * ST + 0.5
+		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
+	for st in [menu_station, subject_station]:
+		if st != null and (st as Node3D).visible:
+			var r: Rect2 = st.clear_rect()
+			if r.size.x > 0.0:
+				clears.append(r)
+	floor_cubes.set_clears(clears)
 
 # ---------- Entrada (táctil y ratón) ----------
 
@@ -559,7 +583,9 @@ func _unhandled_input(e: InputEvent) -> void:
 			light_scale = clampf(light_scale + (0.1 if k == KEY_UP else -0.1), 0.2, 2.0)
 			_apply_light()
 		return
-	if not active or view < 0.97:
+	if not _settled or _t < 0.98:
+		return
+	if station == "game" and not active:
 		return
 	if e is InputEventScreenTouch:
 		var te := e as InputEventScreenTouch
@@ -592,9 +618,10 @@ func _down(id: int, pos: Vector2) -> void:
 	ptrs[id] = pos
 	last_pos = pos
 	if ptrs.size() == 1:
-		press_tile = _tile_at(pos)
+		press_tile = _tile_at(pos) if station == "game" else null
 		press_start = pos
 		moved = false
+		_pan_v = Vector2.ZERO
 	else:
 		if dragging and drag_tile != null:
 			_return_home(drag_tile)
@@ -603,6 +630,7 @@ func _down(id: int, pos: Vector2) -> void:
 		moved = true
 		press_tile = null
 		pinch_d = _pinch_distance()
+		_pan_v = Vector2.ZERO
 
 func _move(id: int, pos: Vector2) -> void:
 	if not ptrs.has(id):
@@ -619,7 +647,7 @@ func _move(id: int, pos: Vector2) -> void:
 		return
 	if not moved and pos.distance_to(press_start) > 12.0:
 		moved = true
-		if mode == "assoc" and press_tile != null and not press_tile.matched and not lock:
+		if station == "game" and mode == "assoc" and press_tile != null and not press_tile.matched and not lock:
 			_begin_drag(press_tile)
 	if dragging and drag_tile != null:
 		var g: Vector3 = _ground_point(pos)
@@ -627,6 +655,9 @@ func _move(id: int, pos: Vector2) -> void:
 		drag_tile.node.position.z = g.z
 	elif moved:
 		_pan(delta)
+		if station != "game":
+			var dt: float = maxf(get_process_delta_time(), 0.001)
+			_pan_v = _pan_v.lerp(delta / dt, 0.45)
 
 func _up(id: int) -> void:
 	if not ptrs.has(id):
@@ -640,7 +671,19 @@ func _up(id: int) -> void:
 		drag_tile = null
 	elif not moved and press_tile != null:
 		_tap(press_tile)
+	elif not moved and station != "game":
+		_station_tap(last_pos)
 	press_tile = null
+	# La inercia sigue solo tras arrastrar en una estación; un toque la corta
+	if station == "game" or not moved:
+		_pan_v = Vector2.ZERO
+
+## Toque corto en las estaciones: la loseta que hay bajo el dedo.
+func _station_tap(pos: Vector2) -> void:
+	if station == "menu" and menu_station != null:
+		menu_station.tap(pos, cam)
+	elif station == "subjects" and subject_station != null:
+		subject_station.tap(pos, cam)
 
 func _pinch_distance() -> float:
 	var k: Array = ptrs.keys()

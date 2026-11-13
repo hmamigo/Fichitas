@@ -85,23 +85,28 @@ static func slab(hx: float, hz: float, r: float, thick: float, bevel: float, nb:
 
 ## Cara plana de la imagen (rectángulo redondeado con UV 0..1) a altura y. `up` indica hacia dónde mira.
 static func face(half: float, y: float, up: bool, radius: float = 0.09, seg: int = 6) -> ArrayMesh:
-	var lp: Array = loop(half, half, radius, seg)
+	return face_rect(half, half, y, up, radius, seg)
+
+## Igual que `face`, con semiancho `hx` y semialto `hz`: las losetas del menú y de las
+## materias son apaisadas y no caben en la cara cuadrada del tablero.
+static func face_rect(hx: float, hz: float, y: float, up: bool, radius: float = 0.09, seg: int = 6) -> ArrayMesh:
+	var lp: Array = loop(hx, hz, radius, seg)
 	var pts: PackedVector2Array = lp[0]
 	var nrm: Vector3 = Vector3.UP if up else Vector3.DOWN
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var center := Vector3(0.0, y, 0.0)
-	var size: float = half * 2.0
+	var size := Vector2(hx * 2.0, hz * 2.0)
 	for k in pts.size():
 		var k2: int = (k + 1) % pts.size()
 		var va := Vector3(pts[k].x, y, pts[k].y)
 		var vb := Vector3(pts[k2].x, y, pts[k2].y)
-		var ua: float = pts[k].x / size + 0.5
-		var ub: float = pts[k2].x / size + 0.5
+		var ua: float = pts[k].x / size.x + 0.5
+		var ub: float = pts[k2].x / size.x + 0.5
 		if not up:
 			ua = 1.0 - ua
 			ub = 1.0 - ub
-		_tri(st, [center, va, vb], [nrm, nrm, nrm], [Vector2(0.5, 0.5), Vector2(ua, pts[k].y / size + 0.5), Vector2(ub, pts[k2].y / size + 0.5)], nrm)
+		_tri(st, [center, va, vb], [nrm, nrm, nrm], [Vector2(0.5, 0.5), Vector2(ua, pts[k].y / size.y + 0.5), Vector2(ub, pts[k2].y / size.y + 0.5)], nrm)
 	return st.commit()
 
 ## Anillo plano en el plano XZ, para el destello al emparejar.

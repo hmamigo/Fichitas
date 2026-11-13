@@ -2,25 +2,17 @@ class_name GameUI
 extends CanvasLayer
 ## Pantallas: menú, materias, barra de juego y nivel completado. Solo dibuja y emite señales.
 
-signal play_general
-signal play_subject(id: String)
-signal play_review
-signal open_subjects
 signal back_pressed
 signal next_pressed
-signal mode_changed(mode: String)
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
 
 var hud_bar: Control
 var lv_label: Label
 var menu: Control
-var play_btn: Button
-var mode_btns: Dictionary = {}
 var sound_btn: Button
 var vib_btn: Button
 var subjects: Control
-var grid: GridContainer
 var toast_label: Label
 var win: Control
 var win_title: Label
@@ -28,9 +20,9 @@ var win_msg: Label
 var win_btn: Button
 var dom_grid: GridContainer
 var _th: Theme
-var _menu_card: Control
 var _win_card: Control
 var _bgs: Array = []   # materiales de los fondos, para reajustar el lienzo
+var _toast_tween: Tween
 # Piezas animadas del menú: halos, fichas decorativas y destellos.
 var _menu_logo: TextureRect
 var _menu_logo_wrap: Control
@@ -39,7 +31,6 @@ var _menu_title_wrap: Control
 var _menu_title_glow: TextureRect
 var _menu_subtitle: Control
 var _menu_footer: Control
-var _menu_primary_glow: TextureRect
 var _menu_deco: Array = []
 var _menu_title_tiles: Array = []
 var _win_medal: Control
@@ -105,6 +96,15 @@ func _screen(kind: String) -> Control:
 		_backdrop(c, kind)
 	return c
 
+## Deja pasar los toques a la escena 3D: solo los botones siguen capturándolos.
+func _pass_through(c: Node) -> void:
+	if c is Control:
+		var k := c as Control
+		if not (k is BaseButton):
+			k.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ch in c.get_children():
+		_pass_through(ch)
+
 ## Tarjeta clara con sombra; devuelve la caja vertical donde poner el contenido.
 func _panel(parent: Control, width: int, pad: int = 30, style: StyleBoxFlat = null) -> VBoxContainer:
 	var pc := PanelContainer.new()
@@ -139,12 +139,6 @@ func _paint_toggle(b: Button, on: bool) -> void:
 	b.icon = UiTheme.icon(icon_name, 34, Color.WHITE if on else UiTheme.INK)
 
 ## Punto de color del modo: blanco cuando la pastilla está activa.
-func _paint_mode(b: Button, on: bool) -> void:
-	var dot: Color = UiTheme.LAVENDER
-	if b.has_meta("dot"):
-		dot = b.get_meta("dot")
-	b.icon = UiTheme.icon_dot(18, Color.WHITE if on else dot)
-
 func _star_icon(size: int, col: Color) -> TextureRect:
 	var t := TextureRect.new()
 	t.texture = UiTheme.sparkle(size, col)
@@ -344,7 +338,7 @@ func _layout_menu_deco() -> void:
 func _animate_menu() -> void:
 	if _menu_tween != null:
 		_menu_tween.kill()
-	var parts: Array = [_menu_logo_wrap, _menu_title_wrap, _menu_subtitle, _menu_card, _menu_footer]
+	var parts: Array = [_menu_logo_wrap, _menu_title_wrap, _menu_subtitle, _menu_footer]
 	for p in parts:
 		if p != null:
 			p.modulate.a = 0.0
@@ -363,8 +357,6 @@ func _animate_menu() -> void:
 	_menu_tween.tween_property(_menu_title_wrap, "scale", Vector2.ONE, 0.50).set_delay(0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_menu_tween.tween_property(_menu_subtitle, "modulate:a", 1.0, 0.30).set_delay(0.14)
 	_menu_tween.tween_property(_menu_subtitle, "scale", Vector2.ONE, 0.45).set_delay(0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_menu_tween.tween_property(_menu_card, "modulate:a", 1.0, 0.34).set_delay(0.18)
-	_menu_tween.tween_property(_menu_card, "scale", Vector2.ONE, 0.50).set_delay(0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_menu_tween.tween_property(_menu_footer, "modulate:a", 1.0, 0.30).set_delay(0.30)
 	for i in _menu_deco.size():
 		var w: Control = _menu_deco[i]["wrap"]
@@ -384,10 +376,6 @@ func _process(delta: float) -> void:
 		_menu_logo_glow.modulate.a = 0.48 + 0.15 * (0.5 + 0.5 * sin(_menu_clock * 1.15 + 0.5))
 	if _menu_title_glow != null:
 		_menu_title_glow.modulate.a = 0.40 + 0.14 * (0.5 + 0.5 * sin(_menu_clock * 0.85 + 1.1))
-	if _menu_primary_glow != null:
-		_menu_primary_glow.pivot_offset = _menu_primary_glow.size * 0.5
-		_menu_primary_glow.modulate.a = 0.30 + 0.22 * (0.5 + 0.5 * sin(_menu_clock * 2.0))
-		_menu_primary_glow.scale = Vector2.ONE * (1.0 + 0.025 * sin(_menu_clock * 2.0))
 	for i in _menu_title_tiles.size():
 		var tile: Control = _menu_title_tiles[i]
 		tile.rotation = sin(_menu_clock * 0.9 + float(i) * 0.8) * 0.045
@@ -496,80 +484,24 @@ func _build_menu() -> void:
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	gap_mid.size_flags_stretch_ratio = 2.0
 	v.add_child(gap_mid)
-	var card := _panel(v, 720, 38, UiTheme.menu_panel_box(38))
-	_menu_card = card.get_parent() as Control
-	card.add_theme_constant_override("separation", 20)
-	var head := HBoxContainer.new()
-	head.alignment = BoxContainer.ALIGNMENT_CENTER
-	head.add_theme_constant_override("separation", 10)
-	card.add_child(head)
-	head.add_child(_label("Modo de juego", UiTheme.T_SMALL, false, UiTheme.INK_SOFT))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	var grp := ButtonGroup.new()
-	for m2 in [["mem", "Memoria", UiTheme.LAVENDER], ["assoc", "Asociación", UiTheme.MINT]]:
-		var b := Button.new()
-		b.text = m2[1]
-		b.toggle_mode = true
-		b.button_group = grp
-		b.theme_type_variation = "Pill"
-		b.custom_minimum_size = Vector2(0, 88)
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.add_theme_constant_override("h_separation", 12)
-		b.set_meta("dot", m2[2])
-		b.icon = UiTheme.icon_dot(18, m2[2])
-		b.toggled.connect(func(on: bool) -> void: _paint_mode(b, on))
-		var key: String = m2[0]
-		b.pressed.connect(func() -> void: mode_changed.emit(key))
-		row.add_child(b)
-		mode_btns[key] = b
-		_juice(b)
-	card.add_child(row)
-	var subj := Button.new()
-	subj.text = "Elegir materia"
-	subj.theme_type_variation = "Soft"
-	subj.icon = UiTheme.icon("book_open", 40, UiTheme.BLUE_DARK)
-	subj.add_theme_constant_override("h_separation", 14)
-	subj.custom_minimum_size = Vector2(0, 100)
-	subj.pressed.connect(func() -> void: open_subjects.emit())
-	card.add_child(subj)
-	_juice(subj)
-	play_btn = Button.new()
-	play_btn.theme_type_variation = "Gold"
-	play_btn.icon = UiTheme.icon("compass", 42, UiTheme.GOLD_INK)
-	play_btn.add_theme_constant_override("h_separation", 14)
-	play_btn.custom_minimum_size = Vector2(0, 108)
-	play_btn.pressed.connect(func() -> void: play_general.emit())
-	card.add_child(play_btn)
-	# Halo dorado que respira detrás de la acción principal.
-	_menu_primary_glow = TextureRect.new()
-	_menu_primary_glow.texture = UiTheme.radial_glow(128, Color("ffcf5a"))
-	_menu_primary_glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_menu_primary_glow.stretch_mode = TextureRect.STRETCH_SCALE
-	_menu_primary_glow.modulate = Color(1, 1, 1, 0.45)
-	_menu_primary_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_menu_primary_glow.show_behind_parent = true
-	_menu_primary_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_menu_primary_glow.offset_left = -30
-	_menu_primary_glow.offset_top = -30
-	_menu_primary_glow.offset_right = 30
-	_menu_primary_glow.offset_bottom = 30
-	play_btn.add_child(_menu_primary_glow)
-	_juice(play_btn)
+	# Ajustes: una pastilla translúcida bajo las losetas 3D del menú
+	var opts_pill := PanelContainer.new()
+	opts_pill.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 4, 10, 10, 28, 0, 10, 0.30))
+	opts_pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	opts_pill.custom_minimum_size = Vector2(560, 0)
+	v.add_child(opts_pill)
 	var opts := HBoxContainer.new()
 	opts.alignment = BoxContainer.ALIGNMENT_CENTER
 	opts.add_theme_constant_override("separation", 12)
-	card.add_child(opts)
+	opts_pill.add_child(opts)
 	sound_btn = _toggle("Sonido", "speaker", "speaker_mute", opts)
+	sound_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sound_btn.toggled.connect(func(on: bool) -> void: sound_toggled.emit(on))
 	_juice(sound_btn)
 	vib_btn = _toggle("Vibración", "rumble_phone", "mobile_phone", opts)
+	vib_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vib_btn.toggled.connect(func(on: bool) -> void: vib_toggled.emit(on))
 	_juice(vib_btn)
-	var gap2 := Control.new()
-	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gap2.size_flags_stretch_ratio = 1.0
-	v.add_child(gap2)
 	var foot := PanelContainer.new()
 	foot.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 3, 8, 8, 20, 0, 8, 0.14))
 	foot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -582,15 +514,11 @@ func _build_menu() -> void:
 	foot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	foot.add_child(foot_row)
 	foot_row.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK))
+	# La capa es solo texto: los toques van a las losetas 3D (menos los ajustes)
+	_pass_through(menu)
 
 func _build_subjects() -> void:
-	subjects = _screen("none")  # sin fondo: se ve el suelo de cubos 3D
-	# Velo claro y translúcido: calma los cubos detrás de la lista sin taparlos del todo
-	var veil := ColorRect.new()
-	veil.color = Color(0.88, 0.93, 1.0, 0.58)
-	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	subjects.add_child(veil)
+	subjects = _screen("none")  # sin fondo: las losetas 3D son la lista
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for s in ["left", "right", "top", "bottom"]:
@@ -617,18 +545,13 @@ func _build_subjects() -> void:
 	var st := _label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
 	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(st)
-	var sc := ScrollContainer.new()
-	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(sc)
-	grid = GridContainer.new()
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 18)
-	grid.add_theme_constant_override("v_separation", 18)
-	sc.add_child(grid)
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(gap)
 	toast_label = _halo(_label("", UiTheme.T_SMALL, false, UiTheme.INK, true))
 	v.add_child(toast_label)
+	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
+	_pass_through(subjects)
 
 const WIN_PAD := 34        # margen interior de la tarjeta de nivel completado
 const WIN_MAX_W := 860     # ancho máximo de esa tarjeta
@@ -682,13 +605,9 @@ func _build_win() -> void:
 
 # ---------- API ----------
 
-## opts: {sound, vib, vib_visible}
-func show_menu(level: int, mode: String, opts: Dictionary = {}) -> void:
+## opts: {sound, vib, vib_visible}. Las acciones están en las losetas 3D del menú.
+func show_menu(opts: Dictionary = {}) -> void:
 	hide_all()
-	(mode_btns[mode] as Button).button_pressed = true
-	for key in mode_btns:
-		_paint_mode(mode_btns[key], (mode_btns[key] as Button).button_pressed)
-	play_btn.text = "Recorrido general · Nivel %d" % level
 	var snd: bool = bool(opts.get("sound", true))
 	var vb: bool = bool(opts.get("vib", true))
 	sound_btn.set_pressed_no_signal(snd)
@@ -705,15 +624,11 @@ func show_hud(text: String) -> void:
 	lv_label.text = text
 	hud_bar.visible = true
 
-## cards: Array de {id, name, sub, sub2, color, locked, info}. id "" = recorrido general.
-func show_subjects(cards: Array) -> void:
+## Las tarjetas de materia son losetas 3D: aquí solo queda la cabecera y el aviso.
+func show_subjects() -> void:
 	hide_all()
-	for c in grid.get_children():
-		grid.remove_child(c)
-		c.queue_free()
-	for d in cards:
-		grid.add_child(_card(d))
 	toast_label.text = ""
+	toast_label.modulate.a = 1.0
 	_update_columns()
 	subjects.visible = true
 
@@ -812,130 +727,16 @@ func _dom_tile(d: Dictionary, side: int = 72) -> Control:
 
 func toast(text: String) -> void:
 	toast_label.text = text
+	toast_label.modulate.a = 1.0
+	if _toast_tween != null:
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_interval(3.4)
+	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.4)
 
 func _update_columns() -> void:
-	if grid == null:
-		return
 	var vp: Vector2 = get_viewport().get_visible_rect().size
 	UiTheme.bg_resize(vp)
 	for m in _bgs:
 		(m as ShaderMaterial).set_shader_parameter("res", vp)
 	_layout_menu_deco()
-	grid.columns = maxi(2, floori((vp.x - 48.0) / 330.0))
-
-func _card(d: Dictionary) -> Control:
-	var locked: bool = d.get("locked", false)
-	var col: Color = d["color"]
-	if locked:
-		col = col.lerp(UiTheme.LOCKED, 0.55)
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(0, 348)
-	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Ficha esmaltada: filo dorado y cara del color de la materia
-	var rim := _enamel_tile(Vector2(0, 0), col.lightened(0.08), 12, 34)
-	rim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	if locked:
-		rim.modulate = Color(0.80, 0.82, 0.88)
-	holder.add_child(rim)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 6)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(rim.get_child(0) as Control).add_child(v)
-	var ink: Color = UiTheme.INK if not locked else UiTheme.INK.lerp(Color.WHITE, 0.35)
-	# Ranura crema con el icono de la materia
-	var badge := PanelContainer.new()
-	var bs := StyleBoxFlat.new()
-	bs.bg_color = Color("fffdf7")
-	bs.set_corner_radius_all(32)
-	bs.border_color = col.darkened(0.14)
-	bs.set_border_width_all(3)
-	bs.set_content_margin_all(4)
-	badge.add_theme_stylebox_override("panel", bs)
-	badge.custom_minimum_size = Vector2(112, 112)
-	badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var icon_name: String = str(d.get("icon", ""))
-	if icon_name != "":
-		var im := TextureRect.new()
-		im.texture = UiTheme.icon(icon_name, 66, ink)
-		im.custom_minimum_size = Vector2(66, 66)
-		im.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		im.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		im.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.add_child(im)
-	else:
-		badge.add_child(_label(str(d["name"]).substr(0, 1).to_upper(), UiTheme.T_WIN, true, ink))
-	v.add_child(badge)
-	var parts: Array = [
-		_label(str(d["name"]), UiTheme.T_NAME, true, ink),
-		_label(str(d.get("sub", "")), UiTheme.T_SMALL, false, ink),
-	]
-	for l in parts:
-		(l as Label).mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(l)
-	# Barra de progreso de niveles (solo si la materia la trae y no está bloqueada)
-	var frac: float = float(d.get("frac", -1.0))
-	if frac >= 0.0 and not locked:
-		var bar := ProgressBar.new()
-		bar.show_percentage = false
-		bar.min_value = 0.0
-		bar.max_value = 1.0
-		bar.value = frac
-		bar.custom_minimum_size = Vector2(0, 16)
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var track := StyleBoxFlat.new()
-		track.bg_color = Color(1, 1, 1, 0.65)
-		track.set_corner_radius_all(8)
-		var fill := StyleBoxFlat.new()
-		fill.bg_color = Color("f0b232")
-		fill.set_corner_radius_all(8)
-		bar.add_theme_stylebox_override("background", track)
-		bar.add_theme_stylebox_override("fill", fill)
-		var bar_box := MarginContainer.new()
-		bar_box.add_theme_constant_override("margin_left", 36)
-		bar_box.add_theme_constant_override("margin_right", 36)
-		bar_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar_box.add_child(bar)
-		v.add_child(bar_box)
-	var tail: Array = [_label(str(d.get("sub2", "")), UiTheme.T_TINY, false, ink)]
-	var sub3: String = str(d.get("sub3", ""))
-	if sub3 != "":
-		tail.append(_label(sub3, UiTheme.T_TINY, false, UiTheme.BLUE_DARK))
-	for l in tail:
-		(l as Label).mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(l)
-	if locked:
-		var lk := TextureRect.new()
-		lk.texture = UiTheme.icon_lock(44, UiTheme.INK_SOFT)
-		lk.custom_minimum_size = Vector2(44, 44)
-		lk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lk.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lk.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 38)
-		holder.add_child(lk)
-	# Botón transparente sobre toda la ficha
-	var b := Button.new()
-	b.flat = true
-	b.focus_mode = Control.FOCUS_NONE
-	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
-		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	b.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	b.mouse_entered.connect(func() -> void: _juice_scale(rim, 1.02, 0.12))
-	b.mouse_exited.connect(func() -> void: _juice_scale(rim, 1.0, 0.16))
-	b.button_down.connect(func() -> void: _juice_scale(rim, 0.96, 0.08))
-	b.button_up.connect(func() -> void: _juice_scale(rim, 1.0, 0.14))
-	holder.add_child(b)
-	var id: String = str(d["id"])
-	var info: String = str(d.get("info", ""))
-	b.pressed.connect(func() -> void:
-		if locked:
-			toast(info)
-		elif id == "":
-			play_general.emit()
-		elif id == ":review":
-			play_review.emit()
-		else:
-			play_subject.emit(id))
-	return holder

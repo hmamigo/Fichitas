@@ -1,5 +1,6 @@
 extends SceneTree
-## Captura temporal: iconos del tema.
+## Capturas para ajustar el aspecto: godot --path . --script res://tests/_shot.gd
+## Guarda en /tmp/opencode. No forma parte de las pruebas.
 
 func _shot(name: String) -> void:
 	await process_frame
@@ -26,28 +27,25 @@ func _run() -> void:
 	root.add_child(main)
 	for i in 8:
 		await process_frame
-	main._on_dark(false)
-	await create_timer(0.7).timeout
-	await _shot("f_menu_light")
+	await _shot("m_menu")
 	main._go_subjects()
-	await create_timer(0.7).timeout
-	await _shot("f_subjects_light")
+	await create_timer(1.4).timeout
+	await _shot("m_subjects")
+	main.board.cam_z = main.board.subject_station.pan_bounds(main.board.subject_station.fit_distance()).y
+	await _shot("m_subjects_bottom")
 	main._play("")
-	await create_timer(1.2).timeout
-	await _shot("f_hud_light")
+	await create_timer(2.2).timeout
+	await _shot("m_game")
 	main._on_won()
-	await create_timer(0.7).timeout
-	await _shot("f_win_light")
-	main._on_dark(true)
-	await create_timer(0.7).timeout
-	await _shot("f_menu_dark")
-	main._go_subjects()
-	await create_timer(0.7).timeout
-	await _shot("f_subjects_dark")
+	await create_timer(0.8).timeout
+	await _shot("m_win")
+	main._go_menu()
+	await create_timer(1.2).timeout
+	Progress.data["level"] = 20
 	main._play("")
-	await create_timer(1.2).timeout
-	await _shot("f_hud_dark")
+	await create_timer(2.2).timeout
+	await _shot("m_game24")
 	main._on_won()
-	await create_timer(0.7).timeout
-	await _shot("f_win_dark")
+	await create_timer(0.8).timeout
+	await _shot("m_win24")
 	quit(0)
