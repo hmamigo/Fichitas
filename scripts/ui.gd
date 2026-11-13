@@ -42,6 +42,7 @@ var _menu_footer: Control
 var _menu_primary_glow: TextureRect
 var _menu_deco: Array = []
 var _menu_title_tiles: Array = []
+var _win_medal: Control
 var _menu_tween: Tween
 var _menu_clock: float = 0.0
 var _logo_base: Vector2 = Vector2.ZERO
@@ -172,6 +173,34 @@ func _juice_scale(b: Button, s: float, secs: float) -> void:
 	tw.tween_property(b, "scale", Vector2.ONE * s, secs).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	b.set_meta("juice", tw)
 
+## Ficha esmaltada: filo dorado, borde inferior grueso y cara de color. Devuelve el
+## aro; el contenido va dentro de `get_child(0)` (la cara).
+func _enamel_tile(min_size: Vector2, face_col: Color) -> PanelContainer:
+	var rim := PanelContainer.new()
+	rim.custom_minimum_size = min_size
+	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color("f0b232")
+	rs.set_corner_radius_all(26)
+	rs.border_color = Color("a8690f")
+	rs.border_width_bottom = 9
+	rs.set_content_margin_all(7)
+	rs.shadow_color = Color(0.08, 0.16, 0.34, 0.30)
+	rs.shadow_size = 12
+	rs.shadow_offset = Vector2(0, 8)
+	rim.add_theme_stylebox_override("panel", rs)
+	var face := PanelContainer.new()
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fs := StyleBoxFlat.new()
+	fs.bg_color = face_col
+	fs.set_corner_radius_all(19)
+	fs.border_color = face_col.lightened(0.55)
+	fs.set_border_width_all(3)
+	face.add_theme_stylebox_override("panel", fs)
+	rim.add_child(face)
+	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
+	return rim
+
 ## Rótulo hecho con fichas: una ficha esmaltada por letra, con el filo dorado y el
 ## borde inferior grueso de las fichas del tablero.
 func _title_tiles(word: String) -> HBoxContainer:
@@ -186,37 +215,12 @@ func _title_tiles(word: String) -> HBoxContainer:
 	_menu_title_tiles.clear()
 	for i in word.length():
 		var f: Array = faces[i % faces.size()]
-		var rim := PanelContainer.new()
-		rim.custom_minimum_size = Vector2(98, 104)
-		rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var rs := StyleBoxFlat.new()
-		rs.bg_color = Color("f0b232")
-		rs.set_corner_radius_all(26)
-		rs.border_color = Color("a8690f")
-		rs.border_width_bottom = 9
-		rs.content_margin_left = 7
-		rs.content_margin_right = 7
-		rs.content_margin_top = 7
-		rs.content_margin_bottom = 7
-		rs.shadow_color = Color(0.08, 0.16, 0.34, 0.30)
-		rs.shadow_size = 12
-		rs.shadow_offset = Vector2(0, 8)
-		rim.add_theme_stylebox_override("panel", rs)
-		var face := PanelContainer.new()
-		face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var fs := StyleBoxFlat.new()
-		fs.bg_color = f[0]
-		fs.set_corner_radius_all(19)
-		fs.border_color = (f[0] as Color).lightened(0.55)
-		fs.set_border_width_all(3)
-		rim.add_child(face)
-		face.add_theme_stylebox_override("panel", fs)
+		var rim := _enamel_tile(Vector2(98, 104), f[0])
 		var l := _label(word.substr(i, 1), 90, true, f[1])
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		face.add_child(l)
-		rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
+		(rim.get_child(0) as Control).add_child(l)
 		row.add_child(rim)
 		_menu_title_tiles.append(rim)
 	return row
@@ -334,6 +338,8 @@ func _animate_menu() -> void:
 ## Movimiento ambiente del menú (solo mientras está visible).
 func _process(delta: float) -> void:
 	_menu_clock += delta
+	if _win_medal != null and win != null and win.visible:
+		_win_medal.rotation = sin(_menu_clock * 1.5) * 0.07
 	if menu == null or not menu.visible:
 		return
 	if _menu_logo != null:
@@ -610,24 +616,27 @@ func _build_win() -> void:
 	win.theme = _th
 	add_child(win)
 	var dim := ColorRect.new()
-	dim.color = UiTheme.DIM
+	dim.color = Color(0.86, 0.93, 1.0, 0.46)  # velo claro: el tablero y los cubos siguen brillantes
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(dim)
-	_backdrop(win, "scrim")
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	win.add_child(center)
-	var card := _panel(center, WIN_MAX_W, WIN_PAD)
+	var card := _panel(center, WIN_MAX_W, WIN_PAD, UiTheme.menu_panel_box(WIN_PAD))
 	_win_card = card.get_parent() as Control
+	# Medalla: una ficha dorada con destellos, que se balancea despacio
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_win_medal = _enamel_tile(Vector2(132, 132), Color("fff0a8"))
 	var spr := TextureRect.new()
-	spr.texture = UiTheme.icon("stars", 96, Color("ffd45e"))
-	spr.custom_minimum_size = Vector2(96, 96)
+	spr.texture = UiTheme.icon("stars", 88, Color("d08a12"))
+	spr.custom_minimum_size = Vector2(88, 88)
 	spr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	spr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	row.add_child(spr)
+	spr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	(_win_medal.get_child(0) as Control).add_child(spr)
+	row.add_child(_win_medal)
 	card.add_child(row)
 	win_title = _label("", UiTheme.T_WIN, true, UiTheme.BLUE_DARK)
 	card.add_child(win_title)
@@ -640,7 +649,8 @@ func _build_win() -> void:
 	dom_grid.add_theme_constant_override("v_separation", DOM_SEP)
 	card.add_child(dom_grid)
 	win_btn = Button.new()
-	win_btn.custom_minimum_size = Vector2(0, 84)
+	win_btn.theme_type_variation = "Gold"  # la misma acción principal dorada del menú
+	win_btn.custom_minimum_size = Vector2(0, 96)
 	win_btn.pressed.connect(func() -> void: next_pressed.emit())
 	card.add_child(win_btn)
 

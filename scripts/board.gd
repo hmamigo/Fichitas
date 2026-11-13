@@ -878,6 +878,7 @@ func _check_win() -> void:
 		var tw := t.node.create_tween()
 		tw.tween_interval(0.4 + i * 0.05)
 		tw.tween_property(t.node, "position:y", 0.45, 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(_sparks.bind(t))  # estallido de estrellas en lo alto del salto
 		tw.tween_property(t.node, "position:y", MATCH_Y, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await get_tree().create_timer(1.1 + tiles.size() * 0.05).timeout
 	if g == gen and active:
