@@ -42,6 +42,13 @@ func _run() -> void:
 	main.board.fly_to_station("menu", 0.0)
 	await process_frame
 	var mtiles: Array = main.board.menu_station.tiles
+	var menu_stack_ok: bool = true
+	for i in mtiles.size():
+		var tile: Plaque = mtiles[i]
+		menu_stack_ok = menu_stack_ok and tile.size.x > tile.size.y and is_zero_approx(tile.position.x)
+		if i > 0:
+			menu_stack_ok = menu_stack_ok and tile.position.z > (mtiles[i - 1] as Plaque).position.z
+	check(menu_stack_ok, "las acciones del menú son rectangulares y forman una sola columna vertical")
 	var mspot: Vector2 = main.board.cam.unproject_position((mtiles[1] as Plaque).global_position)
 	main.board.menu_station.tap(mspot, main.board.cam)
 	check(str(Progress.data["mode"]) == "assoc", "toque en la loseta de Asociación cambia el modo")
@@ -67,6 +74,13 @@ func _run() -> void:
 	await create_timer(1.1).timeout
 	check(not main.board.menu_station.visible and main.board.subject_station.visible, "al llegar solo queda visible la mesa activa")
 	var stiles: Array = main.board.subject_station.tiles
+	var subject_stack_ok: bool = true
+	for i in stiles.size():
+		var tile: Plaque = stiles[i]
+		subject_stack_ok = subject_stack_ok and tile.size.x > tile.size.y and is_zero_approx(tile.position.x)
+		if i > 0:
+			subject_stack_ok = subject_stack_ok and tile.position.z > (stiles[i - 1] as Plaque).position.z
+	check(subject_stack_ok, "recorrido, repaso y materias son rectangulares y forman una sola columna")
 	var mat_tile: Plaque = null
 	for t in stiles:
 		if (t as Plaque).key == "mat":

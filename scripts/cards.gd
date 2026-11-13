@@ -77,31 +77,41 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 	m.add_theme_constant_override("margin_top", 10)
 	m.add_theme_constant_override("margin_bottom", 10)
 	pc.add_child(m)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 3)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_child(v)
-	# Ranura crema con el icono de la materia (o su inicial)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(row)
+	# El icono grande a la izquierda deja espacio horizontal para el progreso.
 	var badge := PanelContainer.new()
-	badge.custom_minimum_size = Vector2(86, 86)
-	badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	badge.custom_minimum_size = Vector2(76, 76)
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var bs := StyleBoxFlat.new()
 	bs.bg_color = Color("fffdf7")
-	bs.set_corner_radius_all(26)
+	bs.set_corner_radius_all(24)
 	bs.border_color = col.darkened(0.14)
 	bs.set_border_width_all(3)
 	bs.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", bs)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(badge)
 	var icon_name: String = str(d.get("icon", ""))
 	if icon_name != "":
-		badge.add_child(_icon(icon_name, 54, ink))
+		badge.add_child(_icon(icon_name, 48, ink))
 	else:
-		badge.add_child(_label(str(d["name"]), UiTheme.T_WIN, ink, true))
-	v.add_child(_label(str(d["name"]), UiTheme.T_NAME, ink, true))
-	v.add_child(_label(str(d.get("sub", "")), UiTheme.T_SMALL, ink))
+		badge.add_child(_label(str(d["name"]), UiTheme.T_WIN - 8, ink, true))
+	row.add_child(badge)
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 3)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(v)
+	var title := _label(str(d["name"]), UiTheme.T_NAME - 6, ink, true)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	v.add_child(title)
+	var subtitle := _label(str(d.get("sub", "")), UiTheme.T_SMALL, ink)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	v.add_child(subtitle)
 	# Barra de progreso de niveles
 	var frac: float = float(d.get("frac", -1.0))
 	if frac >= 0.0 and not locked:
@@ -120,16 +130,13 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 		fill.set_corner_radius_all(7)
 		bar.add_theme_stylebox_override("background", track)
 		bar.add_theme_stylebox_override("fill", fill)
-		var box := MarginContainer.new()
-		box.add_theme_constant_override("margin_left", 44)
-		box.add_theme_constant_override("margin_right", 44)
-		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(bar)
-		v.add_child(box)
+		v.add_child(bar)
 	for key in ["sub2", "sub3"]:
 		var txt: String = str(d.get(key, ""))
 		if txt != "":
-			v.add_child(_label(txt, UiTheme.T_TINY, ink if key == "sub2" else UiTheme.BLUE_DARK))
+			var detail := _label(txt, UiTheme.T_TINY, ink if key == "sub2" else UiTheme.BLUE_DARK)
+			detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			v.add_child(detail)
 	if locked:
 		var lk := _icon("lock", 34, UiTheme.INK_SOFT)
 		lk.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 14)
@@ -145,28 +152,37 @@ static func action(title: String, sub: String, icon: String, dot: bool, bg: Colo
 	pc.add_theme_stylebox_override("panel", _face_box(bg))
 	root.add_child(pc)
 	var m := MarginContainer.new()
-	m.add_theme_constant_override("margin_left", 14)
-	m.add_theme_constant_override("margin_right", 14)
-	m.add_theme_constant_override("margin_top", 12)
-	m.add_theme_constant_override("margin_bottom", 12)
+	m.add_theme_constant_override("margin_left", 18)
+	m.add_theme_constant_override("margin_right", 18)
+	m.add_theme_constant_override("margin_top", 8)
+	m.add_theme_constant_override("margin_bottom", 8)
 	pc.add_child(m)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 8)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	m.add_child(v)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(row)
 	if dot:
 		var d := TextureRect.new()
 		d.texture = UiTheme.icon_dot(30, Color.WHITE)
-		d.custom_minimum_size = Vector2(30, 30)
+		d.custom_minimum_size = Vector2(54, 54)
 		d.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		d.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		d.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		v.add_child(d)
+		row.add_child(d)
 	elif icon != "":
-		v.add_child(_icon(icon, 66, ink))
-	v.add_child(_label(title, 44, ink, true))
+		row.add_child(_icon(icon, 54, ink))
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 4)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(v)
+	var title_label := _label(title, 36, ink, true)
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	v.add_child(title_label)
 	if sub != "":
-		v.add_child(_label(sub, UiTheme.T_SMALL, ink))
+		var subtitle := _label(sub, UiTheme.T_TINY, ink)
+		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		v.add_child(subtitle)
 	return root
