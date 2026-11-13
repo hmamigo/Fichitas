@@ -95,7 +95,7 @@ func _go_subjects() -> void:
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
-	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "sub3": due_txt, "color": Color("9cc8ff")})
+	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "frac": float(mini(Progress.level(), Levels.max_level()) - 1) / float(Levels.max_level()), "sub3": due_txt, "color": Color("9cc8ff")})
 	if due.size() >= 3:  # el repaso necesita al menos tres parejas
 		cards.append({"id": ":review", "name": "Repaso", "icon": "stars", "sub": "%d parejas esperando" % due.size(),
 			"sub2": "De todas las materias", "color": Color("ffce6b")})
@@ -113,6 +113,7 @@ func _go_subjects() -> void:
 			"sub": "De pago" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
 			"sub2": "" if locked else "Dominadas %d/%d" % [dom, (p["pairs"] as Array).size()],
 			"sub3": ("%d por repasar" % pdue) if pdue > 0 else "",
+			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
 			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"]})
 	for n in COMING:

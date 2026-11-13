@@ -175,13 +175,13 @@ func _juice_scale(b: Control, s: float, secs: float) -> void:
 
 ## Ficha esmaltada: filo dorado, borde inferior grueso y cara de color. Devuelve el
 ## aro; el contenido va dentro de `get_child(0)` (la cara).
-func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0) -> PanelContainer:
+func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: int = 26) -> PanelContainer:
 	var rim := PanelContainer.new()
 	rim.custom_minimum_size = min_size
 	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var rs := StyleBoxFlat.new()
 	rs.bg_color = Color("f0b232")
-	rs.set_corner_radius_all(26)
+	rs.set_corner_radius_all(radius)
 	rs.border_color = Color("a8690f")
 	rs.border_width_bottom = 9
 	rs.set_content_margin_all(7)
@@ -193,7 +193,7 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0) -> PanelCo
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var fs := StyleBoxFlat.new()
 	fs.bg_color = face_col
-	fs.set_corner_radius_all(19)
+	fs.set_corner_radius_all(radius - 7)
 	fs.border_color = face_col.lightened(0.55)
 	fs.set_border_width_all(3)
 	fs.content_margin_left = pad_h
@@ -202,6 +202,39 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0) -> PanelCo
 	rim.add_child(face)
 	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
 	return rim
+
+## Botón de volver: ficha esmaltada con un botón transparente encima que cubre toda la ficha.
+func _back_tile(text: String) -> Control:
+	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
+	var bface := back_tile.get_child(0) as Control
+	var brow := HBoxContainer.new()
+	brow.alignment = BoxContainer.ALIGNMENT_CENTER
+	brow.add_theme_constant_override("separation", 8)
+	brow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chev := TextureRect.new()
+	chev.texture = UiTheme.icon_chevron(34, UiTheme.INK)
+	chev.custom_minimum_size = Vector2(34, 34)
+	chev.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chev.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brow.add_child(chev)
+	var btxt := _label(text, UiTheme.T_BODY, true, UiTheme.INK)
+	btxt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	brow.add_child(btxt)
+	bface.add_child(brow)
+	var back := Button.new()
+	back.flat = true
+	back.focus_mode = Control.FOCUS_NONE
+	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	back.pressed.connect(func() -> void: back_pressed.emit())
+	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.03, 0.12))
+	back.mouse_exited.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.16))
+	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
+	back.button_up.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.14))
+	back_tile.add_child(back)  # sobre toda la ficha, no solo sobre el texto
+	return back_tile
 
 ## Rótulo hecho con fichas: una ficha esmaltada por letra, con el filo dorado y el
 ## borde inferior grueso de las fichas del tablero.
@@ -393,37 +426,7 @@ func _build_hud() -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	m.add_child(h)
-	# "Atrás": ficha esmaltada con un botón transparente encima
-	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
-	var bface := back_tile.get_child(0) as Control
-	var brow := HBoxContainer.new()
-	brow.alignment = BoxContainer.ALIGNMENT_CENTER
-	brow.add_theme_constant_override("separation", 8)
-	brow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var chev := TextureRect.new()
-	chev.texture = UiTheme.icon_chevron(34, UiTheme.INK)
-	chev.custom_minimum_size = Vector2(34, 34)
-	chev.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	chev.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chev.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	brow.add_child(chev)
-	var btxt := _label("Atrás", UiTheme.T_BODY, true, UiTheme.INK)
-	btxt.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	brow.add_child(btxt)
-	bface.add_child(brow)
-	var back := Button.new()
-	back.flat = true
-	back.focus_mode = Control.FOCUS_NONE
-	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
-		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	back.pressed.connect(func() -> void: back_pressed.emit())
-	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.03, 0.12))
-	back.mouse_exited.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.16))
-	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
-	back.button_up.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.14))
-	back_tile.add_child(back)  # sobre toda la ficha, no solo sobre el texto
-	h.add_child(back_tile)
+	h.add_child(_back_tile("Atrás"))
 	# Nivel y modo: placa crema con el mismo filo dorado
 	var plate := _enamel_tile(Vector2(0, 90), Color("fffdf7"), 28)
 	lv_label = _label("", UiTheme.T_BODY, true, UiTheme.BLUE_DARK)
@@ -599,22 +602,19 @@ func _build_subjects() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
-	var back := Button.new()
-	back.text = "Menú"
-	back.theme_type_variation = "Alt"
-	back.icon = UiTheme.icon_chevron(34, UiTheme.INK)
-	back.add_theme_constant_override("h_separation", 12)
-	back.custom_minimum_size = Vector2(0, 78)
-	back.pressed.connect(func() -> void: back_pressed.emit())
-	head.add_child(back)
+	head.add_child(_back_tile("Menú"))
+	var plate := _enamel_tile(Vector2(0, 96), Color("fffdf7"), 28)
+	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(plate)
 	var hb := VBoxContainer.new()
-	hb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
 	hb.add_theme_constant_override("separation", 0)
-	head.add_child(hb)
-	var t := _label("Elige una materia", UiTheme.T_HEAD, true, UiTheme.BLUE_DARK)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	(plate.get_child(0) as Control).add_child(hb)
+	var t := _label("Elige una materia", UiTheme.T_HEAD - 6, true, UiTheme.BLUE_DARK)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(t)
-	var st := _halo(_label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK))
+	var st := _label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
 	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hb.add_child(st)
 	var sc := ScrollContainer.new()
@@ -823,31 +823,33 @@ func _update_columns() -> void:
 	_layout_menu_deco()
 	grid.columns = maxi(2, floori((vp.x - 48.0) / 330.0))
 
-func _card(d: Dictionary) -> Button:
+func _card(d: Dictionary) -> Control:
 	var locked: bool = d.get("locked", false)
 	var col: Color = d["color"]
 	if locked:
 		col = col.lerp(UiTheme.LOCKED, 0.55)
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, 326)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var edge: Color = col.darkened(0.30)
-	b.add_theme_stylebox_override("normal", UiTheme.box(col, edge, 8, 14, 14, 32, 0, 14, 0.22))
-	b.add_theme_stylebox_override("hover", UiTheme.box(col.lightened(0.07), edge, 8, 14, 14, 32, 0, 14, 0.22))
-	b.add_theme_stylebox_override("pressed", UiTheme.box(col.darkened(0.07), edge, 3, 19, 14, 32, 0, 14, 0.22))
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(0, 348)
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Ficha esmaltada: filo dorado y cara del color de la materia
+	var rim := _enamel_tile(Vector2(0, 0), col.lightened(0.08), 12, 34)
+	rim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	if locked:
+		rim.modulate = Color(0.80, 0.82, 0.88)
+	holder.add_child(rim)
 	var v := VBoxContainer.new()
-	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", 6)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(v)
+	(rim.get_child(0) as Control).add_child(v)
 	var ink: Color = UiTheme.INK if not locked else UiTheme.INK.lerp(Color.WHITE, 0.35)
-	# Medallón con la inicial de la materia
+	# Ranura crema con el icono de la materia
 	var badge := PanelContainer.new()
 	var bs := StyleBoxFlat.new()
-	bs.bg_color = UiTheme.BADGE_BG
-	bs.set_corner_radius_all(56)
+	bs.bg_color = Color("fffdf7")
+	bs.set_corner_radius_all(32)
+	bs.border_color = col.darkened(0.14)
+	bs.set_border_width_all(3)
 	bs.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", bs)
 	badge.custom_minimum_size = Vector2(112, 112)
@@ -866,14 +868,41 @@ func _card(d: Dictionary) -> Button:
 		badge.add_child(_label(str(d["name"]).substr(0, 1).to_upper(), UiTheme.T_WIN, true, ink))
 	v.add_child(badge)
 	var parts: Array = [
-		_label(str(d["name"]), UiTheme.T_NAME, false, ink),
+		_label(str(d["name"]), UiTheme.T_NAME, true, ink),
 		_label(str(d.get("sub", "")), UiTheme.T_SMALL, false, ink),
-		_label(str(d.get("sub2", "")), UiTheme.T_TINY, false, ink),
 	]
+	for l in parts:
+		(l as Label).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(l)
+	# Barra de progreso de niveles (solo si la materia la trae y no está bloqueada)
+	var frac: float = float(d.get("frac", -1.0))
+	if frac >= 0.0 and not locked:
+		var bar := ProgressBar.new()
+		bar.show_percentage = false
+		bar.min_value = 0.0
+		bar.max_value = 1.0
+		bar.value = frac
+		bar.custom_minimum_size = Vector2(0, 16)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var track := StyleBoxFlat.new()
+		track.bg_color = Color(1, 1, 1, 0.65)
+		track.set_corner_radius_all(8)
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = Color("f0b232")
+		fill.set_corner_radius_all(8)
+		bar.add_theme_stylebox_override("background", track)
+		bar.add_theme_stylebox_override("fill", fill)
+		var bar_box := MarginContainer.new()
+		bar_box.add_theme_constant_override("margin_left", 36)
+		bar_box.add_theme_constant_override("margin_right", 36)
+		bar_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar_box.add_child(bar)
+		v.add_child(bar_box)
+	var tail: Array = [_label(str(d.get("sub2", "")), UiTheme.T_TINY, false, ink)]
 	var sub3: String = str(d.get("sub3", ""))
 	if sub3 != "":
-		parts.append(_label(sub3, UiTheme.T_TINY, false, UiTheme.BLUE_DARK))
-	for l in parts:
+		tail.append(_label(sub3, UiTheme.T_TINY, false, UiTheme.BLUE_DARK))
+	for l in tail:
 		(l as Label).mouse_filter = Control.MOUSE_FILTER_IGNORE
 		v.add_child(l)
 	if locked:
@@ -883,8 +912,21 @@ func _card(d: Dictionary) -> Button:
 		lk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		lk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		lk.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		lk.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 18)
-		b.add_child(lk)
+		lk.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 38)
+		holder.add_child(lk)
+	# Botón transparente sobre toda la ficha
+	var b := Button.new()
+	b.flat = true
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	b.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	b.mouse_entered.connect(func() -> void: _juice_scale(rim, 1.02, 0.12))
+	b.mouse_exited.connect(func() -> void: _juice_scale(rim, 1.0, 0.16))
+	b.button_down.connect(func() -> void: _juice_scale(rim, 0.96, 0.08))
+	b.button_up.connect(func() -> void: _juice_scale(rim, 1.0, 0.14))
+	holder.add_child(b)
 	var id: String = str(d["id"])
 	var info: String = str(d.get("info", ""))
 	b.pressed.connect(func() -> void:
@@ -896,4 +938,4 @@ func _card(d: Dictionary) -> Button:
 			play_review.emit()
 		else:
 			play_subject.emit(id))
-	return b
+	return holder
