@@ -1,7 +1,7 @@
 extends Node
 ## Orquestador: menús, niveles y guardado. El tablero y la interfaz solo emiten señales.
 
-enum S { MENU, SUBJECTS, GAME, WIN }
+enum S { MENU, SUBJECTS, GAME, WIN, ALBUM }
 const COMING := ["Historia", "Más materias"]
 
 var board: Board
@@ -37,6 +37,7 @@ func _ready() -> void:
 	board.subject_station.info.connect(ui.toast)
 	ui.back_pressed.connect(_on_back)
 	ui.next_pressed.connect(_on_next)
+	ui.album_pressed.connect(_go_album)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
 	_go_menu()
@@ -138,6 +139,20 @@ func _go_subjects() -> void:
 	board.build_subjects(cards)
 	board.fly_to_station("subjects", 1.0)
 	ui.show_subjects()
+
+## Álbum: pantalla 2D sobre el suelo, con las parejas de cada materia y su dominio.
+func _go_album() -> void:
+	state = S.ALBUM
+	board.stop()
+	board.hide_stations()
+	var data: Array = []
+	for p in packs:
+		var pairs: Array = []
+		for pr in p["pairs"]:
+			pairs.append({"a": pr["a"], "b": pr["b"], "fact": str(pr.get("fact", "")), "stage": Progress.pair_stage(pr["id"])})
+		data.append({"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
+			"color": UiTheme.pack_color(p["id"]), "locked": not Levels.is_open(p), "pairs": pairs})
+	ui.show_album(data)
 
 func _play(sid: String) -> void:
 	cur_sid = sid
@@ -248,3 +263,6 @@ func _on_back() -> void:
 				_go_menu()
 		S.SUBJECTS:
 			_go_menu()
+		S.ALBUM:
+			if not ui.close_album_detail():
+				_go_menu()

@@ -38,7 +38,7 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está
-Álbum con datos curiosos, paquetes externos y carga de imágenes de usuario. El modo oscuro se retiró.
+Paquetes externos y carga de imágenes de usuario. El álbum con datos curiosos ya está en el menú. El modo oscuro se retiró.
 
 ## Pruebas (sin pantalla)
 ```

@@ -531,6 +531,13 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 		_apply_station_visibility()
 	)
 
+## Oculta las mesas de menú y materias (pantallas 2D sobre el suelo, como el álbum).
+## La cámara no se mueve; al volver al menú, `fly_to_station` las muestra de nuevo.
+func hide_stations() -> void:
+	menu_station.visible = false
+	subject_station.visible = false
+	_refresh_floor()
+
 ## Mantiene ambas mesas visibles durante el vuelo para que el cambio de estación
 ## se lea como un recorrido continuo, y oculta la inactiva al llegar.
 func _apply_station_visibility(keep_stations_visible: bool = false) -> void:

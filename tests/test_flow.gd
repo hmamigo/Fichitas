@@ -131,5 +131,23 @@ func _run() -> void:
 	check(main.board.subject_station.tiles.size() == 11, "materias se redibuja")
 	main._on_back()
 	check(main.state == 0, "Atrás vuelve al menú")
+	var p0: Dictionary = main.packs[0]
+	var p0_pairs: Array = p0["pairs"]
+	(Progress.data["mp"] as Dictionary)[str(p0_pairs[0]["id"])] = 3
+	main._go_album()
+	check(main.state == 4 and main.ui.album.visible and not main.board.menu_station.visible, "el álbum se abre y oculta la mesa del menú")
+	check(main.ui.album_grid.get_child_count() == p0_pairs.size(), "el álbum muestra todas las parejas de la primera materia")
+	var openers: Array = []
+	for tile in main.ui.album_grid.get_children():
+		for c in tile.get_children():
+			if c is Button:
+				openers.append(c)
+	check(openers.size() >= 1 and openers.size() <= p0_pairs.size(), "las parejas dominadas se pueden abrir")
+	(openers[0] as Button).pressed.emit()
+	check(main.ui._album_detail.visible, "tocar una pareja dominada abre su dato curioso")
+	main._on_back()
+	check(main.state == 4 and not main.ui._album_detail.visible, "Atrás cierra primero el dato curioso")
+	main._on_back()
+	check(main.state == 0 and main.board.menu_station.visible, "Atrás desde el álbum vuelve al menú y muestra la mesa")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)
