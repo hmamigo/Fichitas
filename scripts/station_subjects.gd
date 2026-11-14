@@ -13,6 +13,13 @@ const TILT := 0.17             # igual que la cámara del tablero
 const FACE_W := 448
 const FACE_H := 224
 
+# Encuadre de la cámara en esta mesa
+const FIT_PAD_W := 0.15        # aire a los lados de la tarjeta al encuadrar el ancho
+const FIT_ROWS := 2.6          # filas (en alto de tarjeta) que deben caber en pantalla
+const FIT_MARGIN := 2.0        # alejamiento sobre el ajuste justo (1.0 = justo); a mano
+const PAN_PAD_X := 0.10        # margen extra del paneo horizontal
+const PAN_PAD_Y := 0.11        # aire arriba y abajo al recorrer (fracción del alto visible)
+
 var tiles: Array = []
 var _table: Node3D
 
@@ -48,42 +55,20 @@ func clear() -> void:
 
 ## Distancia de cámara para que quepa la tarjeta (y se vean varias filas).
 func fit_distance() -> float:
-	var vp: Viewport = get_viewport()
-	var ar: float = 0.5625
-	var fov: float = 35.0
-	if vp != null:
-		var r: Vector2 = vp.get_visible_rect().size
-		ar = r.x / maxf(r.y, 1.0)
-		var cam: Camera3D = vp.get_camera_3d()
-		if cam != null:
-			fov = cam.fov
-	var tn: float = tan(deg_to_rad(fov * 0.5))
-	var w: float = CARD_W + 0.15
-	var by_w: float = w / (ar * 2.0 * tn)
-	var by_h: float = (2.6 * CARD_H) / (2.0 * tn)
-	return maxf(by_w, by_h) * 2
+	var need := Vector2(CARD_W + FIT_PAD_W, FIT_ROWS * CARD_H)
+	return CamView.distance_for(get_viewport(), need) * FIT_MARGIN
 
 ## Cuánto se puede desplazar la cámara sin perder de vista la mesa.
 func pan_bounds(dist: float) -> Vector2:
-	var vp: Viewport = get_viewport()
-	var ar: float = 0.5625
-	var fov: float = 35.0
-	if vp != null:
-		var r: Vector2 = vp.get_visible_rect().size
-		ar = r.x / maxf(r.y, 1.0)
-		var cam: Camera3D = vp.get_camera_3d()
-		if cam != null:
-			fov = cam.fov
-	var tn: float = tan(deg_to_rad(fov * 0.5))
-	var view := Vector2(dist * tn * ar, dist * tn) * 2.0
 	var n: int = tiles.size()
 	if n == 0:
 		return Vector2.ZERO
+	var view: Vector2 = CamView.visible_size(get_viewport(), dist)
 	var w: float = CARD_W + 0.5
 	var h: float = float(n) * CARD_H + float(n - 1) * GAP + 0.5
 	# Un poco de aire arriba (la cabecera 2D) y abajo al recorrer la lista
-	var extra: float = view.y * 0.11
-	return Vector2(maxf((w - view.x) * 0.5 + 0.10, 0.0), maxf((h - view.y) * 0.5 + extra, 0.0))
+	var extra: float = view.y * PAN_PAD_Y
+	return Vector2(maxf((w - view.x) * 0.5 + PAN_PAD_X, 0.0), maxf((h - view.y) * 0.5 + extra, 0.0))
 
 ## Desplazamiento inicial: empezar por la primera fila (arriba de la mesa).
 func initial_z(dist: float) -> float:

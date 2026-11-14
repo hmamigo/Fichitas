@@ -5,12 +5,19 @@ extends Node3D
 
 const STEP := 1.0
 const SIDE := 0.9
-const X_HALF := 13        # cubos a cada lado en X
-const Z_FAR := 24         # filas hacia el fondo (−Z)
-const Z_NEAR := 9         # filas hacia la cámara (+Z)
+# Debe cubrir las tres estaciones (Board: menú en x = -20, materias en -10, tablero en 0)
+# con ~12 de margen a cada lado, que es lo que ve una pantalla apaisada 16:9.
+const X_MIN := -32        # primera columna (izquierda del menú)
+const X_MAX := 12         # última columna (derecha del tablero)
+const Z_FAR := 18         # filas hacia el fondo (−Z)
+const Z_NEAR := 16        # filas hacia la cámara (+Z): la lista de materias mide ±10 en Z
 const TOP_MIN := -0.43    # cima más baja: justo sobre el suelo base
 const BASE_Y := -0.60     # base de todos los cubos
-const MAX_RISE := 1.5
+const MAX_RISE := 1.1     # altura máxima de los cubos lejanos (más bajos = el fondo se aleja)
+# Perspectiva atmosférica: todos los cubos se mezclan con el color de la niebla del tablero
+# (Board.FOG_COLOR), así el fondo no compite con los colores de las fichas. 0 = sin mezcla.
+const FADE_COLOR := Color("b9d2ee")
+const FADE := 0.35
 const PALETTE: Array[Color] = [
 	Color("ffc629"), Color("42cd84"), Color("4a8ff5"), Color("ff7a6b"),
 	Color("a98bff"), Color("ff9ac8"), Color("49c7d6"), Color("ffa63d"),
@@ -24,7 +31,7 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261112
 	for j in range(-Z_FAR, Z_NEAR + 1):
-		for i in range(-X_HALF, X_HALF + 1):
+		for i in range(X_MIN, X_MAX + 1):
 			var c: Color = PALETTE[rng.randi() % PALETTE.size()]
 			c = c.lerp(Color.WHITE, 0.12).lightened(rng.randf_range(-0.04, 0.06))
 			_cells.append({"x": float(i) * STEP, "z": float(j) * STEP, "col": c, "n": rng.randf()})
@@ -41,7 +48,9 @@ func _ready() -> void:
 	mmi.multimesh = mm
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.custom_aabb = AABB(Vector3(-20, -2, -40), Vector3(40, 8, 60))
+	var box_pos := Vector3(X_MIN - 1, -2, -Z_FAR - 1)
+	var box_size := Vector3(X_MAX - X_MIN + 2, 8, Z_FAR + Z_NEAR + 2)
+	mmi.custom_aabb = AABB(box_pos, box_size)
 	add_child(mmi)
 	_rebuild()
 
@@ -79,5 +88,7 @@ func _rebuild() -> void:
 		var t := Transform3D(Basis.from_scale(Vector3(1.0, h, 1.0)), Vector3(x, BASE_Y + h * 0.5, z))
 		mm.set_instance_transform(k, t)
 		# Más cerca de una mesa: más pálido, para que mande el color de las fichas
-		var col: Color = (cell["col"] as Color).lerp(Color("eef4fd"), 0.25 * (1.0 - smoothstep(0.0, 3.0, d)))
+		var base: Color = (cell["col"] as Color).lerp(FADE_COLOR, FADE)
+		var near: float = 0.25 * (1.0 - smoothstep(0.0, 3.0, d))
+		var col: Color = base.lerp(Color("eef4fd"), near)
 		mm.set_instance_color(k, col)

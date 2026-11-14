@@ -10,10 +10,18 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
-const MENU_DIST := 22.0   # distancia que encuadra la lista vertical de acciones
-const MENU_LOOK := Vector3(0.0, -0.2, 5.9)
-const MENU_TABLE_Z := 6.6
-const SUBJ_Z := -9.5      # la mesa de materias está detrás del tablero
+const MENU_DIST := 22.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
+# Las tres estaciones van en fila a lo largo de X: menú, materias y tablero (en el origen).
+# 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
+const STATION_GAP := 10.0
+const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
+const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
+const MENU_LOOK_DZ := -0.2             # el punto de mira va delante de la mesa del menú: la sube en pantalla
+const MENU_LOOK := Vector3(MENU_X, -0.2, MENU_LOOK_DZ)
+# Vuelos largos entre estaciones: la cámara se aleja un poco a mitad de camino (0 = sin arco)
+const ARC_GAIN := 0.15        # fracción del recorrido que se suma a la distancia en el punto medio
+const ARC_MAX := 3.0
+const ARC_MIN_TRAVEL := 4.0   # por debajo (p. ej. entre niveles) no hay arco
 const HY := 0.065     # mitad del grosor de la ficha
 const FACE := 0.425   # semiancho de la cara con la imagen
 const REST_Y := 0.06   # altura de las fichas pendientes: separadas de la losa
@@ -68,6 +76,7 @@ var floor_cubes: FloorCubes
 var _fly: Tween
 var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
 var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
+var _arc: float = 0.0          # alejamiento extra de la cámara a mitad del vuelo actual
 var _settled: bool = true      # la cámara ya llegó: se puede tocar
 var _pan_v: Vector2 = Vector2.ZERO  # inercia del arrastre, en píxeles por segundo
 var cam_x: float = 0.0
@@ -122,10 +131,10 @@ func _ready() -> void:
 	halo_mesh = TileMesh.ring(0.50, 0.565, 0.0, 8, 0.17)
 	# Mesas de las otras dos estaciones del mundo (vacías hasta que main las vista)
 	menu_station = StationMenu.new()
-	menu_station.position = Vector3(0.0, 0.0, MENU_TABLE_Z)
+	menu_station.position = Vector3(MENU_X, 0.0, 0.0)
 	add_child(menu_station)
 	subject_station = StationSubjects.new()
-	subject_station.position = Vector3(0.0, 0.0, SUBJ_Z)
+	subject_station.position = Vector3(SUBJ_X, 0.0, 0.0)
 	add_child(subject_station)
 	get_viewport().size_changed.connect(_layout)
 
@@ -468,6 +477,8 @@ func _update_cam() -> void:
 	to = _pose()  # con el paneo ya corregido
 	var p: Dictionary = to if _t >= 1.0 else _blend(_from, to, _t)
 	var d: float = float(p["dist"])
+	if _t < 1.0:
+		d += _arc * sin(PI * _t)
 	var tilt: float = float(p["tilt"])
 	var target: Vector3 = p["target"]
 	var yaw: float = float(p["yaw"])
@@ -501,6 +512,11 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	# Las materias empiezan por la primera fila: la lista es más alta que la pantalla
 	if name == "subjects" and subject_station != null:
 		cam_z = subject_station.initial_z(subject_station.fit_distance())
+	_arc = 0.0
+	if secs > 0.0 and start_at <= 0.0:
+		var travel: float = ((_from["target"] as Vector3) - (_pose()["target"] as Vector3)).length()
+		if travel > ARC_MIN_TRAVEL:
+			_arc = minf(travel * ARC_GAIN, ARC_MAX)
 	if secs <= 0.0:
 		_t = 1.0
 		_settled = true

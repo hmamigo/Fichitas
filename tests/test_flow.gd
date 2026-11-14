@@ -49,6 +49,16 @@ func _run() -> void:
 		if i > 0:
 			menu_stack_ok = menu_stack_ok and tile.position.z > (mtiles[i - 1] as Plaque).position.z
 	check(menu_stack_ok, "las acciones del menú son rectangulares y forman una sola columna vertical")
+	var mx: float = main.board.menu_station.position.x
+	var sx: float = main.board.subject_station.position.x
+	var same_z: bool = is_zero_approx(main.board.menu_station.position.z) and is_zero_approx(main.board.subject_station.position.z)
+	check(mx < sx and sx < 0.0 and same_z, "las estaciones están en fila en X: menú, materias y tablero")
+	var vps: Vector2 = main.get_viewport().get_visible_rect().size
+	var floor_ok: bool = true
+	for corner in [Vector2.ZERO, Vector2(vps.x, 0.0), Vector2(0.0, vps.y), vps]:
+		var g: Vector3 = main.board._ground_point(corner)
+		floor_ok = floor_ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
+	check(floor_ok, "las cuatro esquinas de la vista del menú caen sobre el suelo de cubos")
 	var mspot: Vector2 = main.board.cam.unproject_position((mtiles[1] as Plaque).global_position)
 	main.board.menu_station.tap(mspot, main.board.cam)
 	check(str(Progress.data["mode"]) == "assoc", "toque en la loseta de Asociación cambia el modo")
