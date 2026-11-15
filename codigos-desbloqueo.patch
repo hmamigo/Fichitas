@@ -1,0 +1,626 @@
+diff --git a/.gitignore b/.gitignore
+index a588f49..e68a836 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -20,6 +20,9 @@ export_credentials.cfg
+ *.pck
+ *.log
+ 
++# --- Códigos de desbloqueo: la clave PRIVADA y el registro nunca se suben ---
++/tools/privado/
++
+ # --- Sistema y editores ---
+ .DS_Store
+ Thumbs.db
+diff --git a/AGENTS.md b/AGENTS.md
+index e0143a1..bfc0ac1 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -21,6 +21,7 @@
+ - Cámara y estaciones: `Board.station` vale `"menu"`, `"subjects"` o `"game"`; `_pose()` devuelve `{target, dist, tilt, yaw}` y `fly_to_station(nombre, segundos, start_at)` mezcla la pose capturada al salir (`_from`) con la de destino (`_t`). Los toques se ignoran hasta `_settled` y `_t >= 0.98`. `main.gd` llama a `fly_to_station` **antes** de `board.start()`: del menú o las materias al juego baja en 1,3 s, entre niveles hace un acercamiento corto (partiendo de `zoom` 0.9) y al volver se aleja. Las mesas de menú y materias permanecen visibles durante el vuelo para hacer continuo el recorrido; al llegar solo se muestra la estación activa. El menú y las materias no tienen fondo opaco (`_screen("none")`), así que se ve el suelo 3D. El menú se recentra con `main._center_menu()` al entrar y al cambiar el tamaño de la ventana.
+ - Álbum (Godot): botón dorado "Álbum" en la pastilla de ajustes del menú → estación 3D `album` (`StationAlbum`, en `Board.ALBUM_X`, a la izquierda del menú). Una sola mesa larga con una sección por materia: cabecera (`Plaque` con `Cards.subject`: nombre, "Dominadas X de Y", barra) y las parejas como `AlbumTile` (la misma ficha del tablero: `TileLook.face_material`, mallas de `TileMesh`), de dos en dos, 6 por fila. Dominadas (etapa 2) boca arriba; las demás boca abajo, con el dorso. La cámara se mueve en vertical como en Materias (`pan_bounds`, `initial_z`, `fit_distance`). Tocar una dominada emite `opened` → `ui.show_fact` (ventana 2D con las dos fichas y su `fact`). Estado `S.ALBUM`; `_on_back` cierra primero la ventana. Las materias de pago salen solo con la cabecera y el candado.
+ - Paquetes externos (Godot): tarjeta "Cargar paquete" al final de las materias → `FileDialog` nativo (`main._pick_pack`; en Android, selector de documentos de Godot 4.6+, solo Android 10+) → `PackImport.import_file`. El .zip no es de confianza: `PackImport` valida `pack.json`, solo toca las imágenes que el JSON nombra (rutas relativas sin `..`), las decodifica, las reduce a 1024 px y las guarda como PNG propio en `user://packs/<id>/` (carpeta temporal `.tmp-<id>` y renombrado al final; reimportar el mismo id reemplaza). `Packs.load_all()` carga oficiales (`res://`) y luego externos (`user://`, con `external: true`, nunca `premium`; un id oficial en un externo se ignora). Sin `unlock` el paquete vale 99: no entra en el recorrido general. Formato y límites: README.md. Pruebas: `tests/test_packs.gd`; los demás tests fijan `PackImport.dir` a una carpeta vacía.
++- Materias de pago por código (Godot, sin servidor): `UnlockCodes` (códigos `F1.<carga>.<firma>`, RSA-SHA256 con `Crypto`; el juego solo trae la clave pública `UnlockKey.PEM`) → `Progress.data["owned"]`; `"*"` abre todas. `Levels.is_open` ya respeta `owned`. UI: tarjeta ":code" en Materias (solo si hay alguna `premium`) → ventana `ui.code_overlay` (TextEdit + Pegar/Canjear) → `main._on_code`. Herramienta del desarrollador: `tools/codigos.gd` (`keygen` una sola vez, `emitir`); la clave privada vive en `tools/privado/` (gitignored, con `.gdignore`). Un paquete externo nunca es premium. Pruebas: `tests/test_codes.gd`. Antes de publicar en Google Play, revisar su política de pagos.
+ - Pendiente: quitar un paquete desde la interfaz (`PackImport.remove` ya existe), carga de imágenes de usuario.
+ - Evitar emojis en la interfaz de Godot (la fuente no los incluye y en Android dependen del sistema); usar iconos dibujados.
+ - Antes de dar por terminado un cambio: `--import` y las cuatro pruebas de `tests/`.
+diff --git a/README.md b/README.md
+index 6b07cba..d56517f 100644
+--- a/README.md
++++ b/README.md
+@@ -48,6 +48,7 @@ godot --headless --path . --script res://tests/test_game.gd     # tablero, memor
+ godot --headless --path . --script res://tests/test_flow.gd     # menús, niveles, materias y guardado
+ godot --headless --path . --script res://tests/test_review.gd   # repaso, sesión Repaso, miniaturas y sonidos
+ godot --headless --path . --script res://tests/test_packs.gd    # paquetes externos (.zip)
++godot --headless --path . --script res://tests/test_codes.gd    # códigos de desbloqueo
+ ```
+ 
+ ## Paquetes propios (.zip)
+@@ -73,3 +74,24 @@ mi-paquete.zip
+ - 3 a 60 parejas. Imágenes `.png`, `.jpg` o `.webp` (hasta 6 MB y 4096 px; se guardan reducidas a 1024 px como PNG).
+ - `unlock` (1 a 20) es opcional: sin él, el paquete aparece en Elegir materia y en el álbum, pero no entra en el recorrido general.
+ - Se guardan en `user://packs/<id>/`.
++
++## Materias de pago con código (sin servidor)
++Una materia oficial con `"premium": true` en su `pack.json` sale bloqueada hasta que la persona pega un código en **Elegir materia → Tengo un código** (esa tarjeta solo aparece si hay alguna materia de pago). Los códigos llevan una firma digital: el juego trae solo la clave **pública**, así que puede comprobarlos pero no fabricarlos.
++
++Una sola vez:
++```
++godot --headless --path . --script res://tools/codigos.gd -- keygen
++```
++- Crea `tools/privado/clave_privada.pem` (ignorada por git: **haz una copia segura y no la subas**; si la pierdes, o generas otra, hay que emitir de nuevo todos los códigos).
++- Escribe la clave pública en `scripts/unlock_key.gd`: ese archivo **sí se sube**. Mientras esté vacío, el juego no acepta códigos.
++
++Por cada café:
++```
++godot --headless --path . --script res://tools/codigos.gd -- emitir fis,historia "Ana"
++godot --headless --path . --script res://tools/codigos.gd -- emitir "*"
++```
++Imprime el código (unos 400 caracteres: se manda para pegar) y lo anota en `tools/privado/codigos_emitidos.txt`. `*` abre todas las materias de pago. Lo canjeado se conserva aunque se reinicie el progreso.
++
++Para probarlo sin contenido de pago: pon temporalmente `"premium": true` en `packs/fis/pack.json`, emite un código para `fis` y pégalo en el juego.
++
++Límites: un código se puede compartir y no se puede revocar, y las imágenes viajan dentro de la app. Es un candado de cortesía. Si publicas en Google Play, revisa antes su política de pagos: cobrar por contenido dentro de la app fuera de Google Play Billing puede no estar permitido.
+diff --git a/scripts/levels.gd b/scripts/levels.gd
+index 4bb0439..f299359 100644
+--- a/scripts/levels.gd
++++ b/scripts/levels.gd
+@@ -10,7 +10,10 @@ static func max_level() -> int:
+ 	return PAIRS.size()
+ 
+ static func is_open(pack: Dictionary) -> bool:
+-	return not bool(pack.get("premium", false)) or (Progress.data["owned"] as Array).has(pack["id"])
++	if not bool(pack.get("premium", false)):
++		return true
++	var owned: Array = Progress.data["owned"]
++	return owned.has(pack["id"]) or owned.has("*")  # "*": código de todas las materias de pago
+ 
+ ## Tamaños de nivel de una materia: los de PAIRS que caben en el paquete, sin repetir.
+ static func steps_for(pack: Dictionary) -> Array:
+diff --git a/scripts/main.gd b/scripts/main.gd
+index f0f4b28..ebf63ba 100644
+--- a/scripts/main.gd
++++ b/scripts/main.gd
+@@ -38,6 +38,7 @@ func _ready() -> void:
+ 	board.subject_station.info.connect(ui.toast)
+ 	board.album_station.opened.connect(_on_album_open)
+ 	ui.album_pressed.connect(_go_album)
++	ui.code_submitted.connect(_on_code)
+ 	ui.back_pressed.connect(_on_back)
+ 	ui.next_pressed.connect(_on_next)
+ 	ui.sound_toggled.connect(_on_sound)
+@@ -56,6 +57,8 @@ func _on_subject(id: String) -> void:
+ 		_play_review()
+ 	elif id == ":import":
+ 		_pick_pack()
++	elif id == ":code":
++		ui.show_code()
+ 	elif id == "":
+ 		_play("")
+ 	else:
+@@ -150,9 +153,15 @@ func _go_subjects() -> void:
+ 			"sub3": ("%d por repasar" % pdue) if pdue > 0 else ("Paquete propio" if bool(p.get("external", false)) else ""),
+ 			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
+ 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
+-			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"] if locked else ""})
++			"info": "«%s» es una materia de pago. Si tienes un código, usa «Tengo un código»." % p["name"] if locked else ""})
+ 	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "sprout", "sub": "Una materia tuya (.zip)",
+ 		"sub2": "", "color": Color("b8e6c9")})
++	var has_premium: bool = false
++	for p in packs:
++		has_premium = has_premium or bool(p.get("premium", false))
++	if has_premium:  # solo si hay materias de pago a las que aplicar un código
++		cards.append({"id": ":code", "name": "Tengo un código", "icon": "star", "sub": "Desbloquea materias",
++			"sub2": "", "color": Color("ffe08a")})
+ 	for n in COMING:
+ 		var exists: bool = false
+ 		for p in packs:
+@@ -186,6 +195,17 @@ func _go_album() -> void:
+ func _on_album_open(pr: Dictionary) -> void:
+ 	ui.show_fact(pr["a"], pr["b"], str(pr.get("fact", "")))
+ 
++## Canjear un código de desbloqueo (ver UnlockCodes): si vale, la materia queda abierta.
++func _on_code(text: String) -> void:
++	var res: Dictionary = UnlockCodes.redeem(text)
++	if not bool(res["ok"]):
++		ui.code_error(str(res["error"]))
++		return
++	ui.close_code()
++	_go_subjects()  # redibuja la lista con las materias ya abiertas
++	var who: String = str(res.get("name", ""))
++	ui.toast("Código canjeado%s. ¡Gracias!" % ((" (" + who + ")") if who != "" else ""))
++
+ ## Cargar paquete: el selector de archivos del sistema (en Android, el de documentos) devuelve un .zip.
+ func _pick_pack() -> void:
+ 	if _pack_dialog == null:
+@@ -316,7 +336,8 @@ func _on_back() -> void:
+ 			else:
+ 				_go_menu()
+ 		S.SUBJECTS:
+-			_go_menu()
++			if not ui.close_code():
++				_go_menu()
+ 		S.ALBUM:
+ 			if not ui.close_fact():
+ 				_go_menu()
+diff --git a/scripts/ui.gd b/scripts/ui.gd
+index 10b8494..6c79900 100644
+--- a/scripts/ui.gd
++++ b/scripts/ui.gd
+@@ -7,6 +7,7 @@ signal next_pressed
+ signal sound_toggled(on: bool)
+ signal vib_toggled(on: bool)
+ signal album_pressed
++signal code_submitted(text: String)
+ 
+ var hud_bar: Control
+ var lv_label: Label
+@@ -18,6 +19,7 @@ var toast_label: Label
+ var win: Control
+ var album: Control
+ var fact: Control
++var code_overlay: Control
+ var win_title: Label
+ var win_msg: Label
+ var win_btn: Button
+@@ -28,6 +30,9 @@ var _fact_card: Control
+ var _fact_a: TextureRect
+ var _fact_b: TextureRect
+ var _fact_text: Label
++var _code_card: Control
++var _code_edit: TextEdit
++var _code_msg: Label
+ var _bgs: Array = []   # materiales de los fondos, para reajustar el lienzo
+ var _toast_tween: Tween
+ # Piezas animadas del menú: halos, fichas decorativas y destellos.
+@@ -54,6 +59,7 @@ func _ready() -> void:
+ 	_build_album()
+ 	_build_win()
+ 	_build_fact()
++	_build_code()
+ 	get_viewport().size_changed.connect(_update_columns)
+ 	_update_columns()
+ 	hide_all()
+@@ -411,6 +417,7 @@ func hide_all() -> void:
+ 	subjects.visible = false
+ 	album.visible = false
+ 	fact.visible = false
++	code_overlay.visible = false
+ 	win.visible = false
+ 
+ # ---------- Construcción ----------
+@@ -657,6 +664,80 @@ func _fact_face(parent: Control) -> TextureRect:
+ 	parent.add_child(rim)
+ 	return img
+ 
++## Ventana para pegar un código de desbloqueo.
++func _build_code() -> void:
++	code_overlay = Control.new()
++	code_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	code_overlay.theme = _th
++	code_overlay.visible = false
++	add_child(code_overlay)
++	var dim := ColorRect.new()
++	dim.color = Color(0.06, 0.11, 0.26, 0.55)
++	dim.mouse_filter = Control.MOUSE_FILTER_STOP
++	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	code_overlay.add_child(dim)
++	var center := CenterContainer.new()
++	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
++	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
++	code_overlay.add_child(center)
++	var card := _panel(center, 800, 34, UiTheme.menu_panel_box(34))
++	_code_card = card.get_parent() as Control
++	_code_card.mouse_filter = Control.MOUSE_FILTER_STOP
++	card.add_child(_label("Tengo un código", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK))
++	var help := _label("Pega el código que recibiste para desbloquear tus materias de pago.",
++		UiTheme.T_SMALL, false, UiTheme.INK_SOFT, true)
++	help.custom_minimum_size = Vector2(720, 0)
++	card.add_child(help)
++	_code_edit = TextEdit.new()
++	_code_edit.placeholder_text = "Pega aquí tu código"
++	_code_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
++	_code_edit.custom_minimum_size = Vector2(720, 190)
++	_code_edit.add_theme_font_size_override("font_size", 24)
++	_code_edit.add_theme_color_override("font_color", UiTheme.INK)
++	_code_edit.add_theme_color_override("font_placeholder_color", UiTheme.INK_SOFT)
++	var box := StyleBoxFlat.new()
++	box.bg_color = Color.WHITE
++	box.set_corner_radius_all(18)
++	box.set_border_width_all(4)
++	box.border_color = UiTheme.PILL_LINE
++	box.set_content_margin_all(14)
++	_code_edit.add_theme_stylebox_override("normal", box)
++	var box_focus: StyleBoxFlat = box.duplicate()
++	box_focus.border_color = UiTheme.BLUE
++	_code_edit.add_theme_stylebox_override("focus", box_focus)
++	card.add_child(_code_edit)
++	_code_msg = _label("", UiTheme.T_SMALL, false, Color("b3261e"), true)
++	_code_msg.custom_minimum_size = Vector2(720, 0)
++	card.add_child(_code_msg)
++	var row := HBoxContainer.new()
++	row.add_theme_constant_override("separation", 16)
++	card.add_child(row)
++	var paste := Button.new()
++	paste.theme_type_variation = "Pill"
++	paste.text = "Pegar"
++	paste.custom_minimum_size = Vector2(0, 96)
++	paste.size_flags_horizontal = Control.SIZE_EXPAND_FILL
++	paste.pressed.connect(_on_code_paste)
++	row.add_child(paste)
++	var go := Button.new()
++	go.theme_type_variation = "Gold"
++	go.text = "Canjear"
++	go.custom_minimum_size = Vector2(0, 96)
++	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
++	go.pressed.connect(func() -> void: code_submitted.emit(_code_edit.text))
++	row.add_child(go)
++	var close := Button.new()
++	close.theme_type_variation = "Pill"
++	close.text = "Cerrar"
++	close.custom_minimum_size = Vector2(0, 80)
++	close.pressed.connect(func() -> void: code_overlay.visible = false)
++	card.add_child(close)
++
++func _on_code_paste() -> void:
++	if DisplayServer.clipboard_has():
++		_code_edit.text = DisplayServer.clipboard_get()
++		_code_msg.text = ""
++
+ func _on_fact_dim_input(e: InputEvent) -> void:
+ 	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+ 		fact.visible = false
+@@ -757,6 +838,24 @@ func show_album() -> void:
+ 	hide_all()
+ 	album.visible = true
+ 
++func show_code() -> void:
++	_code_edit.text = ""
++	_code_msg.text = ""
++	code_overlay.visible = true
++	if _code_card != null:
++		_pop(_code_card)
++
++## Muestra el motivo por el que un código no sirvió, sin cerrar la ventana.
++func code_error(msg: String) -> void:
++	_code_msg.text = msg
++
++## Cierra la ventana del código si está abierta; devuelve si había algo que cerrar.
++func close_code() -> bool:
++	if code_overlay != null and code_overlay.visible:
++		code_overlay.visible = false
++		return true
++	return false
++
+ ## Dato curioso de una pareja dominada, con sus dos fichas.
+ func show_fact(a: Texture2D, b: Texture2D, text: String) -> void:
+ 	_fact_a.texture = a
+diff --git a/scripts/unlock_codes.gd b/scripts/unlock_codes.gd
+new file mode 100644
+index 0000000..b212efa
+--- /dev/null
++++ b/scripts/unlock_codes.gd
+@@ -0,0 +1,107 @@
++class_name UnlockCodes
++extends RefCounted
++## Códigos de desbloqueo para materias de pago, sin servidor. Un código es
++##   F1.<carga>.<firma>
++## donde la carga es un JSON {"v":1,"p":[ids de materia o "*"],"n":"nombre"} y la firma es
++## RSA-SHA256 de esa carga. El juego solo trae la clave pública (UnlockKey): puede comprobar
++## códigos, pero no fabricarlos. Un código se puede compartir y no se puede revocar: es un
++## candado de cortesía, no una protección (las imágenes viajan dentro de la app).
++
++const PREFIX := "F1"
++const MAX_IDS := 20
++const MAX_NAME := 40
++const ID_CHARS := "abcdefghijklmnopqrstuvwxyz0123456789_-"
++const CODE_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-."
++
++static var public_pem: String = ""   # vacío = usa UnlockKey.PEM (las pruebas lo sustituyen)
++
++## Crea un código firmado. Solo sirve con la clave privada (herramienta del desarrollador y pruebas).
++static func make_code(private_key: CryptoKey, ids: Array, buyer: String = "") -> String:
++	var payload: PackedByteArray = JSON.stringify({"v": 1, "p": ids, "n": buyer}).to_utf8_buffer()
++	var sig: PackedByteArray = Crypto.new().sign(HashingContext.HASH_SHA256, _sha256(payload), private_key)
++	return "%s.%s.%s" % [PREFIX, _b64(payload), _b64(sig)]
++
++## Comprueba un código sin tocar el progreso. {ok: true, ids, name} o {ok: false, error}.
++static func verify(code: String) -> Dictionary:
++	var pem: String = public_pem if public_pem != "" else UnlockKey.PEM
++	if pem.strip_edges() == "":
++		return _fail("Este juego aún no tiene los códigos configurados.")
++	var key := CryptoKey.new()
++	if key.load_from_string(pem, true) != OK:
++		return _fail("La clave del juego para los códigos no es válida.")
++	var parts: PackedStringArray = _clean(code).split(".")
++	if parts.size() != 3 or parts[0] != PREFIX:
++		return _fail("El código no tiene el formato esperado. Pégalo completo.")
++	var payload: PackedByteArray = _unb64(parts[1])
++	var sig: PackedByteArray = _unb64(parts[2])
++	if payload.is_empty() or sig.is_empty():
++		return _fail("El código está incompleto. Pégalo completo.")
++	if not Crypto.new().verify(HashingContext.HASH_SHA256, _sha256(payload), sig, key):
++		return _fail("El código no es válido.")
++	var json := JSON.new()
++	if json.parse(payload.get_string_from_utf8()) != OK or not (json.data is Dictionary):
++		return _fail("El código no es válido.")
++	var data: Dictionary = json.data
++	var raw = data.get("p", null)
++	if int(data.get("v", 0)) != 1 or not (raw is Array):
++		return _fail("Este código es de otra versión del juego.")
++	var ids: Array = []
++	for id in (raw as Array):
++		var s: String = str(id)
++		if s != "*" and not _valid_id(s):
++			return _fail("El código no es válido.")
++		if not ids.has(s):
++			ids.append(s)
++	if ids.is_empty() or ids.size() > MAX_IDS:
++		return _fail("El código no es válido.")
++	return {"ok": true, "ids": ids, "name": str(data.get("n", "")).substr(0, MAX_NAME)}
++
++## Comprueba el código y, si vale, desbloquea las materias (queda guardado en el progreso).
++static func redeem(code: String) -> Dictionary:
++	var r: Dictionary = verify(code)
++	if not bool(r["ok"]):
++		return r
++	var owned: Array = Progress.data["owned"]
++	for id in r["ids"]:
++		if not owned.has(id):
++			owned.append(id)
++	Progress.data["owned"] = owned
++	Progress.save()
++	return r
++
++# ---------- Interno ----------
++
++static func _fail(msg: String) -> Dictionary:
++	return {"ok": false, "error": msg}
++
++static func _valid_id(id: String) -> bool:
++	if id.is_empty() or id.length() > 32:
++		return false
++	for c in id:
++		if not ID_CHARS.contains(c):
++			return false
++	return true
++
++## Conserva solo los caracteres de un código: tolera espacios, saltos de línea y comillas
++## que se cuelan al copiar desde un chat o un correo.
++static func _clean(code: String) -> String:
++	var out: String = ""
++	for c in code:
++		if CODE_CHARS.contains(c):
++			out += c
++	return out
++
++static func _sha256(bytes: PackedByteArray) -> PackedByteArray:
++	var ctx := HashingContext.new()
++	ctx.start(HashingContext.HASH_SHA256)
++	ctx.update(bytes)
++	return ctx.finish()
++
++static func _b64(bytes: PackedByteArray) -> String:
++	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").replace("=", "")
++
++static func _unb64(s: String) -> PackedByteArray:
++	var t: String = s.replace("-", "+").replace("_", "/")
++	while t.length() % 4 != 0:
++		t += "="
++	return Marshalls.base64_to_raw(t)
+diff --git a/scripts/unlock_key.gd b/scripts/unlock_key.gd
+new file mode 100644
+index 0000000..7561c59
+--- /dev/null
++++ b/scripts/unlock_key.gd
+@@ -0,0 +1,7 @@
++class_name UnlockKey
++extends RefCounted
++## Clave PÚBLICA con la que el juego comprueba los códigos de desbloqueo (sin servidor).
++## La genera `tools/codigos.gd keygen`; la privada se queda en tu computador y no se sube.
++## Mientras esta constante esté vacía, el juego no acepta ningún código.
++
++const PEM := ""
+diff --git a/tests/test_codes.gd b/tests/test_codes.gd
+new file mode 100644
+index 0000000..4b3ff4d
+--- /dev/null
++++ b/tests/test_codes.gd
+@@ -0,0 +1,96 @@
++extends SceneTree
++## Códigos de desbloqueo: godot --headless --path . --script res://tests/test_codes.gd
++
++var fails: int = 0
++
++func check(ok: bool, msg: String) -> void:
++	print(("  OK   " if ok else "  FALLA ") + msg)
++	if not ok:
++		fails += 1
++
++func _init() -> void:
++	_run()
++
++func _run() -> void:
++	Progress.path = "user://test_codes_progress.json"
++	PackImport.dir = "user://test_packs_empty"
++	if FileAccess.file_exists(Progress.path):
++		DirAccess.remove_absolute(ProjectSettings.globalize_path(Progress.path))
++	Progress.load_data()
++	var crypto := Crypto.new()
++	var key: CryptoKey = crypto.generate_rsa(2048)
++	var other: CryptoKey = crypto.generate_rsa(2048)
++
++	print("Sin clave configurada")
++	UnlockCodes.public_pem = ""
++	var r: Dictionary = UnlockCodes.verify(UnlockCodes.make_code(key, ["fis"], "Ana"))
++	check(not bool(r["ok"]) and UnlockKey.PEM == "", "con UnlockKey vacía no se acepta ningún código")
++
++	print("Códigos válidos")
++	UnlockCodes.public_pem = key.save_to_string(true)
++	var code: String = UnlockCodes.make_code(key, ["fis", "historia"], "Ana")
++	r = UnlockCodes.verify(code)
++	check(bool(r["ok"]) and r["ids"] == ["fis", "historia"] and r["name"] == "Ana", "un código firmado se acepta y trae sus materias")
++	check(code.begins_with("F1.") and code.split(".").size() == 3, "formato F1.<carga>.<firma>")
++	var messy: String = "  \"%s\"\n" % code.insert(40, "\n").insert(90, " ").insert(150, "\r\n")
++	check(bool(UnlockCodes.verify(messy)["ok"]), "tolera espacios, saltos de línea y comillas al pegar")
++	check((Progress.data["owned"] as Array).is_empty(), "verify no toca el progreso")
++
++	print("Canjear")
++	r = UnlockCodes.redeem(code)
++	var owned: Array = Progress.data["owned"]
++	check(bool(r["ok"]) and owned.has("fis") and owned.has("historia"), "canjear guarda las materias en owned")
++	UnlockCodes.redeem(code)
++	check((Progress.data["owned"] as Array).size() == 2, "canjear dos veces no duplica")
++	Progress.load_data()
++	check((Progress.data["owned"] as Array).has("fis"), "lo desbloqueado se conserva al reabrir el juego")
++	Progress.reset()
++	check((Progress.data["owned"] as Array).has("fis"), "reiniciar el progreso no quita lo desbloqueado")
++	var pro := {"id": "fis", "premium": true}
++	var closed := {"id": "qui", "premium": true}
++	check(Levels.is_open(pro) and not Levels.is_open(closed), "Levels.is_open respeta owned")
++	UnlockCodes.redeem(UnlockCodes.make_code(key, ["*"]))
++	check(Levels.is_open(closed), "\"*\" abre todas las materias de pago")
++
++	print("Rechazos")
++	check(not bool(UnlockCodes.verify(UnlockCodes.make_code(other, ["qui"]))["ok"]), "firmado con otra clave: rechazado")
++	var parts: PackedStringArray = code.split(".")
++	var forged: PackedByteArray = Marshalls.base64_to_raw(parts[1].replace("-", "+").replace("_", "/") + "==")
++	var tampered: String = parts[0] + "." + Marshalls.raw_to_base64(forged.get_string_from_utf8().replace("fis", "qui").to_utf8_buffer()).replace("+", "-").replace("/", "_").replace("=", "") + "." + parts[2]
++	check(not bool(UnlockCodes.verify(tampered)["ok"]), "carga modificada con la firma original: rechazado")
++	var bad_sig: String = parts[0] + "." + parts[1] + "." + parts[2].substr(0, parts[2].length() - 4) + "AAAA"
++	check(not bool(UnlockCodes.verify(bad_sig)["ok"]), "firma alterada: rechazado")
++	check(not bool(UnlockCodes.verify(parts[0] + "." + parts[1])["ok"]), "código incompleto: rechazado")
++	check(not bool(UnlockCodes.verify("hola")["ok"]) and not bool(UnlockCodes.verify("")["ok"]), "texto cualquiera o vacío: rechazado")
++	check(not bool(UnlockCodes.verify(UnlockCodes.make_code(key, ["../x"]))["ok"]), "ids con caracteres raros: rechazado")
++	check(not bool(UnlockCodes.verify(UnlockCodes.make_code(key, []))["ok"]), "sin materias: rechazado")
++	var many: Array = []
++	for i in 25:
++		many.append("m%d" % i)
++	check(not bool(UnlockCodes.verify(UnlockCodes.make_code(key, many))["ok"]), "demasiadas materias: rechazado")
++
++	print("Flujo en el juego")
++	Progress.data["owned"] = []
++	Progress.save()
++	var main: Node = (load("res://scenes/main.tscn") as PackedScene).instantiate()
++	root.add_child(main)
++	for i in 3:
++		await process_frame
++	main._go_subjects()
++	var base_tiles: int = main.board.subject_station.tiles.size()
++	(main._pack("fis") as Dictionary)["premium"] = true
++	main._go_subjects()
++	check(not Levels.is_open(main._pack("fis")), "una materia de pago queda bloqueada")
++	check(main.board.subject_station.tiles.size() == base_tiles + 1, "con materias de pago aparece la tarjeta \"Tengo un código\"")
++	main._on_subject(":code")
++	check(main.ui.code_overlay.visible, "la tarjeta abre la ventana del código")
++	main._on_code(UnlockCodes.make_code(other, ["fis"]))
++	check(main.ui.code_overlay.visible and main.ui._code_msg.text != "" and not Levels.is_open(main._pack("fis")), "un código malo muestra el motivo y no abre nada")
++	main._on_back()
++	check(main.state == 1 and not main.ui.code_overlay.visible, "Atrás cierra primero la ventana del código")
++	main._on_subject(":code")
++	main._on_code(UnlockCodes.make_code(key, ["fis"], "Ana"))
++	check(Levels.is_open(main._pack("fis")) and not main.ui.code_overlay.visible and main.state == 1, "un código bueno abre la materia y cierra la ventana")
++
++	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
++	quit(0 if fails == 0 else 1)
+diff --git a/tools/codigos.gd b/tools/codigos.gd
+new file mode 100644
+index 0000000..7b5e296
+--- /dev/null
++++ b/tools/codigos.gd
+@@ -0,0 +1,95 @@
++extends SceneTree
++## Herramienta del desarrollador (no forma parte del juego): crea las claves y emite códigos
++## de desbloqueo. Se ejecuta desde la carpeta del proyecto:
++##
++##   godot --headless --path . --script res://tools/codigos.gd -- keygen
++##   godot --headless --path . --script res://tools/codigos.gd -- emitir historia,fis "Ana"
++##   godot --headless --path . --script res://tools/codigos.gd -- emitir "*"
++##
++## keygen:  crea la clave privada en tools/privado/ (ignorada por git: NO la subas ni la pierdas) y
++##          escribe la pública en scripts/unlock_key.gd, que sí se sube. Hazlo UNA sola vez: otra
++##          clave invalida todos los códigos ya entregados (pide --force para permitirlo).
++## emitir:  imprime un código para las materias indicadas ("*" = todas las de pago) y lo anota en
++##          tools/privado/codigos_emitidos.txt. El nombre es opcional y solo sirve para ti.
++
++const PRIV_DIR := "res://tools/privado"
++const PRIV_KEY := "res://tools/privado/clave_privada.pem"
++const LOG := "res://tools/privado/codigos_emitidos.txt"
++const PUB_SCRIPT := "res://scripts/unlock_key.gd"
++
++func _init() -> void:
++	var args: PackedStringArray = OS.get_cmdline_user_args()
++	if args.is_empty():
++		_usage()
++		quit(1)
++		return
++	match args[0]:
++		"keygen":
++			quit(_keygen(args.has("--force")))
++		"emitir":
++			if args.size() < 2:
++				_usage()
++				quit(1)
++			else:
++				quit(_emit(args[1], args[2] if args.size() > 2 else ""))
++		_:
++			_usage()
++			quit(1)
++
++func _usage() -> void:
++	print("Uso:")
++	print("  -- keygen")
++	print("  -- emitir <ids separados por coma | *> [nombre]")
++
++func _keygen(force: bool) -> int:
++	if UnlockKey.PEM.strip_edges() != "" and not force:
++		print("Ya hay una clave pública en scripts/unlock_key.gd. Otra clave invalidaría los códigos ya entregados.")
++		print("Si de verdad lo quieres, repite con --force.")
++		return 1
++	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(PRIV_DIR))
++	var key: CryptoKey = Crypto.new().generate_rsa(2048)
++	if key.save(PRIV_KEY, false) != OK:
++		print("No se pudo guardar la clave privada.")
++		return 1
++	var ign := FileAccess.open(PRIV_DIR + "/.gdignore", FileAccess.WRITE)  # que el editor no escanee la carpeta
++	if ign != null:
++		ign.close()
++	var pub: String = key.save_to_string(true).strip_edges()
++	var f := FileAccess.open(PUB_SCRIPT, FileAccess.WRITE)
++	if f == null:
++		print("No se pudo escribir scripts/unlock_key.gd.")
++		return 1
++	f.store_string("class_name UnlockKey\nextends RefCounted\n## Clave PÚBLICA con la que el juego comprueba los códigos de desbloqueo (sin servidor).\n## La genera `tools/codigos.gd keygen`; la privada se queda en tu computador y no se sube.\n## Mientras esta constante esté vacía, el juego no acepta ningún código.\n\nconst PEM := \"\"\"\n%s\n\"\"\"\n" % pub)
++	f.close()
++	print("Listo. Clave privada: tools/privado/clave_privada.pem (guárdala en un lugar seguro y haz copia).")
++	print("Clave pública: scripts/unlock_key.gd (esa sí va en el repositorio).")
++	return 0
++
++func _emit(ids_arg: String, buyer: String) -> int:
++	var key := CryptoKey.new()
++	if key.load(PRIV_KEY, false) != OK:
++		print("No hay clave privada. Ejecuta primero: -- keygen")
++		return 1
++	var ids: Array = []
++	for s in ids_arg.split(","):
++		var id: String = s.strip_edges().to_lower()
++		if id != "" and not ids.has(id):
++			ids.append(id)
++	if ids.is_empty():
++		print("Indica al menos una materia (o *).")
++		return 1
++	var code: String = UnlockCodes.make_code(key, ids, buyer)
++	var check: Dictionary = UnlockCodes.verify(code)
++	if not bool(check["ok"]):
++		print("El código no pasó la comprobación con scripts/unlock_key.gd: ¿cambiaste de clave? (%s)" % check["error"])
++		return 1
++	var log := FileAccess.open(LOG, FileAccess.READ_WRITE if FileAccess.file_exists(LOG) else FileAccess.WRITE)
++	if log != null:
++		log.seek_end()
++		log.store_line("%s | %s | %s" % [Time.get_datetime_string_from_system(), ",".join(ids), buyer])
++		log.close()
++	print("")
++	print("Materias: %s%s" % [",".join(ids), (" · para " + buyer) if buyer != "" else ""])
++	print("Código (cópialo completo):")
++	print(code)
++	return 0
