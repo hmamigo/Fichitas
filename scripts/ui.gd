@@ -17,24 +17,17 @@ var subjects: Control
 var toast_label: Label
 var win: Control
 var album: Control
-var album_grid: GridContainer
-var album_chips: HBoxContainer
-var album_name: Label
-var album_count: Label
+var fact: Control
 var win_title: Label
 var win_msg: Label
 var win_btn: Button
 var dom_grid: GridContainer
 var _th: Theme
 var _win_card: Control
-var _album_card: Control
-var _album_detail: Control
-var _detail_card: Control
-var _detail_a: TextureRect
-var _detail_b: TextureRect
-var _detail_fact: Label
-var _album_data: Array = []
-var _album_sel: int = 0
+var _fact_card: Control
+var _fact_a: TextureRect
+var _fact_b: TextureRect
+var _fact_text: Label
 var _bgs: Array = []   # materiales de los fondos, para reajustar el lienzo
 var _toast_tween: Tween
 # Piezas animadas del menú: halos, fichas decorativas y destellos.
@@ -57,8 +50,9 @@ func _ready() -> void:
 	_build_hud()
 	_build_menu()
 	_build_subjects()
-	_build_win()
 	_build_album()
+	_build_win()
+	_build_fact()
 	get_viewport().size_changed.connect(_update_columns)
 	_update_columns()
 	hide_all()
@@ -414,8 +408,9 @@ func hide_all() -> void:
 	hud_bar.visible = false
 	menu.visible = false
 	subjects.visible = false
-	win.visible = false
 	album.visible = false
+	fact.visible = false
+	win.visible = false
 
 # ---------- Construcción ----------
 
@@ -580,6 +575,90 @@ func _build_subjects() -> void:
 	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
 	_pass_through(subjects)
 
+## Cabecera del álbum: las fichas y las secciones son 3D, aquí solo queda el título.
+func _build_album() -> void:
+	album = _screen("none")  # sin fondo: el álbum es una mesa de la escena 3D
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for s in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + s, 26)
+	album.add_child(m)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 18)
+	m.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 20)
+	v.add_child(head)
+	head.add_child(_back_tile("Menú"))
+	var plate := _enamel_tile(Vector2(0, 96), Color("fffdf7"), 28)
+	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(plate)
+	var hb := VBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 0)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	(plate.get_child(0) as Control).add_child(hb)
+	var t := _label("Álbum", UiTheme.T_HEAD - 6, true, UiTheme.BLUE_DARK)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hb.add_child(t)
+	var st := _label("Las parejas que ya dominas.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
+	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hb.add_child(st)
+	# La capa no debe tragarse los toques: las fichas viven en la escena 3D
+	_pass_through(album)
+
+## Ventana con las dos fichas de una pareja dominada y su dato curioso.
+func _build_fact() -> void:
+	fact = Control.new()
+	fact.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fact.theme = _th
+	fact.visible = false
+	add_child(fact)
+	var dim := ColorRect.new()
+	dim.color = Color(0.06, 0.11, 0.26, 0.55)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP  # los toques no llegan a la escena 3D de detrás
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.gui_input.connect(_on_fact_dim_input)    # tocar fuera de la tarjeta la cierra
+	fact.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fact.add_child(center)
+	var card := _panel(center, 780, 34, UiTheme.menu_panel_box(34))
+	_fact_card = card.get_parent() as Control
+	_fact_card.mouse_filter = Control.MOUSE_FILTER_STOP
+	var pair_row := HBoxContainer.new()
+	pair_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	pair_row.add_theme_constant_override("separation", 28)
+	card.add_child(pair_row)
+	_fact_a = _fact_face(pair_row)
+	_fact_b = _fact_face(pair_row)
+	card.add_child(_label("Dato curioso", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK))
+	_fact_text = _label("", UiTheme.T_BODY, false, UiTheme.INK, true)
+	_fact_text.custom_minimum_size = Vector2(680, 0)
+	card.add_child(_fact_text)
+	var close := Button.new()
+	close.theme_type_variation = "Gold"
+	close.text = "Cerrar"
+	close.custom_minimum_size = Vector2(0, 96)
+	close.pressed.connect(func() -> void: fact.visible = false)
+	card.add_child(close)
+
+func _fact_face(parent: Control) -> TextureRect:
+	var rim := _enamel_tile(Vector2(300, 300), Color("fffdf7"), 8)
+	var img := TextureRect.new()
+	img.custom_minimum_size = Vector2(270, 270)
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	(rim.get_child(0) as Control).add_child(img)
+	parent.add_child(rim)
+	return img
+
+func _on_fact_dim_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+		fact.visible = false
+
 const WIN_PAD := 34        # margen interior de la tarjeta de nivel completado
 const WIN_MAX_W := 860     # ancho máximo de esa tarjeta
 const WIN_MIN_W := 660     # ancho mínimo (para que quepa el título)
@@ -630,123 +709,6 @@ func _build_win() -> void:
 	win_btn.pressed.connect(func() -> void: next_pressed.emit())
 	card.add_child(win_btn)
 
-# ---------- Álbum ----------
-
-const ALBUM_W := 860       # ancho de la tarjeta del álbum
-const ALBUM_PAD := 30
-const CHIP_SEP := 8        # separación entre las pestañas de materia
-
-func _build_album() -> void:
-	album = Control.new()
-	album.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	album.theme = _th
-	add_child(album)
-	var dim := ColorRect.new()
-	dim.color = Color(0.86, 0.93, 1.0, 0.46)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP  # los toques no deben llegar a la escena 3D de detrás
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	album.add_child(dim)
-	var m := MarginContainer.new()
-	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 26)
-	album.add_child(m)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 18)
-	m.add_child(v)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 20)
-	v.add_child(head)
-	head.add_child(_back_tile("Menú"))
-	var plate := _enamel_tile(Vector2(0, 96), Color("fffdf7"), 28)
-	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(plate)
-	var hb := VBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 0)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(plate.get_child(0) as Control).add_child(hb)
-	var t := _label("Álbum", UiTheme.T_HEAD - 6, true, UiTheme.BLUE_DARK)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(t)
-	var st := _label("Las parejas que ya dominas.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
-	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(st)
-	# Tarjeta central: pestañas de materia, nombre, cuenta y cuadrícula de parejas (sin scroll)
-	var center := CenterContainer.new()
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(center)
-	var card := _panel(center, ALBUM_W, ALBUM_PAD, UiTheme.menu_panel_box(ALBUM_PAD))
-	_album_card = card.get_parent() as Control
-	album_chips = HBoxContainer.new()
-	album_chips.alignment = BoxContainer.ALIGNMENT_CENTER
-	album_chips.add_theme_constant_override("separation", CHIP_SEP)
-	card.add_child(album_chips)
-	album_name = _label("", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK)
-	card.add_child(album_name)
-	album_count = _label("", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
-	card.add_child(album_count)
-	album_grid = GridContainer.new()
-	album_grid.columns = 5
-	album_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	album_grid.add_theme_constant_override("h_separation", DOM_SEP)
-	album_grid.add_theme_constant_override("v_separation", DOM_SEP)
-	card.add_child(album_grid)
-	_build_album_detail()
-
-## Ventana con las dos fichas de una pareja dominada y su dato curioso.
-func _build_album_detail() -> void:
-	_album_detail = Control.new()
-	_album_detail.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_album_detail.visible = false
-	album.add_child(_album_detail)
-	var ddim := ColorRect.new()
-	ddim.color = Color(0.06, 0.11, 0.26, 0.55)
-	ddim.mouse_filter = Control.MOUSE_FILTER_STOP
-	ddim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ddim.gui_input.connect(_on_detail_dim_input)  # tocar fuera de la tarjeta la cierra
-	_album_detail.add_child(ddim)
-	var dcenter := CenterContainer.new()
-	dcenter.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dcenter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_album_detail.add_child(dcenter)
-	var dcard := _panel(dcenter, 780, 34, UiTheme.menu_panel_box(34))
-	_detail_card = dcard.get_parent() as Control
-	_detail_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	var pair_row := HBoxContainer.new()
-	pair_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	pair_row.add_theme_constant_override("separation", 28)
-	dcard.add_child(pair_row)
-	_detail_a = _detail_face(pair_row)
-	_detail_b = _detail_face(pair_row)
-	dcard.add_child(_label("Dato curioso", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK))
-	_detail_fact = _label("", UiTheme.T_BODY, false, UiTheme.INK, true)
-	_detail_fact.custom_minimum_size = Vector2(680, 0)
-	dcard.add_child(_detail_fact)
-	var close := Button.new()
-	close.theme_type_variation = "Gold"
-	close.text = "Cerrar"
-	close.custom_minimum_size = Vector2(0, 96)
-	close.pressed.connect(func() -> void: _album_detail.visible = false)
-	dcard.add_child(close)
-
-func _detail_face(parent: Control) -> TextureRect:
-	var rim := _enamel_tile(Vector2(300, 300), Color("fffdf7"), 8)
-	var img := TextureRect.new()
-	img.custom_minimum_size = Vector2(270, 270)
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(rim.get_child(0) as Control).add_child(img)
-	parent.add_child(rim)
-	return img
-
-func _on_detail_dim_input(e: InputEvent) -> void:
-	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
-		_album_detail.visible = false
-
 # ---------- API ----------
 
 ## opts: {sound, vib, vib_visible}. Las acciones están en las losetas 3D del menú.
@@ -776,107 +738,25 @@ func show_subjects() -> void:
 	_update_columns()
 	subjects.visible = true
 
-## Álbum. data: Array de {id, name, icon, color, locked, pairs: [{a, b, fact, stage}]}.
-## Las parejas dominadas (stage 2) se pueden abrir; las demás aparecen atenuadas.
-func show_album(data: Array) -> void:
+func show_album() -> void:
 	hide_all()
-	_album_data = data
-	_album_detail.visible = false
-	if _album_sel < 0 or _album_sel >= data.size() or bool((data[_album_sel] as Dictionary).get("locked", false)):
-		_album_sel = 0
-	_fill_album_chips()
-	_album_select(_album_sel)
 	album.visible = true
-	if _album_card != null:
-		_pop(_album_card)
 
-## Cierra la ventana de dato curioso si está abierta; devuelve si había algo que cerrar.
-func close_album_detail() -> bool:
-	if _album_detail != null and _album_detail.visible:
-		_album_detail.visible = false
+## Dato curioso de una pareja dominada, con sus dos fichas.
+func show_fact(a: Texture2D, b: Texture2D, text: String) -> void:
+	_fact_a.texture = a
+	_fact_b.texture = b
+	_fact_text.text = text if text != "" else "Esta pareja aún no tiene dato curioso."
+	fact.visible = true
+	if _fact_card != null:
+		_pop(_fact_card)
+
+## Cierra la ventana del dato curioso si está abierta; devuelve si había algo que cerrar.
+func close_fact() -> bool:
+	if fact != null and fact.visible:
+		fact.visible = false
 		return true
 	return false
-
-func _fill_album_chips() -> void:
-	for c in album_chips.get_children():
-		album_chips.remove_child(c)
-		c.queue_free()
-	var n: int = _album_data.size()
-	if n == 0:
-		return
-	var cw: int = clampi(int(float(ALBUM_W - 2 * ALBUM_PAD - (n - 1) * CHIP_SEP) / float(n)), 52, 84)
-	var grp := ButtonGroup.new()
-	for i in n:
-		var p: Dictionary = _album_data[i]
-		var locked: bool = bool(p.get("locked", false))
-		var b := Button.new()
-		b.theme_type_variation = "Pill"
-		b.toggle_mode = true
-		b.button_group = grp
-		b.focus_mode = Control.FOCUS_NONE
-		b.disabled = locked
-		b.custom_minimum_size = Vector2(cw, 76)
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var icon_name: String = "lock" if locked else str(p.get("icon", ""))
-		b.set_meta("icon", icon_name if icon_name != "" else "book")
-		b.toggled.connect(func(on: bool) -> void: _paint_chip(b, on))
-		b.pressed.connect(func() -> void: _album_select(i))
-		album_chips.add_child(b)
-		b.set_pressed_no_signal(i == _album_sel)
-		_paint_chip(b, i == _album_sel)
-
-func _paint_chip(b: Button, on: bool) -> void:
-	b.icon = UiTheme.icon(str(b.get_meta("icon")), 38, Color.WHITE if on else UiTheme.INK)
-
-func _album_select(i: int) -> void:
-	_album_sel = i
-	for c in album_grid.get_children():
-		album_grid.remove_child(c)
-		c.queue_free()
-	if i < 0 or i >= _album_data.size():
-		album_name.text = ""
-		album_count.text = ""
-		return
-	var p: Dictionary = _album_data[i]
-	var pairs: Array = p["pairs"]
-	var dom: int = 0
-	for pr in pairs:
-		if int((pr as Dictionary)["stage"]) == 2:
-			dom += 1
-	album_name.text = str(p["name"])
-	album_count.text = "Dominadas %d de %d" % [dom, pairs.size()]
-	album_grid.visible = not pairs.is_empty()
-	if pairs.is_empty():
-		return
-	var cols: int = _dom_columns(pairs.size())
-	var side: int = _dom_side(cols)
-	album_grid.columns = cols
-	for pr in pairs:
-		var stage: int = int((pr as Dictionary)["stage"])
-		var tile: Control = _dom_tile({"tex": pr["a"], "stage": stage, "dim": stage < 2}, side)
-		if stage == 2:
-			tile.add_child(_album_tap(pr))
-		album_grid.add_child(tile)
-
-## Botón transparente sobre toda la miniatura (como el de `_back_tile`).
-func _album_tap(pr: Dictionary) -> Button:
-	var btn := Button.new()
-	btn.flat = true
-	btn.focus_mode = Control.FOCUS_NONE
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
-		btn.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	btn.pressed.connect(func() -> void: _album_open(pr))
-	return btn
-
-func _album_open(pr: Dictionary) -> void:
-	_detail_a.texture = pr["a"]
-	_detail_b.texture = pr["b"]
-	var fact: String = str(pr.get("fact", ""))
-	_detail_fact.text = fact if fact != "" else "Esta pareja aún no tiene dato curioso."
-	_album_detail.visible = true
-	if _detail_card != null:
-		_pop(_detail_card)
 
 func show_win(title: String, msg: String, button: String, doms: Array = []) -> void:
 	win_title.text = title
@@ -951,8 +831,6 @@ func _dom_tile(d: Dictionary, side: int = 72) -> Control:
 	pc.add_child(v)
 	var img := TextureRect.new()
 	img.texture = d.get("tex", null)
-	if bool(d.get("dim", false)):  # álbum: pareja aún sin dominar
-		img.modulate = Color(0.60, 0.62, 0.70, 0.45)
 	img.custom_minimum_size = Vector2(side, side)
 	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

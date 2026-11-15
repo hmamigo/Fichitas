@@ -52,7 +52,8 @@ func _run() -> void:
 	var mx: float = main.board.menu_station.position.x
 	var sx: float = main.board.subject_station.position.x
 	var same_z: bool = is_zero_approx(main.board.menu_station.position.z) and is_zero_approx(main.board.subject_station.position.z)
-	check(mx < sx and sx < 0.0 and same_z, "las estaciones están en fila en X: menú, materias y tablero")
+	var ax: float = main.board.album_station.position.x
+	check(ax < mx and mx < sx and sx < 0.0 and same_z and is_zero_approx(main.board.album_station.position.z), "las estaciones están en fila en X: álbum, menú, materias y tablero")
 	var vps: Vector2 = main.get_viewport().get_visible_rect().size
 	var floor_ok: bool = true
 	for corner in [Vector2.ZERO, Vector2(vps.x, 0.0), Vector2(0.0, vps.y), vps]:
@@ -135,19 +136,22 @@ func _run() -> void:
 	var p0_pairs: Array = p0["pairs"]
 	(Progress.data["mp"] as Dictionary)[str(p0_pairs[0]["id"])] = 3
 	main._go_album()
-	check(main.state == 4 and main.ui.album.visible and not main.board.menu_station.visible, "el álbum se abre y oculta la mesa del menú")
-	check(main.ui.album_grid.get_child_count() == p0_pairs.size(), "el álbum muestra todas las parejas de la primera materia")
-	var openers: Array = []
-	for tile in main.ui.album_grid.get_children():
-		for c in tile.get_children():
-			if c is Button:
-				openers.append(c)
-	check(openers.size() >= 1 and openers.size() <= p0_pairs.size(), "las parejas dominadas se pueden abrir")
-	(openers[0] as Button).pressed.emit()
-	check(main.ui._album_detail.visible, "tocar una pareja dominada abre su dato curioso")
+	var total_pairs: int = 0
+	for pk in main.packs:
+		if Levels.is_open(pk):
+			total_pairs += (pk["pairs"] as Array).size()
+	var album_tiles: Array = main.board.album_station.tiles
+	var up_tiles: Array = album_tiles.filter(func(t: AlbumTile) -> bool: return t.mastered)
+	check(main.state == 4 and main.board.station == "album", "el álbum se abre como estación")
+	check(album_tiles.size() == total_pairs * 2, "el álbum tiene las dos fichas de cada pareja de las materias abiertas")
+	check(up_tiles.size() >= 2 and up_tiles.size() < album_tiles.size(), "solo las parejas dominadas están boca arriba")
+	var vb: Vector2 = main.board.album_station.pan_bounds(main.board.album_station.fit_distance())
+	check(vb.y > 0.0, "el álbum es más alto que la pantalla: se recorre con la cámara en vertical")
+	main._on_album_open((up_tiles[0] as AlbumTile).pair)
+	check(main.ui.fact.visible, "una pareja dominada abre su dato curioso")
 	main._on_back()
-	check(main.state == 4 and not main.ui._album_detail.visible, "Atrás cierra primero el dato curioso")
+	check(main.state == 4 and not main.ui.fact.visible, "Atrás cierra primero el dato curioso")
 	main._on_back()
-	check(main.state == 0 and main.board.menu_station.visible, "Atrás desde el álbum vuelve al menú y muestra la mesa")
+	check(main.state == 0 and main.board.station == "menu", "Atrás desde el álbum vuelve al menú")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)

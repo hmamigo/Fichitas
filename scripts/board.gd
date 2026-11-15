@@ -11,12 +11,13 @@ const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 22.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
-# Las tres estaciones van en fila a lo largo de X: menú, materias y tablero (en el origen).
+# Las estaciones van en fila a lo largo de X: álbum, menú, materias y tablero (en el origen).
 # 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
 const STATION_GAP := 10.0
 const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
 const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
-const MENU_LOOK_DZ := -0.2             # el punto de mira va delante de la mesa del menú: la sube en pantalla
+const ALBUM_X := -3.0 * STATION_GAP   # álbum: a la izquierda del menú
+const MENU_LOOK_DZ := -0.2           # desplaza el punto de mira respecto a la mesa del menú: + la sube en pantalla, − la baja
 const MENU_LOOK := Vector3(MENU_X, -0.2, MENU_LOOK_DZ)
 # Vuelos largos entre estaciones: la cámara se aleja un poco a mitad de camino (0 = sin arco)
 const ARC_GAIN := 0.15        # fracción del recorrido que se suma a la distancia en el punto medio
@@ -57,9 +58,10 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
-var station: String = "menu"  # "menu", "subjects" o "game"
+var station: String = "menu"  # "menu", "subjects", "album" o "game"
 var menu_station: StationMenu
 var subject_station: StationSubjects
+var album_station: StationAlbum
 var cam: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
@@ -136,6 +138,9 @@ func _ready() -> void:
 	subject_station = StationSubjects.new()
 	subject_station.position = Vector3(SUBJ_X, 0.0, 0.0)
 	add_child(subject_station)
+	album_station = StationAlbum.new()
+	album_station.position = Vector3(ALBUM_X, 0.0, 0.0)
+	add_child(album_station)
 	get_viewport().size_changed.connect(_layout)
 
 # ---------- API ----------
@@ -192,6 +197,10 @@ func build_menu(mode_now: String, level: int) -> void:
 
 func build_subjects(cards: Array) -> void:
 	subject_station.build(cards)
+	_refresh_floor()
+
+func build_album(data: Array) -> void:
+	album_station.build(data)
 	_refresh_floor()
 
 func _clear_tiles() -> void:
@@ -340,17 +349,7 @@ func _build_environment() -> void:
 	add_child(far)
 
 func _face_material(tex: Texture2D) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = tex
-	m.roughness = 0.42
-	m.clearcoat_enabled = true
-	m.clearcoat = CLEARCOAT
-	m.clearcoat_roughness = 0.18
-	m.rim_enabled = true
-	m.rim = 0.25
-	m.rim_tint = 0.3
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	return m
+	return TileLook.face_material(tex, CLEARCOAT)
 
 func _make_tile(id: String, tex: Texture2D) -> Tile:
 	var t := Tile.new()
@@ -451,6 +450,14 @@ func _pose() -> Dictionary:
 			"tilt": subject_station.TILT,
 			"yaw": 0.0,
 		}
+	if station == "album" and album_station != null:
+		var a: Vector3 = album_station.position
+		return {
+			"target": Vector3(a.x + cam_x, a.y, a.z + cam_z),
+			"dist": album_station.fit_distance() / zoom,
+			"tilt": album_station.TILT,
+			"yaw": 0.0,
+		}
 	if station == "menu":
 		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
 	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
@@ -493,6 +500,8 @@ func _update_cam() -> void:
 func _pan_bounds(dist: float) -> Vector2:
 	if station == "subjects" and subject_station != null:
 		return subject_station.pan_bounds(dist)
+	if station == "album" and album_station != null:
+		return album_station.pan_bounds(dist)
 	if station == "menu":
 		return Vector2.ZERO
 	return Vector2(float(cols) * ST * 0.5, float(rows) * ST * 0.5)
@@ -512,6 +521,9 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	# Las materias empiezan por la primera fila: la lista es más alta que la pantalla
 	if name == "subjects" and subject_station != null:
 		cam_z = subject_station.initial_z(subject_station.fit_distance())
+	# El álbum también empieza por arriba: la primera materia
+	if name == "album" and album_station != null:
+		cam_z = album_station.initial_z(album_station.fit_distance())
 	_arc = 0.0
 	if secs > 0.0 and start_at <= 0.0:
 		var travel: float = ((_from["target"] as Vector3) - (_pose()["target"] as Vector3)).length()
@@ -531,13 +543,6 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 		_apply_station_visibility()
 	)
 
-## Oculta las mesas de menú y materias (pantallas 2D sobre el suelo, como el álbum).
-## La cámara no se mueve; al volver al menú, `fly_to_station` las muestra de nuevo.
-func hide_stations() -> void:
-	menu_station.visible = false
-	subject_station.visible = false
-	_refresh_floor()
-
 ## Mantiene ambas mesas visibles durante el vuelo para que el cambio de estación
 ## se lea como un recorrido continuo, y oculta la inactiva al llegar.
 func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
@@ -545,6 +550,8 @@ func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 		menu_station.visible = keep_stations_visible or station == "menu"
 	if subject_station != null:
 		subject_station.visible = keep_stations_visible or station == "subjects"
+	if album_station != null:
+		album_station.visible = keep_stations_visible or station == "album"
 	_refresh_floor()
 
 func _pan(delta: Vector2) -> void:
@@ -565,7 +572,7 @@ func _refresh_floor() -> void:
 		var w: float = float(cols) * ST + 0.5
 		var h: float = float(rows) * ST + 0.5
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
-	for st in [menu_station, subject_station]:
+	for st in [menu_station, subject_station, album_station]:
 		if st != null and (st as Node3D).visible:
 			var r: Rect2 = st.clear_rect()
 			if r.size.x > 0.0:
@@ -707,6 +714,8 @@ func _station_tap(pos: Vector2) -> void:
 		menu_station.tap(pos, cam)
 	elif station == "subjects" and subject_station != null:
 		subject_station.tap(pos, cam)
+	elif station == "album" and album_station != null:
+		album_station.tap(pos, cam)
 
 func _pinch_distance() -> float:
 	var k: Array = ptrs.keys()

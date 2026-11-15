@@ -27,6 +27,21 @@ static func gold_material(bezel: Texture2D = null, size: float = 0.98) -> Standa
 		m.uv1_offset = Vector3(0.5, 0.5, 0.0)
 	return m
 
+## Material de la cara de una ficha: barniz, brillo en el borde y filtrado anisótropo.
+## Lo usan el tablero y el álbum, para que las fichas de ambos sean iguales.
+static func face_material(tex: Texture2D, clearcoat: float = 0.6) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = tex
+	m.roughness = 0.42
+	m.clearcoat_enabled = true
+	m.clearcoat = clearcoat
+	m.clearcoat_roughness = 0.18
+	m.rim_enabled = true
+	m.rim = 0.25
+	m.rim_tint = 0.3
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	return m
+
 static func bezel_texture() -> ImageTexture:
 	if _bezel == null:
 		_bezel = _make_bezel()

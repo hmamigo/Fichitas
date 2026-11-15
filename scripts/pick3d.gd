@@ -25,3 +25,20 @@ static func plaque(items: Array, cam: Camera3D, pos: Vector2) -> Plaque:
 				best_d = dx + dz
 				best = t
 	return best
+
+## Pieza plana bajo `pos` (la más cercana al rayo): vale cualquier Node3D con `size`
+## (Plaque, AlbumTile). Devuelve null si no hay ninguna.
+static func item(items: Array, cam: Camera3D, pos: Vector2) -> Node3D:
+	var g: Vector3 = ground(cam, pos)
+	var best: Node3D = null
+	var best_d: float = INF
+	for it in items:
+		var n: Node3D = it
+		var sz: Vector2 = n.get("size")
+		var dx: float = absf(g.x - n.global_position.x)
+		var dz: float = absf(g.z - n.global_position.z)
+		if dx <= sz.x * 0.5 and dz <= sz.y * 0.5:
+			if dx + dz < best_d:
+				best_d = dx + dz
+				best = n
+	return best

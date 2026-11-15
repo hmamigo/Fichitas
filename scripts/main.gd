@@ -35,9 +35,10 @@ func _ready() -> void:
 	board.menu_station.mode_changed.connect(_on_mode)
 	board.subject_station.chosen.connect(_on_subject)
 	board.subject_station.info.connect(ui.toast)
+	board.album_station.opened.connect(_on_album_open)
+	ui.album_pressed.connect(_go_album)
 	ui.back_pressed.connect(_on_back)
 	ui.next_pressed.connect(_on_next)
-	ui.album_pressed.connect(_go_album)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
 	_go_menu()
@@ -140,19 +141,26 @@ func _go_subjects() -> void:
 	board.fly_to_station("subjects", 1.0)
 	ui.show_subjects()
 
-## Álbum: pantalla 2D sobre el suelo, con las parejas de cada materia y su dominio.
+## Álbum: mesa 3D con todas las parejas de cada materia; las dominadas, boca arriba.
 func _go_album() -> void:
 	state = S.ALBUM
 	board.stop()
-	board.hide_stations()
 	var data: Array = []
 	for p in packs:
+		var locked: bool = not Levels.is_open(p)
 		var pairs: Array = []
-		for pr in p["pairs"]:
-			pairs.append({"a": pr["a"], "b": pr["b"], "fact": str(pr.get("fact", "")), "stage": Progress.pair_stage(pr["id"])})
+		if not locked:
+			for pr in p["pairs"]:
+				pairs.append({"id": pr["id"], "a": pr["a"], "b": pr["b"], "fact": str(pr.get("fact", "")),
+					"stage": Progress.pair_stage(pr["id"])})
 		data.append({"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
-			"color": UiTheme.pack_color(p["id"]), "locked": not Levels.is_open(p), "pairs": pairs})
-	ui.show_album(data)
+			"color": UiTheme.pack_color(p["id"]), "locked": locked, "pairs": pairs})
+	board.build_album(data)
+	board.fly_to_station("album", 0.9 if board.station != "album" else 0.0)
+	ui.show_album()
+
+func _on_album_open(pr: Dictionary) -> void:
+	ui.show_fact(pr["a"], pr["b"], str(pr.get("fact", "")))
 
 func _play(sid: String) -> void:
 	cur_sid = sid
@@ -264,5 +272,5 @@ func _on_back() -> void:
 		S.SUBJECTS:
 			_go_menu()
 		S.ALBUM:
-			if not ui.close_album_detail():
+			if not ui.close_fact():
 				_go_menu()

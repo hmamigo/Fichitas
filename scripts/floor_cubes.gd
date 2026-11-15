@@ -5,12 +5,13 @@ extends Node3D
 
 const STEP := 1.0
 const SIDE := 0.9
-# Debe cubrir las tres estaciones (Board: menú en x = -20, materias en -10, tablero en 0)
-# con ~12 de margen a cada lado, que es lo que ve una pantalla apaisada 16:9.
-const X_MIN := -32        # primera columna (izquierda del menú)
+# Debe cubrir las cuatro estaciones (Board: álbum en x = -30, menú en -20, materias en -10,
+# tablero en 0). A los lados basta el ancho de una pantalla vertical; la mesa del álbum mide
+# ~±22 en Z (todas las materias en una sola mesa larga), de ahí las filas.
+const X_MIN := -38        # primera columna (izquierda del álbum)
 const X_MAX := 12         # última columna (derecha del tablero)
-const Z_FAR := 18         # filas hacia el fondo (−Z)
-const Z_NEAR := 16        # filas hacia la cámara (+Z): la lista de materias mide ±10 en Z
+const Z_FAR := 24         # filas hacia el fondo (−Z)
+const Z_NEAR := 24        # filas hacia la cámara (+Z)
 const TOP_MIN := -0.43    # cima más baja: justo sobre el suelo base
 const BASE_Y := -0.60     # base de todos los cubos
 const MAX_RISE := 1.1     # altura máxima de los cubos lejanos (más bajos = el fondo se aleja)
@@ -26,6 +27,8 @@ const PALETTE: Array[Color] = [
 var mmi: MultiMeshInstance3D
 var _cells: Array = []   # {x, z, col: Color, n: float}
 var _clears: Array = [Rect2(-2.0, -3.0, 4.0, 6.0)]  # huecos en XZ (uno por mesa)
+var _grown: Array = []                # los mismos huecos con el margen ya aplicado
+var _last: PackedFloat32Array = PackedFloat32Array()  # distancia con la que se dibujó cada cubo
 
 func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -52,6 +55,9 @@ func _ready() -> void:
 	var box_size := Vector3(X_MAX - X_MIN + 2, 8, Z_FAR + Z_NEAR + 2)
 	mmi.custom_aabb = AABB(box_pos, box_size)
 	add_child(mmi)
+	_last.resize(_cells.size())
+	_last.fill(-1.0)
+	_grow_clears()
 	_rebuild()
 
 ## Zona libre alrededor de una mesa (semiancho y semialto, ya con el marco).
@@ -60,15 +66,23 @@ func set_clear_rect(hw: float, hh: float) -> void:
 
 ## Huecos de todas las mesas del mundo (el tablero, las materias y el menú).
 func set_clears(rects: Array) -> void:
+	if mmi != null and rects == _clears:
+		return
 	_clears = rects
+	_grow_clears()
 	if mmi != null:
 		_rebuild()
+
+func _grow_clears() -> void:
+	_grown.clear()
+	for r in _clears:
+		_grown.append((r as Rect2).grow(0.7))  # margen extra: que ningún cubo asome en el borde
 
 ## Distancia de un cubo al hueco más cercano.
 func _clear_dist(x: float, z: float) -> float:
 	var best: float = INF
-	for r in _clears:
-		var rect: Rect2 = (r as Rect2).grow(0.7)  # margen extra: que ningún cubo asome en el borde
+	for r in _grown:
+		var rect: Rect2 = r
 		var dx: float = maxf(maxf(rect.position.x - x, 0.0), x - rect.end.x)
 		var dz: float = maxf(maxf(rect.position.y - z, 0.0), z - rect.end.y)
 		best = minf(best, Vector2(dx, dz).length())
@@ -80,7 +94,12 @@ func _rebuild() -> void:
 		var cell: Dictionary = _cells[k]
 		var x: float = cell["x"]
 		var z: float = cell["z"]
-		var d: float = _clear_dist(x, z)
+		# A partir de 7 de distancia ya no cambia ni la altura ni el color: se recorta,
+		# y los cubos que no cambian respecto al último dibujo se saltan.
+		var d: float = minf(_clear_dist(x, z), 7.0)
+		if absf(d - _last[k]) < 0.0001:
+			continue
+		_last[k] = d
 		var n: float = cell["n"]
 		var rise: float = smoothstep(0.2, 7.0, d) * (0.10 + MAX_RISE * n * n)
 		var top: float = TOP_MIN + rise
