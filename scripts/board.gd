@@ -10,15 +10,15 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
-const MENU_DIST := 22.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
+const MENU_DIST := 18.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
 # Las estaciones van en fila a lo largo de X: álbum, menú, materias y tablero (en el origen).
 # 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
 const STATION_GAP := 10.0
 const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
 const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
 const ALBUM_X := -3.0 * STATION_GAP   # álbum: a la izquierda del menú
-const MENU_LOOK_DZ := -0.2           # desplaza el punto de mira respecto a la mesa del menú: + la sube en pantalla, − la baja
-const MENU_LOOK := Vector3(MENU_X, -0.2, MENU_LOOK_DZ)
+const MENU_LOOK_Y := -0.2             # altura del punto de mira del menú
+const MENU_LOOK_DZ := -0.2            # z de partida; `center_menu` la ajusta al hueco 2D
 # Vuelos largos entre estaciones: la cámara se aleja un poco a mitad de camino (0 = sin arco)
 const ARC_GAIN := 0.15        # fracción del recorrido que se suma a la distancia en el punto medio
 const ARC_MAX := 3.0
@@ -59,6 +59,7 @@ var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
 var station: String = "menu"  # "menu", "subjects", "album" o "game"
+var menu_look_z: float = MENU_LOOK_DZ  # lo ajusta `center_menu` según la franja 2D
 var menu_station: StationMenu
 var subject_station: StationSubjects
 var album_station: StationAlbum
@@ -202,6 +203,11 @@ func build_subjects(cards: Array) -> void:
 func build_album(data: Array) -> void:
 	album_station.build(data)
 	_refresh_floor()
+
+## Centra la mesa del menú en la franja libre entre la cabecera y los ajustes 2D.
+## `band_center` es la fracción vertical desde arriba (0 = borde superior, 1 = inferior).
+func center_menu(band_center: float) -> void:
+	menu_look_z = _menu_look_for_band(band_center)
 
 func _clear_tiles() -> void:
 	for t in tiles:
@@ -440,6 +446,38 @@ func _drift(delta: float) -> void:
 	if _pan_v.length() < 2.0:
 		_pan_v = Vector2.ZERO
 
+## z del punto de mira que deja el marco del menú centrado en `band_center`.
+## Se resuelve por bisección porque la tapa del marco es un rectángulo en perspectiva.
+func _menu_look_for_band(band_center: float) -> float:
+	var corners: Array = menu_station.frame_corners()
+	if corners.is_empty():
+		return MENU_LOOK_DZ
+	var want: float = clampf(band_center, 0.05, 0.95)
+	var lo: float = -8.0
+	var hi: float = 2.0
+	for i in 32:
+		var mid: float = (lo + hi) * 0.5
+		if _menu_frame_frac(corners, mid) > want:
+			lo = mid   # el marco está bajo: subir la mesa (z mayor)
+		else:
+			hi = mid
+	return (lo + hi) * 0.5
+
+## Fracción vertical (0 arriba, 1 abajo) del centro del marco del menú para un z de mira.
+func _menu_frame_frac(corners: Array, look_z: float) -> float:
+	var target := Vector3(MENU_X, MENU_LOOK_Y, look_z)
+	var tan_half: float = tan(deg_to_rad(FOV * 0.5))
+	var top: float = INF
+	var bottom: float = -INF
+	for p in corners:
+		var v: Vector3 = (p as Vector3) - target
+		var y_cam: float = v.y * sin(TILT) - v.z * cos(TILT)
+		var depth: float = MENU_DIST - v.y * cos(TILT) - v.z * sin(TILT)
+		var f: float = 0.5 - 0.5 * (y_cam / depth) / tan_half
+		top = minf(top, f)
+		bottom = maxf(bottom, f)
+	return (top + bottom) * 0.5
+
 ## Pose de la estación activa: a dónde mira la cámara, a qué distancia y con cuánto balanceo.
 func _pose() -> Dictionary:
 	if station == "subjects" and subject_station != null:
@@ -459,7 +497,7 @@ func _pose() -> Dictionary:
 			"yaw": 0.0,
 		}
 	if station == "menu":
-		return {"target": MENU_LOOK, "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
+		return {"target": Vector3(MENU_X, MENU_LOOK_Y, menu_look_z), "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
 	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
 
 ## Pose que se está viendo ahora mismo (a mitad de un vuelo, la mezcla).

@@ -42,6 +42,7 @@ func _ready() -> void:
 	ui.next_pressed.connect(_on_next)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
+	get_viewport().size_changed.connect(_on_view_resized)
 	_go_menu()
 
 func _on_mode(m: String) -> void:
@@ -79,12 +80,30 @@ func _go_menu() -> void:
 	var mode: String = str(Progress.data["mode"])
 	board.mode = mode
 	board.build_menu(mode, Progress.level())
-	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
 	ui.show_menu({
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
 		"vib_visible": OS.has_feature("mobile"),
 	})
+	_center_menu()
+	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
+	_center_menu_later()  # el primer layout del arranque puede llegar un frame tarde
+
+## La mesa 3D del menú se encuadra en el hueco que dejan la cabecera y los ajustes 2D.
+func _center_menu() -> void:
+	if state == S.MENU:
+		board.center_menu(ui.menu_band_center())
+
+## Recalcula un frame después: al cambiar el tamaño, los contenedores aún no tienen
+## su rectángulo nuevo cuando llega `size_changed`.
+func _center_menu_later() -> void:
+	await get_tree().process_frame
+	_center_menu()
+
+## Al cambiar la proporción de la ventana, la franja 2D se mueve y la cámara la sigue.
+func _on_view_resized() -> void:
+	if state == S.MENU:
+		_center_menu_later()
 
 ## Sonido y vibración: los efectos vienen de `board.sfx`.
 func _on_sfx(name: String) -> void:

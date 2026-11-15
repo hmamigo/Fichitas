@@ -37,6 +37,7 @@ var _menu_logo_glow: TextureRect
 var _menu_title_wrap: Control
 var _menu_title_glow: TextureRect
 var _menu_subtitle: Control
+var _menu_opts: Control
 var _menu_footer: Control
 var _menu_deco: Array = []
 var _menu_title_tiles: Array = []
@@ -501,6 +502,7 @@ func _build_menu() -> void:
 	opts_pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	opts_pill.custom_minimum_size = Vector2(560, 0)
 	v.add_child(opts_pill)
+	_menu_opts = opts_pill
 	var opts := HBoxContainer.new()
 	opts.alignment = BoxContainer.ALIGNMENT_CENTER
 	opts.add_theme_constant_override("separation", 12)
@@ -710,6 +712,19 @@ func _build_win() -> void:
 	card.add_child(win_btn)
 
 # ---------- API ----------
+
+## Centro vertical del hueco libre del menú (fracción desde arriba): va del borde
+## inferior del subtítulo al superior de la pastilla de ajustes. `Board.center_menu()`
+## encuadra la mesa 3D ahí, así queda centrada en cualquier proporción de pantalla.
+func menu_band_center() -> float:
+	if menu == null or _menu_subtitle == null or _menu_opts == null or menu.size.y < 1.0:
+		return 0.5
+	var origin: float = menu.get_global_rect().position.y
+	var top: float = _menu_subtitle.get_global_rect().end.y - origin
+	var bottom: float = _menu_opts.get_global_rect().position.y - origin
+	if bottom <= top:
+		return 0.5
+	return clampf((top + bottom) * 0.5 / menu.size.y, 0.05, 0.95)
 
 ## opts: {sound, vib, vib_visible}. Las acciones están en las losetas 3D del menú.
 func show_menu(opts: Dictionary = {}) -> void:

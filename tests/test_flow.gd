@@ -42,6 +42,18 @@ func _run() -> void:
 	check(is_equal_approx(menu_tilt, subjects_tilt) and is_equal_approx(menu_tilt, game_tilt), "las tres estaciones mantienen el mismo ángulo de cámara")
 	main.board.fly_to_station("menu", 0.0)
 	await process_frame
+	var band: float = main.ui.menu_band_center()
+	check(band > 0.5 and band < 0.75, "la franja del menú queda entre la cabecera y los ajustes")
+	main.board.center_menu(band)
+	main.board._update_cam()
+	var ftop: float = INF
+	var fbottom: float = -INF
+	for p in main.board.menu_station.frame_corners():
+		var sy: float = main.board.cam.unproject_position(p).y
+		ftop = minf(ftop, sy)
+		fbottom = maxf(fbottom, sy)
+	var fcenter: float = (ftop + fbottom) * 0.5 / main.get_viewport().get_visible_rect().size.y
+	check(absf(fcenter - band) < 0.01, "la mesa del menú queda centrada en la franja 2D")
 	var mtiles: Array = main.board.menu_station.tiles
 	var menu_stack_ok: bool = true
 	for i in mtiles.size():

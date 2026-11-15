@@ -13,6 +13,8 @@ const CARD_H := 1.0
 const GAP := 0.16
 const FACE_W := 448
 const FACE_H := 128
+const FRAME_EXTRA := 1.0   # margen de la mesa (0,55) + filo del marco (0,45)
+const FRAME_Y := -0.165    # tapa del marco azul (el encuadre de la cámara la usa)
 
 var tiles: Array = []
 var _mode: String = "mem"
@@ -50,6 +52,19 @@ func clear() -> void:
 	if _table != null:
 		_table.queue_free()
 		_table = null
+
+## Esquinas de la tapa del marco visible, en coordenadas del mundo. `Board` las
+## proyecta para centrar la mesa en el hueco libre de la interfaz.
+func frame_corners() -> Array:
+	if tiles.is_empty():
+		return []
+	var w: float = CARD_W + FRAME_EXTRA
+	var h: float = float(tiles.size()) * CARD_H + float(tiles.size() - 1) * GAP + FRAME_EXTRA
+	var out: Array = []
+	for sx in [-0.5, 0.5]:
+		for sz in [-0.5, 0.5]:
+			out.append(global_position + Vector3(w * float(sx), FRAME_Y, h * float(sz)))
+	return out
 
 ## Cambia la loseta marcada sin reconstruir la mesa.
 func set_mode(mode_now: String) -> void:
