@@ -71,9 +71,9 @@ func _run() -> void:
 	check(main.board.tiles.size() == 8, "4 parejas pendientes = 8 fichas")
 	check(main.ui.lv_label.text.begins_with("Repaso"), "el HUD dice Repaso")
 	main._on_won()
-	check(main.state == 3 and main.ui.win.visible, "pantalla de repaso completado")
-	check(main.ui.win_title.text == "¡Repaso completado!", "título de repaso")
-	check(main.ui.dom_grid.get_child_count() == 4, "miniaturas de dominio del repaso")
+	check(main.state == 3 and main.board.station == "win", "estación de repaso completado")
+	check(main.board.win_station.title == "¡Repaso completado!", "título de repaso")
+	check(main.board.win_station.dom_count == 4, "miniaturas de dominio del repaso")
 	main._on_next()
 	check(main.state == 1, "el repaso vuelve a materias")
 

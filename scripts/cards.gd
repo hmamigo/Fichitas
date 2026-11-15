@@ -186,3 +186,174 @@ static func action(title: String, sub: String, icon: String, dot: bool, bg: Colo
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		v.add_child(subtitle)
 	return root
+# ---------- Estación de "Nivel completado" ----------
+# Las caras de la victoria se dibujan al doble de resolución (WIN_K): llevan
+# miniaturas de imágenes y texto pequeño. Las medidas de diseño (`w`, `h`, `side`...)
+# van en píxeles base (128 por unidad del mundo); la textura mide WIN_K veces más.
+const WIN_K := 2
+const DOM_PAD := 14       # margen de la cuadrícula de miniaturas
+const DOM_SEP := 8        # separación entre miniaturas
+const DOM_MAX := 124      # lado máximo de la imagen de una miniatura
+const DOM_ROW := 46       # alto de lo que va bajo la imagen (planta + márgenes)
+
+## Cuadrícula de miniaturas para `n` parejas en una cara de ancho `w`: columnas (3-5),
+## filas, lado de la imagen y alto total de la cara. Minimiza filas y huecos.
+static func dom_layout(n: int, w: int) -> Dictionary:
+	if n <= 0:
+		return {"cols": 0, "rows": 0, "side": 0, "h": 0}
+	var content: int = w - 2 * DOM_PAD
+	var best: Dictionary = {}
+	var best_score: float = 1e9
+	for cols in range(3, 6):
+		var rows: int = ceili(float(n) / float(cols))
+		var side: int = clampi(mini(DOM_MAX, int((content - (cols - 1) * DOM_SEP) / cols) - 10), 40, DOM_MAX)
+		# Pocas filas importan más que miniaturas grandes: la pila de losetas debe caber en pantalla
+		var score: float = float((rows * cols - n) * 10 + rows * 50) - float(side) * 0.5
+		if score < best_score:
+			best_score = score
+			best = {"cols": cols, "rows": rows, "side": side,
+				"h": 2 * DOM_PAD + rows * (side + DOM_ROW) + (rows - 1) * DOM_SEP}
+	return best
+
+## Medalla: ficha dorada con destellos.
+static func _medal(size: int) -> Control:
+	var k: int = WIN_K
+	var rim := PanelContainer.new()
+	rim.custom_minimum_size = Vector2(size, size)
+	rim.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color("f0b232")
+	rs.set_corner_radius_all(22 * k)
+	rs.border_color = Color("a8690f")
+	rs.border_width_bottom = 6 * k
+	rs.set_content_margin_all(5 * k)
+	rim.add_theme_stylebox_override("panel", rs)
+	var face := PanelContainer.new()
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fs := StyleBoxFlat.new()
+	fs.bg_color = Color("fff0a8")
+	fs.set_corner_radius_all(17 * k)
+	fs.border_color = Color("fff0a8").lightened(0.55)
+	fs.set_border_width_all(2 * k)
+	face.add_theme_stylebox_override("panel", fs)
+	rim.add_child(face)
+	face.add_child(_icon("stars", 50 * k, Color("d08a12")))
+	return rim
+
+static func _wrap(l: Label, width: int) -> Label:
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size = Vector2(width, 0)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	return l
+
+## Cabecera: medalla, título y mensaje.
+static func win_header(title: String, msg: String, w: int, h: int) -> Control:
+	var k: int = WIN_K
+	var col := Color("ffeeb0")
+	var root := _root(w * k, h * k)
+	_bg(root, col.lightened(0.08))
+	var pc := PanelContainer.new()
+	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pc.add_theme_stylebox_override("panel", _face_box(col))
+	root.add_child(pc)
+	var m := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 14 * k)
+	pc.add_child(m)
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 6 * k)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(v)
+	v.add_child(_medal(72 * k))
+	var inner: int = (w - 28) * k
+	v.add_child(_wrap(_label(title, 38 * k, UiTheme.BLUE_DARK, true), inner))
+	v.add_child(_wrap(_label(msg, 26 * k, UiTheme.INK), inner))
+	return root
+
+## Una miniatura de pareja: imagen y, debajo, la planta del dominio (brote, hojas o árbol).
+## `up` = mejoró en esta partida (contorno verde).
+static func _dom_tile(d: Dictionary, side: int) -> Control:
+	var k: int = WIN_K
+	var stage: int = int(d.get("stage", 0))
+	var up: bool = bool(d.get("up", false))
+	var pc := PanelContainer.new()
+	pc.custom_minimum_size = Vector2((side + 10) * k, (side + DOM_ROW) * k)
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = UiTheme.CREAM
+	sb.set_corner_radius_all(14 * k)
+	sb.set_content_margin_all(5 * k)
+	sb.set_border_width_all(3 * k)
+	sb.border_color = Color("f0b232")      # filo dorado, como las fichas del juego
+	sb.border_width_bottom = 6 * k
+	if up:
+		sb.set_border_width_all(4 * k)
+		sb.border_color = Color("42cd84")
+	pc.add_theme_stylebox_override("panel", sb)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2 * k)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(v)
+	var img := TextureRect.new()
+	img.texture = d.get("tex", null)
+	img.custom_minimum_size = Vector2(side * k, side * k)
+	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(img)
+	var row := CenterContainer.new()
+	row.custom_minimum_size = Vector2(0, 34 * k)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(row)
+	var icon: int = clampi(int(round(float(side) * 0.25)), 26, 34)
+	var pi := TextureRect.new()
+	pi.texture = UiTheme.icon_plant(stage, icon * k, UiTheme.PLANT)
+	pi.custom_minimum_size = Vector2(icon * k, icon * k)
+	pi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pi.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(pi)
+	return pc
+
+## Cara con las miniaturas de las parejas del nivel. `doms[i]` = {tex, stage, up}.
+## Alto de la cara: `dom_layout(doms.size(), w)["h"]`.
+static func win_doms(doms: Array, w: int) -> Control:
+	var k: int = WIN_K
+	var lay: Dictionary = dom_layout(doms.size(), w)
+	var h: int = int(lay["h"])
+	var col := Color("fffbee")
+	var root := _root(w * k, h * k)
+	_bg(root, col.lightened(0.08))
+	var pc := PanelContainer.new()
+	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pc.add_theme_stylebox_override("panel", _face_box(col))
+	root.add_child(pc)
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(center)
+	var grid := GridContainer.new()
+	grid.columns = int(lay["cols"])
+	grid.add_theme_constant_override("h_separation", DOM_SEP * k)
+	grid.add_theme_constant_override("v_separation", DOM_SEP * k)
+	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.add_child(grid)
+	for d in doms:
+		grid.add_child(_dom_tile(d, int(lay["side"])))
+	return root
+
+## Botón de la victoria: la acción principal dorada del menú.
+static func win_button(text: String, w: int, h: int) -> Control:
+	var k: int = WIN_K
+	var col := UiTheme.GOLD
+	var root := _root(w * k, h * k)
+	_bg(root, col.lightened(0.08))
+	var pc := PanelContainer.new()
+	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	pc.add_theme_stylebox_override("panel", _face_box(col))
+	root.add_child(pc)
+	var l := _label(text, 40 * k, UiTheme.GOLD_INK, true)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pc.add_child(l)
+	return root

@@ -85,8 +85,21 @@ func _run() -> void:
 	check(main.board.tiles.size() == 6 and main.board.mode == "mem" and main.ui.hud_bar.visible, "nivel 1: 3 parejas")
 	await _solve(main, 0.8)
 	await create_timer(2.8).timeout
-	check(main.state == 3 and main.ui.win.visible, "nivel completado muestra la pantalla de victoria")
-	main._on_next()
+	check(main.state == 3 and main.board.station == "win" and main.board.win_station.tiles.size() == 3, "nivel completado lleva la cámara a la estación de victoria")
+	check(main.board.win_station.title == "¡Nivel 1 completado!" and main.board.win_station.dom_count == 3, "la victoria muestra el título y las 3 parejas")
+	await create_timer(1.3).timeout
+	check(main.board.win_station.visible and not main.board.menu_station.visible, "al llegar solo se ve la mesa de victoria")
+	var wvps: Vector2 = main.get_viewport().get_visible_rect().size
+	var wfloor_ok: bool = true
+	for wcorner in [Vector2.ZERO, Vector2(wvps.x, 0.0), Vector2(0.0, wvps.y), wvps]:
+		var wg: Vector3 = main.board._ground_point(wcorner)
+		wfloor_ok = wfloor_ok and wg.x >= FloorCubes.X_MIN and wg.x <= FloorCubes.X_MAX and wg.z >= -FloorCubes.Z_FAR and wg.z <= FloorCubes.Z_NEAR
+	check(wfloor_ok, "las cuatro esquinas de la vista de la victoria caen sobre el suelo de cubos")
+	var wbtn: Plaque = main.board.win_station.tiles[2]
+	var wspot: Vector2 = main.board.cam.unproject_position(wbtn.global_position)
+	main.board.win_station.tap(wspot, main.board.cam)
+	await process_frame
+	check(Progress.level() == 2 and main.state == 2, "tocar la loseta dorada sigue al nivel 2")
 	await process_frame
 	check(Progress.level() == 2 and main.board.tiles.size() == 8, "avanza al nivel 2 (4 parejas)")
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Progress.path))

@@ -1,9 +1,9 @@
 class_name GameUI
 extends CanvasLayer
-## Pantallas: menú, materias, barra de juego y nivel completado. Solo dibuja y emite señales.
+## Pantallas 2D: menú, materias, barra de juego y dato curioso. Solo dibuja y emite señales.
+## El nivel completado es una estación 3D (`StationWin`).
 
 signal back_pressed
-signal next_pressed
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
 signal album_pressed
@@ -15,15 +15,9 @@ var sound_btn: Button
 var vib_btn: Button
 var subjects: Control
 var toast_label: Label
-var win: Control
 var album: Control
 var fact: Control
-var win_title: Label
-var win_msg: Label
-var win_btn: Button
-var dom_grid: GridContainer
 var _th: Theme
-var _win_card: Control
 var _fact_card: Control
 var _fact_a: TextureRect
 var _fact_b: TextureRect
@@ -41,7 +35,6 @@ var _menu_opts: Control
 var _menu_footer: Control
 var _menu_deco: Array = []
 var _menu_title_tiles: Array = []
-var _win_medal: Control
 var _menu_tween: Tween
 var _menu_clock: float = 0.0
 var _logo_base: Vector2 = Vector2.ZERO
@@ -52,7 +45,6 @@ func _ready() -> void:
 	_build_menu()
 	_build_subjects()
 	_build_album()
-	_build_win()
 	_build_fact()
 	get_viewport().size_changed.connect(_update_columns)
 	_update_columns()
@@ -125,6 +117,38 @@ func _panel(parent: Control, width: int, pad: int = 30, style: StyleBoxFlat = nu
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 18)
 	pc.add_child(v)
+	return v
+
+## Tarjeta con el mismo aspecto que las losetas del mundo: filo dorado grueso con
+## borde inferior oscuro (como `Plaque` y las fichas) y cara crema. Devuelve la caja
+## vertical de la cara; el aro dorado es `result.get_parent().get_parent()`.
+func _gold_panel(parent: Control, width: int, pad: int = 30) -> VBoxContainer:
+	var rim := PanelContainer.new()
+	var rs := StyleBoxFlat.new()
+	rs.bg_color = Color("f0b232")
+	rs.set_corner_radius_all(46)
+	rs.border_color = Color("a8690f")
+	rs.border_width_bottom = 14
+	rs.set_content_margin_all(10)
+	rs.shadow_color = Color(0.08, 0.16, 0.34, 0.34)
+	rs.shadow_size = 22
+	rs.shadow_offset = Vector2(0, 12)
+	rim.add_theme_stylebox_override("panel", rs)
+	rim.custom_minimum_size = Vector2(width, 0)
+	rim.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	parent.add_child(rim)
+	var face := PanelContainer.new()
+	var fs := StyleBoxFlat.new()
+	fs.bg_color = Color("fffdf7")
+	fs.set_corner_radius_all(36)
+	fs.border_color = Color("fff3c4")
+	fs.set_border_width_all(3)
+	fs.set_content_margin_all(pad)
+	face.add_theme_stylebox_override("panel", fs)
+	rim.add_child(face)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 18)
+	face.add_child(v)
 	return v
 
 ## Interruptor de ajustes: pastilla que se rellena cuando está activa.
@@ -375,8 +399,6 @@ func _animate_menu() -> void:
 ## Movimiento ambiente del menú (solo mientras está visible).
 func _process(delta: float) -> void:
 	_menu_clock += delta
-	if _win_medal != null and win != null and win.visible:
-		_win_medal.rotation = sin(_menu_clock * 1.5) * 0.07
 	if menu == null or not menu.visible:
 		return
 	if _menu_logo != null:
@@ -411,7 +433,6 @@ func hide_all() -> void:
 	subjects.visible = false
 	album.visible = false
 	fact.visible = false
-	win.visible = false
 
 # ---------- Construcción ----------
 
@@ -626,8 +647,8 @@ func _build_fact() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fact.add_child(center)
-	var card := _panel(center, 780, 34, UiTheme.menu_panel_box(34))
-	_fact_card = card.get_parent() as Control
+	var card := _gold_panel(center, 780, 34)
+	_fact_card = card.get_parent().get_parent() as Control
 	_fact_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	var pair_row := HBoxContainer.new()
 	pair_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -660,56 +681,6 @@ func _fact_face(parent: Control) -> TextureRect:
 func _on_fact_dim_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
 		fact.visible = false
-
-const WIN_PAD := 34        # margen interior de la tarjeta de nivel completado
-const WIN_MAX_W := 860     # ancho máximo de esa tarjeta
-const WIN_MIN_W := 660     # ancho mínimo (para que quepa el título)
-const DOM_MAX := 148       # lado máximo de cada miniatura de pareja
-const DOM_SEP := 10        # separación entre miniaturas
-
-func _build_win() -> void:
-	win = Control.new()
-	win.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	win.theme = _th
-	add_child(win)
-	var dim := ColorRect.new()
-	dim.color = Color(0.86, 0.93, 1.0, 0.46)  # velo claro: el tablero y los cubos siguen brillantes
-	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	win.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	win.add_child(center)
-	var card := _panel(center, WIN_MAX_W, WIN_PAD, UiTheme.menu_panel_box(WIN_PAD))
-	_win_card = card.get_parent() as Control
-	# Medalla: una ficha dorada con destellos, que se balancea despacio
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_win_medal = _enamel_tile(Vector2(132, 132), Color("fff0a8"))
-	var spr := TextureRect.new()
-	spr.texture = UiTheme.icon("stars", 88, Color("d08a12"))
-	spr.custom_minimum_size = Vector2(88, 88)
-	spr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	spr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	spr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(_win_medal.get_child(0) as Control).add_child(spr)
-	row.add_child(_win_medal)
-	card.add_child(row)
-	win_title = _label("", UiTheme.T_WIN, true, UiTheme.BLUE_DARK)
-	card.add_child(win_title)
-	win_msg = _label("", UiTheme.T_BODY, false, UiTheme.INK, true)
-	card.add_child(win_msg)
-	dom_grid = GridContainer.new()
-	dom_grid.columns = 5
-	dom_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	dom_grid.add_theme_constant_override("h_separation", DOM_SEP)
-	dom_grid.add_theme_constant_override("v_separation", DOM_SEP)
-	card.add_child(dom_grid)
-	win_btn = Button.new()
-	win_btn.theme_type_variation = "Gold"  # la misma acción principal dorada del menú
-	win_btn.custom_minimum_size = Vector2(0, 96)
-	win_btn.pressed.connect(func() -> void: next_pressed.emit())
-	card.add_child(win_btn)
 
 # ---------- API ----------
 
@@ -772,99 +743,6 @@ func close_fact() -> bool:
 		fact.visible = false
 		return true
 	return false
-
-func show_win(title: String, msg: String, button: String, doms: Array = []) -> void:
-	win_title.text = title
-	win_msg.text = msg
-	win_btn.text = button
-	_fill_doms(doms)
-	win.visible = true
-	if _win_card != null:
-		_pop(_win_card)
-
-## Miniaturas de las parejas del nivel con su estado de dominio.
-## doms: Array de {tex, stage, up}; `up` = mejoró en esta partida (lleva contorno).
-## El tamaño se adapta a cuántas parejas hay: pocas → miniaturas grandes.
-func _fill_doms(doms: Array) -> void:
-	for c in dom_grid.get_children():
-		dom_grid.remove_child(c)
-		c.queue_free()
-	var n: int = doms.size()
-	dom_grid.visible = n > 0
-	if n == 0:
-		return
-	var cols: int = _dom_columns(n)
-	var side: int = _dom_side(cols)
-	dom_grid.columns = cols
-	for d in doms:
-		dom_grid.add_child(_dom_tile(d, side))
-	var grid_w: int = cols * (side + 10) + (cols - 1) * DOM_SEP
-	if _win_card != null:
-		_win_card.custom_minimum_size.x = clampi(grid_w + 2 * WIN_PAD, WIN_MIN_W, WIN_MAX_W)
-
-## Columnas y filas equilibradas (máximo 5 filas); menos huecos y miniaturas grandes.
-func _dom_columns(n: int) -> int:
-	var best: int = 3
-	var best_score: float = 1e9
-	for cols in range(3, 7):
-		var rows: int = ceili(float(n) / float(cols))
-		if rows > 5:
-			continue
-		var empty: int = rows * cols - n
-		var side: int = _dom_side(cols)
-		var score: float = float(empty * 20 + rows * 2) - float(side)
-		if score < best_score:
-			best_score = score
-			best = cols
-	return best
-
-## Lado de la imagen de cada miniatura: cabe en el ancho de la tarjeta y tiene tope.
-func _dom_side(cols: int) -> int:
-	var content: int = WIN_MAX_W - 2 * WIN_PAD
-	var by_w: int = int((content - (cols - 1) * DOM_SEP) / cols) - 10
-	return clampi(mini(DOM_MAX, by_w), 56, DOM_MAX)
-
-func _dom_tile(d: Dictionary, side: int = 72) -> Control:
-	var stage: int = int(d.get("stage", 0))
-	var up: bool = bool(d.get("up", false))
-	var pc := PanelContainer.new()
-	pc.custom_minimum_size = Vector2(side + 10, side + 46)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = UiTheme.CREAM
-	sb.set_corner_radius_all(14)
-	sb.set_content_margin_all(5)
-	if up:
-		sb.set_border_width_all(4)
-		sb.border_color = Color("42cd84")
-	elif stage > 0:
-		sb.set_border_width_all(2)
-		sb.border_color = Color(0.26, 0.70, 0.44, 0.45)
-	pc.add_theme_stylebox_override("panel", sb)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 2)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pc.add_child(v)
-	var img := TextureRect.new()
-	img.texture = d.get("tex", null)
-	img.custom_minimum_size = Vector2(side, side)
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(img)
-	# Estado de dominio debajo de la miniatura: brote, dos hojas o árbol
-	var row := CenterContainer.new()
-	row.custom_minimum_size = Vector2(0, 34)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(row)
-	var icon: int = clampi(int(round(float(side) * 0.25)), 26, 34)
-	var pi := TextureRect.new()
-	pi.texture = UiTheme.icon_plant(stage, icon, UiTheme.PLANT)
-	pi.custom_minimum_size = Vector2(icon, icon)
-	pi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	pi.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(pi)
-	return pc
 
 func toast(text: String) -> void:
 	toast_label.text = text

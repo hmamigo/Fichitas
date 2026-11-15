@@ -11,12 +11,13 @@ const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 18.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
-# Las estaciones van en fila a lo largo de X: álbum, menú, materias y tablero (en el origen).
+# Las estaciones van en fila a lo largo de X: álbum, menú, materias, tablero (en el origen) y victoria.
 # 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
 const STATION_GAP := 10.0
 const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
 const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
 const ALBUM_X := -3.0 * STATION_GAP   # álbum: a la izquierda del menú
+const WIN_X := STATION_GAP            # nivel completado: a la derecha del tablero
 const MENU_LOOK_Y := -0.2             # altura del punto de mira del menú
 const MENU_LOOK_DZ := -0.2            # z de partida; `center_menu` la ajusta al hueco 2D
 # Vuelos largos entre estaciones: la cámara se aleja un poco a mitad de camino (0 = sin arco)
@@ -58,11 +59,12 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
-var station: String = "menu"  # "menu", "subjects", "album" o "game"
+var station: String = "menu"  # "menu", "subjects", "album", "game" o "win"
 var menu_look_z: float = MENU_LOOK_DZ  # lo ajusta `center_menu` según la franja 2D
 var menu_station: StationMenu
 var subject_station: StationSubjects
 var album_station: StationAlbum
+var win_station: StationWin
 var cam: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
@@ -142,6 +144,9 @@ func _ready() -> void:
 	album_station = StationAlbum.new()
 	album_station.position = Vector3(ALBUM_X, 0.0, 0.0)
 	add_child(album_station)
+	win_station = StationWin.new()
+	win_station.position = Vector3(WIN_X, 0.0, 0.0)
+	add_child(win_station)
 	get_viewport().size_changed.connect(_layout)
 
 # ---------- API ----------
@@ -202,6 +207,11 @@ func build_subjects(cards: Array) -> void:
 
 func build_album(data: Array) -> void:
 	album_station.build(data)
+	_refresh_floor()
+
+## Nivel completado: construye las losetas de la estación de victoria.
+func build_win(data: Dictionary) -> void:
+	win_station.build(data)
 	_refresh_floor()
 
 ## Centra la mesa del menú en la franja libre entre la cabecera y los ajustes 2D.
@@ -496,6 +506,14 @@ func _pose() -> Dictionary:
 			"tilt": album_station.TILT,
 			"yaw": 0.0,
 		}
+	if station == "win" and win_station != null:
+		var w: Vector3 = win_station.position
+		return {
+			"target": Vector3(w.x + cam_x, w.y, w.z + cam_z),
+			"dist": win_station.fit_distance() / zoom,
+			"tilt": win_station.TILT,
+			"yaw": 0.0,
+		}
 	if station == "menu":
 		return {"target": Vector3(MENU_X, MENU_LOOK_Y, menu_look_z), "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
 	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
@@ -540,6 +558,8 @@ func _pan_bounds(dist: float) -> Vector2:
 		return subject_station.pan_bounds(dist)
 	if station == "album" and album_station != null:
 		return album_station.pan_bounds(dist)
+	if station == "win" and win_station != null:
+		return win_station.pan_bounds(dist)
 	if station == "menu":
 		return Vector2.ZERO
 	return Vector2(float(cols) * ST * 0.5, float(rows) * ST * 0.5)
@@ -590,6 +610,14 @@ func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 		subject_station.visible = keep_stations_visible or station == "subjects"
 	if album_station != null:
 		album_station.visible = keep_stations_visible or station == "album"
+	if win_station != null:
+		win_station.visible = keep_stations_visible or station == "win"
+	# El tablero resuelto se esconde al llegar a otra estación (en pantallas anchas asomaría)
+	var in_game: bool = keep_stations_visible or station == "game"
+	if board != null:
+		board.visible = in_game
+	for t in tiles:
+		t.node.visible = in_game
 	_refresh_floor()
 
 func _pan(delta: Vector2) -> void:
@@ -610,7 +638,7 @@ func _refresh_floor() -> void:
 		var w: float = float(cols) * ST + 0.5
 		var h: float = float(rows) * ST + 0.5
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
-	for st in [menu_station, subject_station, album_station]:
+	for st in [menu_station, subject_station, album_station, win_station]:
 		if st != null and (st as Node3D).visible:
 			var r: Rect2 = st.clear_rect()
 			if r.size.x > 0.0:
@@ -754,6 +782,8 @@ func _station_tap(pos: Vector2) -> void:
 		subject_station.tap(pos, cam)
 	elif station == "album" and album_station != null:
 		album_station.tap(pos, cam)
+	elif station == "win" and win_station != null:
+		win_station.tap(pos, cam)
 
 func _pinch_distance() -> float:
 	var k: Array = ptrs.keys()

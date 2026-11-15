@@ -37,7 +37,7 @@ func _run() -> void:
 	await create_timer(2.2).timeout
 	await _shot("m_game")
 	main._on_won()
-	await create_timer(0.8).timeout
+	await create_timer(1.6).timeout   # el vuelo a la estación de victoria dura 1,1 s
 	await _shot("m_win")
 	main._go_menu()
 	await create_timer(1.2).timeout
@@ -46,6 +46,6 @@ func _run() -> void:
 	await create_timer(2.2).timeout
 	await _shot("m_game24")
 	main._on_won()
-	await create_timer(0.8).timeout
+	await create_timer(1.6).timeout
 	await _shot("m_win24")
 	quit(0)

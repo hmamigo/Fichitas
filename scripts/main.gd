@@ -39,7 +39,7 @@ func _ready() -> void:
 	board.album_station.opened.connect(_on_album_open)
 	ui.album_pressed.connect(_go_album)
 	ui.back_pressed.connect(_on_back)
-	ui.next_pressed.connect(_on_next)
+	board.win_station.next.connect(_on_next)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
 	get_viewport().size_changed.connect(_on_view_resized)
@@ -249,18 +249,13 @@ func _start(pairs: Array, label: String) -> void:
 	stage_before.clear()
 	for pr in pairs:
 		stage_before[pr["id"]] = Progress.pair_stage(pr["id"])
-	var next_level: bool = state == S.WIN
+	var from_win: bool = state == S.WIN
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
 	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
-	# Desde las materias, la cámara baja hasta el tablero; entre niveles, un acercamiento corto
-	if next_level:
-		if board.station == "game":
-			board.zoom = 0.9  # el vuelo parte de un poco más lejos
-		board.fly_to_station("game", 0.55)
-	else:
-		board.fly_to_station("game", 1.3)
-	board.start(pairs, 0.33 if next_level else 0.78)
+	# Desde las materias, la cámara baja hasta el tablero; desde la victoria, vuelve a la izquierda
+	board.fly_to_station("game", 1.1 if from_win else 1.3)
+	board.start(pairs, 0.6 if from_win else 0.78)
 
 func _on_won() -> void:
 	state = S.WIN
@@ -281,7 +276,10 @@ func _on_won() -> void:
 		if cur_last:
 			btn = "Volver a materias" if cur_sid != "" else "Volver al menú"
 	var title: String = "¡Repaso completado!" if cur_review else "¡Nivel %d completado!" % cur_level
-	ui.show_win(title, msg, btn, _doms())
+	# La victoria es una estación del mundo: una mesa a la derecha del tablero
+	ui.hide_all()
+	board.build_win({"title": title, "msg": msg, "button": btn, "doms": _doms()})
+	board.fly_to_station("win", 1.1)
 
 ## Estado de dominio de las parejas de la sesión, para las miniaturas de la victoria.
 func _doms() -> Array:

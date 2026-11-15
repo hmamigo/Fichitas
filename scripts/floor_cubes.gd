@@ -5,11 +5,11 @@ extends Node3D
 
 const STEP := 1.0
 const SIDE := 0.9
-# Debe cubrir las cuatro estaciones (Board: álbum en x = -30, menú en -20, materias en -10,
-# tablero en 0). A los lados basta el ancho de una pantalla vertical; la mesa del álbum mide
+# Debe cubrir las cinco estaciones (Board: álbum en x = -30, menú en -20, materias en -10,
+# tablero en 0, victoria en +10). A los lados basta el ancho de una pantalla vertical; la mesa del álbum mide
 # ~±22 en Z (todas las materias en una sola mesa larga), de ahí las filas.
 const X_MIN := -38        # primera columna (izquierda del álbum)
-const X_MAX := 12         # última columna (derecha del tablero)
+const X_MAX := 20         # última columna (derecha de la estación de victoria)
 const Z_FAR := 24         # filas hacia el fondo (−Z)
 const Z_NEAR := 24        # filas hacia la cámara (+Z)
 const TOP_MIN := -0.43    # cima más baja: justo sobre el suelo base
