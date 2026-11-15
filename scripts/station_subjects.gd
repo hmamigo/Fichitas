@@ -16,7 +16,7 @@ const FACE_H := 224
 # Encuadre de la cámara en esta mesa
 const FIT_PAD_W := 0.15        # aire a los lados de la tarjeta al encuadrar el ancho
 const FIT_ROWS := 2.6          # filas (en alto de tarjeta) que deben caber en pantalla
-const FIT_MARGIN := 2.0        # alejamiento sobre el ajuste justo (1.0 = justo); a mano
+const FIT_MARGIN := 1.6        # alejamiento sobre el ajuste justo (1.0 = justo); a mano
 const PAN_PAD_X := 0.10        # margen extra del paneo horizontal
 const PAN_PAD_Y := 0.11        # aire arriba y abajo al recorrer (fracción del alto visible)
 

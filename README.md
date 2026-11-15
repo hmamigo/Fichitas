@@ -38,7 +38,7 @@ En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `S
 - Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
 
 ## Aún no está
-Paquetes externos y carga de imágenes de usuario. El álbum con datos curiosos ya está en el menú. El modo oscuro se retiró.
+Quitar paquetes externos desde la interfaz y carga de imágenes de usuario. El álbum con datos curiosos y la carga de paquetes (.zip) ya están en el juego. El modo oscuro se retiró.
 
 ## Pruebas (sin pantalla)
 ```
@@ -47,4 +47,29 @@ godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --script res://tests/test_game.gd     # tablero, memoria y asociación
 godot --headless --path . --script res://tests/test_flow.gd     # menús, niveles, materias y guardado
 godot --headless --path . --script res://tests/test_review.gd   # repaso, sesión Repaso, miniaturas y sonidos
+godot --headless --path . --script res://tests/test_packs.gd    # paquetes externos (.zip)
 ```
+
+## Paquetes propios (.zip)
+En **Elegir materia → Cargar paquete** se elige un `.zip` con este contenido (también vale que `pack.json` esté dentro de una sola carpeta):
+
+```
+mi-paquete.zip
+  pack.json
+  img/1a.png, img/1b.png, ...
+```
+```json
+{
+  "format": 1,
+  "id": "historia",
+  "name": "Historia",
+  "unlock": 12,
+  "pairs": [
+    { "a": "img/1a.png", "b": "img/1b.png", "fact": "Dato curioso opcional" }
+  ]
+}
+```
+- `id`: minúsculas, números, `-` y `_` (máx. 32); no puede ser el de una materia oficial. Importar otra vez el mismo `id` reemplaza el paquete.
+- 3 a 60 parejas. Imágenes `.png`, `.jpg` o `.webp` (hasta 6 MB y 4096 px; se guardan reducidas a 1024 px como PNG).
+- `unlock` (1 a 20) es opcional: sin él, el paquete aparece en Elegir materia y en el álbum, pero no entra en el recorrido general.
+- Se guardan en `user://packs/<id>/`.

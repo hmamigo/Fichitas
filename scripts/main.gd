@@ -15,6 +15,7 @@ var cur_last: bool = false
 var cur_review: bool = false
 var cur_pairs: Array = []
 var stage_before: Dictionary = {}
+var _pack_dialog: FileDialog
 
 func _ready() -> void:
 	Progress.load_data()
@@ -52,6 +53,8 @@ func _on_mode(m: String) -> void:
 func _on_subject(id: String) -> void:
 	if id == ":review":
 		_play_review()
+	elif id == ":import":
+		_pick_pack()
 	elif id == "":
 		_play("")
 	else:
@@ -125,10 +128,12 @@ func _go_subjects() -> void:
 			"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
 			"sub": "De pago" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
 			"sub2": "" if locked else "Dominadas %d/%d" % [dom, (p["pairs"] as Array).size()],
-			"sub3": ("%d por repasar" % pdue) if pdue > 0 else "",
+			"sub3": ("%d por repasar" % pdue) if pdue > 0 else ("Paquete propio" if bool(p.get("external", false)) else ""),
 			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
 			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"] if locked else ""})
+	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "sprout", "sub": "Una materia tuya (.zip)",
+		"sub2": "", "color": Color("b8e6c9")})
 	for n in COMING:
 		var exists: bool = false
 		for p in packs:
@@ -161,6 +166,28 @@ func _go_album() -> void:
 
 func _on_album_open(pr: Dictionary) -> void:
 	ui.show_fact(pr["a"], pr["b"], str(pr.get("fact", "")))
+
+## Cargar paquete: el selector de archivos del sistema (en Android, el de documentos) devuelve un .zip.
+func _pick_pack() -> void:
+	if _pack_dialog == null:
+		_pack_dialog = FileDialog.new()
+		_pack_dialog.access = FileDialog.ACCESS_FILESYSTEM
+		_pack_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+		_pack_dialog.use_native_dialog = true
+		_pack_dialog.title = "Cargar paquete"
+		_pack_dialog.add_filter("*.zip", "Paquetes de Fichitas", "application/zip,application/x-zip-compressed")
+		_pack_dialog.file_selected.connect(_on_pack_file)
+		add_child(_pack_dialog)
+	_pack_dialog.popup_centered_ratio(0.85)
+
+func _on_pack_file(path: String) -> void:
+	var res: Dictionary = PackImport.import_file(path, Packs.official_ids())
+	if not bool(res["ok"]):
+		ui.toast(str(res["error"]))
+		return
+	packs = Packs.load_all()
+	_go_subjects()  # redibuja la lista con la materia nueva
+	ui.toast("«%s» agregada: %d parejas." % [res["name"], res["pairs"]])
 
 func _play(sid: String) -> void:
 	cur_sid = sid

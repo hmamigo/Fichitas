@@ -204,7 +204,7 @@ static func sparkle(size: int = 36, col: Color = Color("ffd45e")) -> ImageTextur
 
 ## Nombre del icono de una materia (vacío si no hay).
 static func pack_icon(id: String) -> String:
-	return str(PACK_ICONS.get(id, ""))
+	return str(PACK_ICONS.get(id, "book"))  # los paquetes externos usan el libro
 
 ## Logotipo: una ficha dorada con la cara azul, con bisel y brillo.
 static func logo(size: int = 150) -> ImageTexture:

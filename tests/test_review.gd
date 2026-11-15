@@ -16,6 +16,7 @@ func _init() -> void:
 
 func _run() -> void:
 	Progress.path = "user://test_review.json"
+	PackImport.dir = "user://test_packs_empty"  # sin paquetes externos del usuario
 	if FileAccess.file_exists(Progress.path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(Progress.path))
 	var now: int = int(Time.get_unix_time_from_system())
@@ -63,7 +64,7 @@ func _run() -> void:
 	check(Levels.due_pairs(packs).size() >= 4, "due_pairs junta las pendientes")
 	check(Levels.due_count(p) == 4, "due_count por materia")
 	main._go_subjects()
-	check(main.board.subject_station.tiles.size() == 12, "la tarjeta Repaso aparece en materias")
+	check(main.board.subject_station.tiles.size() == 13, "la tarjeta Repaso aparece en materias")
 	main._play_review()
 	await process_frame
 	check(main.cur_review and main.state == 2, "entra en la sesión de repaso")
