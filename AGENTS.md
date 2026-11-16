@@ -54,12 +54,12 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 
 | Estado | Estación / capa | Qué se ve | Se llega desde |
 |---|---|---|---|
-| `MENU` | `StationMenu` (x = -20) | Logo, tres losetas (Jugar, Recorrido general, Álbum) y pastilla con Sonido/Vibración. | Arranque, "Atrás". |
-| `SUBJECTS` | `StationSubjects` (x = -10) | Losetas por materia, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
-| `MODE` | `StationMode` (x = -5) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
+| `MENU` | `StationMenu` (x = -25) | Logo, tres losetas (Jugar, Recorrido general, Álbum) y pastilla con Sonido/Vibración. | Arranque, "Atrás". |
+| `SUBJECTS` | `StationSubjects` (x = -15) | Losetas por materia, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
+| `MODE` | `StationMode` (x = -9) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
 | `GAME` | Tablero (x = 0) | Fichas y barra de juego. | Tocar una loseta de modo o "Siguiente nivel". |
 | `WIN` | `StationWin` (x = +10) | Mesa de nivel completado. | Al emparejar todo. |
-| `ALBUM` | `StationAlbum` (x = -30) | Secciones por materia, parejas dominadas y dato curioso. | Loseta Álbum. |
+| `ALBUM` | `StationAlbum` (x = -35) | Secciones por materia, parejas dominadas y dato curioso. | Loseta Álbum. |
 
 - Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
 - "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.

@@ -12,12 +12,13 @@ const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
 # Las estaciones van en fila a lo largo de X: álbum, menú, materias, modo, tablero (en el origen) y victoria.
-# 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
+# El tablero apaisado de PC puede medir ~11 de ancho (±5,5): la mesa del modo queda a −9 para no
+# tocarlo durante el vuelo, y de ahí hacia la izquierda las estaciones van de 10 en 10.
 const STATION_GAP := 10.0
-const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
-const MODE_X := -STATION_GAP * 0.5    # modo: entre materias y tablero
-const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
-const ALBUM_X := -3.0 * STATION_GAP   # álbum: a la izquierda del menú
+const MODE_X := -0.9 * STATION_GAP    # modo: a la izquierda del tablero
+const SUBJ_X := -1.5 * STATION_GAP    # materias: a la izquierda del modo
+const MENU_X := -2.5 * STATION_GAP    # menú: a la izquierda de las materias
+const ALBUM_X := -3.5 * STATION_GAP   # álbum: a la izquierda del menú
 const WIN_X := STATION_GAP            # nivel completado: a la derecha del tablero
 const MENU_LOOK_Y := -0.2             # altura del punto de mira del menú
 const MENU_LOOK_DZ := -0.2            # z de partida; `center_menu` la ajusta al hueco 2D
