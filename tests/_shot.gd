@@ -18,6 +18,12 @@ func _doms(main: Node, n: int) -> Array:
 		out.append({"tex": all[i]["a"], "stage": i % 3, "up": i % 3 == 1})
 	return out
 
+func _choose_mode(main: Node, key: String) -> void:
+	for t in main.board.mode_station.tiles:
+		if (t as Plaque).key == key:
+			main.board.mode_station.tap(main.board.cam.unproject_position(t.global_position), main.board.cam)
+			return
+
 func _init() -> void:
 	_run()
 
@@ -34,6 +40,9 @@ func _run() -> void:
 	main.board.cam_z = main.board.subject_station.pan_bounds(main.board.subject_station.fit_distance()).y
 	await _shot("m_subjects_bottom")
 	main._play("")
+	await create_timer(1.4).timeout
+	await _shot("m_mode")
+	_choose_mode(main, "mem")
 	await create_timer(2.2).timeout
 	await _shot("m_game")
 	main._on_won()
@@ -43,6 +52,9 @@ func _run() -> void:
 	await create_timer(1.2).timeout
 	Progress.data["level"] = 20
 	main._play("")
+	await create_timer(1.4).timeout
+	await _shot("m_mode24")
+	_choose_mode(main, "mem")
 	await create_timer(2.2).timeout
 	await _shot("m_game24")
 	main._on_won()

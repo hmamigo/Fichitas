@@ -1,12 +1,13 @@
 class_name StationMenu
 extends Node3D
-## Mesa del menú: las cuatro acciones del menú como losetas 3D (modo memoria,
-## modo asociación, elegir materia y recorrido general). El resto del menú
-## (logotipo, título y ajustes) sigue siendo una capa 2D encima.
+## Mesa del menú: las tres acciones principales (jugar, recorrido general y álbum)
+## como losetas 3D. Los modos de juego ya no viven acá: se eligen en la estación
+## `StationMode`, justo antes de empezar la partida.
+## El resto del menú (logotipo, título y ajustes) sigue siendo una capa 2D encima.
 
-signal play_general
 signal open_subjects
-signal mode_changed(mode: String)
+signal play_general
+signal open_album
 
 const CARD_W := 3.5
 const CARD_H := 1.0
@@ -17,17 +18,17 @@ const FRAME_EXTRA := 1.0   # margen de la mesa (0,55) + filo del marco (0,45)
 const FRAME_Y := -0.165    # tapa del marco azul (el encuadre de la cámara la usa)
 
 var tiles: Array = []
-var _mode: String = "mem"
 var _table: Node3D
 
-func build(mode_now: String, level: int) -> void:
+func build(level: int) -> void:
 	clear()
-	_mode = mode_now
 	var defs: Array = [
-		{"key": "mem", "title": "Memoria", "sub": "Fichas boca abajo", "icon": "", "dot": true, "bg": UiTheme.LAVENDER, "ink": UiTheme.INK},
-		{"key": "assoc", "title": "Asociación", "sub": "Todas las fichas a la vista", "icon": "", "dot": true, "bg": UiTheme.MINT, "ink": UiTheme.INK},
-		{"key": "subjects", "title": "Elegir materia", "sub": "Cada materia, sus niveles", "icon": "book_open", "dot": false, "bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
-		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "compass", "dot": false, "bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
+		{"key": "subjects", "title": "Jugar", "sub": "Elige materia y nivel", "icon": "book_open",
+			"bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
+		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "compass",
+			"bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
+		{"key": "album", "title": "Álbum", "sub": "Tus parejas dominadas", "icon": "book",
+			"bg": Color("e3d7ff"), "ink": Color("4b3a9a")},
 	]
 	var h: float = float(defs.size()) * CARD_H + float(defs.size() - 1) * GAP
 	_table = TileLook.table(self, CARD_W + 0.55, h + 0.55)
@@ -38,8 +39,8 @@ func build(mode_now: String, level: int) -> void:
 		p.setup(Vector2(CARD_W, CARD_H), str(d["key"]))
 		p.position.z = (float(i) - float(defs.size() - 1) * 0.5) * (CARD_H + GAP)
 		add_child(p)
-		p.bake(Cards.action(str(d["title"]), str(d["sub"]), str(d["icon"]), bool(d["dot"]), d["bg"], d["ink"], FACE_W, FACE_H), FACE_W, FACE_H)
-		p.set_selected(p.key == _mode, true)
+		p.bake(Cards.action(str(d["title"]), str(d["sub"]), str(d["icon"]), false,
+			d["bg"], d["ink"], FACE_W, FACE_H), FACE_W, FACE_H)
 		p.pop_in(0.04 * float(i))
 		views.append_array(p.views())
 		tiles.append(p)
@@ -66,14 +67,6 @@ func frame_corners() -> Array:
 			out.append(global_position + Vector3(w * float(sx), FRAME_Y, h * float(sz)))
 	return out
 
-## Cambia la loseta marcada sin reconstruir la mesa.
-func set_mode(mode_now: String) -> void:
-	_mode = mode_now
-	for t in tiles:
-		var p: Plaque = t
-		if p.key == "mem" or p.key == "assoc":
-			p.set_selected(p.key == _mode)
-
 ## Zona libre del suelo bajo la mesa, en coordenadas del mundo (la mesa es el origen).
 func clear_rect() -> Rect2:
 	if tiles.is_empty():
@@ -93,7 +86,6 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 		"general":
 			p.press()
 			play_general.emit()
-		"mem", "assoc":
-			set_mode(p.key)
+		"album":
 			p.press()
-			mode_changed.emit(p.key)
+			open_album.emit()

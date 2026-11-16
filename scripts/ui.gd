@@ -6,7 +6,6 @@ extends CanvasLayer
 signal back_pressed
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
-signal album_pressed
 
 var hud_bar: Control
 var lv_label: Label
@@ -14,10 +13,12 @@ var menu: Control
 var sound_btn: Button
 var vib_btn: Button
 var subjects: Control
+var mode_screen: Control
 var toast_label: Label
 var album: Control
 var fact: Control
 var _th: Theme
+var _mode_sub: Label
 var _fact_card: Control
 var _fact_a: TextureRect
 var _fact_b: TextureRect
@@ -44,6 +45,7 @@ func _ready() -> void:
 	_build_hud()
 	_build_menu()
 	_build_subjects()
+	_build_mode()
 	_build_album()
 	_build_fact()
 	get_viewport().size_changed.connect(_update_columns)
@@ -431,6 +433,7 @@ func hide_all() -> void:
 	hud_bar.visible = false
 	menu.visible = false
 	subjects.visible = false
+	mode_screen.visible = false
 	album.visible = false
 	fact.visible = false
 
@@ -528,17 +531,6 @@ func _build_menu() -> void:
 	opts.alignment = BoxContainer.ALIGNMENT_CENTER
 	opts.add_theme_constant_override("separation", 12)
 	opts_pill.add_child(opts)
-	var album_btn := Button.new()
-	album_btn.text = "Álbum"
-	album_btn.theme_type_variation = "Gold"
-	album_btn.custom_minimum_size = Vector2(0, 76)
-	album_btn.icon = UiTheme.icon("book_open", 34, UiTheme.GOLD_INK)
-	album_btn.add_theme_constant_override("h_separation", 10)
-	album_btn.add_theme_font_size_override("font_size", UiTheme.T_SMALL)
-	album_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	album_btn.pressed.connect(func() -> void: album_pressed.emit())
-	opts.add_child(album_btn)
-	_juice(album_btn)
 	sound_btn = _toggle("Sonido", "speaker", "speaker_mute", opts)
 	sound_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sound_btn.toggled.connect(func(on: bool) -> void: sound_toggled.emit(on))
@@ -597,6 +589,43 @@ func _build_subjects() -> void:
 	v.add_child(toast_label)
 	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
 	_pass_through(subjects)
+
+## Cabecera del paso "¿Cómo quieres jugar?": las dos losetas son 3D, acá solo van
+## el botón de volver, el título y el detalle de la sesión que se va a empezar.
+func _build_mode() -> void:
+	mode_screen = _screen("none")  # sin fondo: las losetas de modo son 3D
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for s in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + s, 26)
+	mode_screen.add_child(m)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 18)
+	m.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 20)
+	v.add_child(head)
+	head.add_child(_back_tile("Atrás"))
+	var plate := _enamel_tile(Vector2(0, 110), Color("fffdf7"), 28)
+	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(plate)
+	var hb := VBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 0)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	(plate.get_child(0) as Control).add_child(hb)
+	var t := _label("¿Cómo quieres jugar?", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hb.add_child(t)
+	_mode_sub = _label("", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
+	_mode_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	hb.add_child(_mode_sub)
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(gap)
+	v.add_child(_halo(_label("Toca para empezar.", UiTheme.T_SMALL, false, UiTheme.INK)))
+	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
+	_pass_through(mode_screen)
 
 ## Cabecera del álbum: las fichas y las secciones son 3D, aquí solo queda el título.
 func _build_album() -> void:
@@ -723,6 +752,12 @@ func show_subjects() -> void:
 	toast_label.modulate.a = 1.0
 	_update_columns()
 	subjects.visible = true
+
+## Paso previo a la partida: `detail` es la sesión que se va a jugar.
+func show_mode(detail: String) -> void:
+	hide_all()
+	_mode_sub.text = detail
+	mode_screen.visible = true
 
 func show_album() -> void:
 	hide_all()

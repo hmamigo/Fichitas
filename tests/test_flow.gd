@@ -1,5 +1,5 @@
 extends SceneTree
-## Flujo completo (menús, niveles, guardado): godot --headless --path . --script res://tests/test_flow.gd
+## Flujo completo (menús, paso de modo, niveles, guardado): godot --headless --path . --script res://tests/test_flow.gd
 
 var fails: int = 0
 
@@ -20,6 +20,18 @@ func _solve(main: Node, wait: float) -> void:
 		main.board._tap(groups[id][1])
 		await create_timer(wait).timeout
 
+## Loseta del paso de modo con la clave pedida ("mem" o "assoc").
+func _mode_tile(main: Node, key: String) -> Plaque:
+	for t in main.board.mode_station.tiles:
+		if (t as Plaque).key == key:
+			return t
+	return null
+
+## Toca una loseta de la mesa de modo, como haría el jugador.
+func _choose_mode(main: Node, key: String) -> void:
+	var t: Plaque = _mode_tile(main, key)
+	main.board.mode_station.tap(main.board.cam.unproject_position(t.global_position), main.board.cam)
+
 func _init() -> void:
 	_run()
 
@@ -32,14 +44,16 @@ func _run() -> void:
 	root.add_child(main)
 	for i in 3:
 		await process_frame
-	check(main.state == 0 and main.ui.menu.visible, "arranca en el menú")
+	check(main.state == main.S.MENU and main.ui.menu.visible, "arranca en el menú")
 	var menu_tilt: float = float(main.board._pose()["tilt"])
 	main.board.station = "subjects"
 	var subjects_tilt: float = float(main.board._pose()["tilt"])
+	main.board.station = "mode"
+	var mode_tilt: float = float(main.board._pose()["tilt"])
 	main.board.station = "game"
 	var game_tilt: float = float(main.board._pose()["tilt"])
 	main.board.station = "menu"
-	check(is_equal_approx(menu_tilt, subjects_tilt) and is_equal_approx(menu_tilt, game_tilt), "las tres estaciones mantienen el mismo ángulo de cámara")
+	check(is_equal_approx(menu_tilt, subjects_tilt) and is_equal_approx(menu_tilt, mode_tilt) and is_equal_approx(menu_tilt, game_tilt), "todas las estaciones mantienen el mismo ángulo de cámara")
 	main.board.fly_to_station("menu", 0.0)
 	await process_frame
 	var band: float = main.ui.menu_band_center()
@@ -62,30 +76,42 @@ func _run() -> void:
 		if i > 0:
 			menu_stack_ok = menu_stack_ok and tile.position.z > (mtiles[i - 1] as Plaque).position.z
 	check(menu_stack_ok, "las acciones del menú son rectangulares y forman una sola columna vertical")
+	var menu_keys: Array = mtiles.map(func(t: Plaque) -> String: return t.key)
+	check(menu_keys == ["subjects", "general", "album"], "el menú solo tiene destinos: jugar, recorrido general y álbum (%s)" % str(menu_keys))
 	var mx: float = main.board.menu_station.position.x
 	var sx: float = main.board.subject_station.position.x
-	var same_z: bool = is_zero_approx(main.board.menu_station.position.z) and is_zero_approx(main.board.subject_station.position.z)
+	var dx: float = main.board.mode_station.position.x
+	var same_z: bool = is_zero_approx(main.board.menu_station.position.z) and is_zero_approx(main.board.subject_station.position.z) and is_zero_approx(main.board.mode_station.position.z)
 	var ax: float = main.board.album_station.position.x
-	check(ax < mx and mx < sx and sx < 0.0 and same_z and is_zero_approx(main.board.album_station.position.z), "las estaciones están en fila en X: álbum, menú, materias y tablero")
+	check(ax < mx and mx < sx and sx < dx and dx < 0.0 and same_z and is_zero_approx(main.board.album_station.position.z), "las estaciones están en fila en X: álbum, menú, materias, modo y tablero")
 	var vps: Vector2 = main.get_viewport().get_visible_rect().size
 	var floor_ok: bool = true
 	for corner in [Vector2.ZERO, Vector2(vps.x, 0.0), Vector2(0.0, vps.y), vps]:
 		var g: Vector3 = main.board._ground_point(corner)
 		floor_ok = floor_ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
 	check(floor_ok, "las cuatro esquinas de la vista del menú caen sobre el suelo de cubos")
-	var mspot: Vector2 = main.board.cam.unproject_position((mtiles[1] as Plaque).global_position)
-	main.board.menu_station.tap(mspot, main.board.cam)
-	check(str(Progress.data["mode"]) == "assoc", "toque en la loseta de Asociación cambia el modo")
-	Progress.data["mode"] = "mem"
-	main.board.mode = "mem"
-	main.board.menu_station.set_mode("mem")
+	# El menú ya no cambia el modo: el recorrido general pasa por el paso de modo.
+	var general_tile: Plaque = mtiles[1]
+	var gspot: Vector2 = main.board.cam.unproject_position(general_tile.global_position)
+	main.board.menu_station.tap(gspot, main.board.cam)
+	await process_frame
+	check(main.state == main.S.MODE and main.board.station == "mode" and main.ui.mode_screen.visible, "el recorrido general abre el paso ¿Cómo quieres jugar?")
+	check(main.board.mode_station.tiles.size() == 2, "el paso de modo muestra las dos losetas")
+	check(str(Progress.data["mode"]) == "mem", "tocar un destino del menú no cambia el modo")
+	main._on_back()
+	await process_frame
+	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde el modo vuelve al menú")
 	print("Recorrido general (memoria)")
 	main._play("")
 	await process_frame
+	check(main.state == main.S.MODE and main.board.tiles.is_empty(), "preparar la partida no reparte fichas todavía")
+	_choose_mode(main, "mem")
+	await process_frame
 	check(main.board.tiles.size() == 6 and main.board.mode == "mem" and main.ui.hud_bar.visible, "nivel 1: 3 parejas")
+	check(main.ui.lv_label.text.ends_with("Memoria"), "el HUD muestra el modo elegido")
 	await _solve(main, 0.8)
 	await create_timer(2.8).timeout
-	check(main.state == 3 and main.board.station == "win" and main.board.win_station.tiles.size() == 3, "nivel completado lleva la cámara a la estación de victoria")
+	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 3, "nivel completado lleva la cámara a la estación de victoria")
 	check(main.board.win_station.title == "¡Nivel 1 completado!" and main.board.win_station.dom_count == 3, "la victoria muestra el título y las 3 parejas")
 	await create_timer(1.3).timeout
 	check(main.board.win_station.visible and not main.board.menu_station.visible, "al llegar solo se ve la mesa de victoria")
@@ -99,14 +125,14 @@ func _run() -> void:
 	var wspot: Vector2 = main.board.cam.unproject_position(wbtn.global_position)
 	main.board.win_station.tap(wspot, main.board.cam)
 	await process_frame
-	check(Progress.level() == 2 and main.state == 2, "tocar la loseta dorada sigue al nivel 2")
+	check(Progress.level() == 2 and main.state == main.S.GAME, "tocar la loseta dorada sigue al nivel 2 sin volver a preguntar el modo")
 	await process_frame
-	check(Progress.level() == 2 and main.board.tiles.size() == 8, "avanza al nivel 2 (4 parejas)")
+	check(Progress.level() == 2 and main.board.tiles.size() == 8 and main.board.mode == "mem", "avanza al nivel 2 (4 parejas) conservando Memoria")
 	var saved: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Progress.path))
 	check(int(saved["level"]) == 2 and (saved["mp"] as Dictionary).size() >= 3 and (saved["sr"] as Dictionary).size() >= 3, "progreso, dominio y repaso guardados en JSON")
 	print("Materias (asociación)")
 	main._go_subjects()
-	check(main.state == 1 and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 12, "pantalla de materias con 12 losetas")
+	check(main.state == main.S.SUBJECTS and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 12, "pantalla de materias con 12 losetas")
 	check(main.board.menu_station.visible and main.board.subject_station.visible, "las mesas de origen y destino se ven durante el vuelo")
 	await create_timer(1.1).timeout
 	check(not main.board.menu_station.visible and main.board.subject_station.visible, "al llegar solo queda visible la mesa activa")
@@ -127,7 +153,16 @@ func _run() -> void:
 	if mat_tile != null:
 		var mat_spot: Vector2 = main.board.cam.unproject_position(mat_tile.global_position)
 		main.board.subject_station.tap(mat_spot, main.board.cam)
-	check(main.state == 2 and main.cur_sid == "mat" and not main.board.tiles.is_empty(), "tocar una materia gratuita inicia su nivel")
+	check(main.state == main.S.MODE and main.cur_sid == "mat" and main.board.tiles.is_empty(), "tocar una materia gratuita abre el paso de modo")
+	main._on_back()
+	await process_frame
+	check(main.state == main.S.SUBJECTS and main.board.station == "subjects", "Atrás desde el modo vuelve a materias")
+	main._play("mat")
+	await process_frame
+	check(main.state == main.S.MODE, "la materia espera la elección del modo")
+	_choose_mode(main, "assoc")
+	await process_frame
+	check(main.state == main.S.GAME and main.cur_sid == "mat" and not main.board.tiles.is_empty() and main.board.mode == "assoc", "elegir Asociación inicia el nivel de la materia")
 	main._go_subjects()
 	await create_timer(1.1).timeout
 	stiles = main.board.subject_station.tiles
@@ -136,10 +171,13 @@ func _run() -> void:
 	Progress.data["mode"] = "assoc"
 	main._play("qui")
 	await process_frame
+	check(main.state == main.S.MODE and main.cur_sid == "qui", "Química también pasa por el paso de modo")
+	_choose_mode(main, "assoc")
+	await process_frame
 	check(main.board.tiles.size() == 6 and main.board.mode == "assoc" and main.cur_sid == "qui", "materia Química, nivel 1 (3 parejas)")
 	await _solve(main, 0.05)
 	await create_timer(2.8).timeout
-	check(main.state == 3, "victoria en asociación")
+	check(main.state == main.S.WIN, "victoria en asociación")
 	main._on_next()
 	await process_frame
 	check(Progress.subj_level("qui") == 2 and main.board.tiles.size() == 8, "Química avanza a su nivel 2 (4 parejas)")
@@ -148,16 +186,19 @@ func _run() -> void:
 	(Progress.data["subj"] as Dictionary)["qui"] = steps.size()
 	main._play("qui")
 	await process_frame
+	check(main.state == main.S.MODE, "el último nivel también pide el modo al empezar")
+	_choose_mode(main, "assoc")
+	await process_frame
 	check(main.board.tiles.size() == 16 and main.cur_last, "último nivel de la materia (8 parejas)")
 	await _solve(main, 0.05)
 	await create_timer(3.5).timeout
-	check(main.state == 3, "victoria del último nivel")
+	check(main.state == main.S.WIN, "victoria del último nivel")
 	main._on_next()
-	check(main.state == 1 and Progress.subj_level("qui") == steps.size() + 1, "materia completada vuelve a materias")
+	check(main.state == main.S.SUBJECTS and Progress.subj_level("qui") == steps.size() + 1, "materia completada vuelve a materias")
 	main._go_subjects()
 	check(main.board.subject_station.tiles.size() == 12, "materias se redibuja")
 	main._on_back()
-	check(main.state == 0, "Atrás vuelve al menú")
+	check(main.state == main.S.MENU, "Atrás vuelve al menú")
 	var p0: Dictionary = main.packs[0]
 	var p0_pairs: Array = p0["pairs"]
 	(Progress.data["mp"] as Dictionary)[str(p0_pairs[0]["id"])] = 3
@@ -168,7 +209,7 @@ func _run() -> void:
 			total_pairs += (pk["pairs"] as Array).size()
 	var album_tiles: Array = main.board.album_station.tiles
 	var up_tiles: Array = album_tiles.filter(func(t: AlbumTile) -> bool: return t.mastered)
-	check(main.state == 4 and main.board.station == "album", "el álbum se abre como estación")
+	check(main.state == main.S.ALBUM and main.board.station == "album", "el álbum se abre como estación")
 	check(album_tiles.size() == total_pairs * 2, "el álbum tiene las dos fichas de cada pareja de las materias abiertas")
 	check(up_tiles.size() >= 2 and up_tiles.size() < album_tiles.size(), "solo las parejas dominadas están boca arriba")
 	var vb: Vector2 = main.board.album_station.pan_bounds(main.board.album_station.fit_distance())
@@ -176,8 +217,8 @@ func _run() -> void:
 	main._on_album_open((up_tiles[0] as AlbumTile).pair)
 	check(main.ui.fact.visible, "una pareja dominada abre su dato curioso")
 	main._on_back()
-	check(main.state == 4 and not main.ui.fact.visible, "Atrás cierra primero el dato curioso")
+	check(main.state == main.S.ALBUM and not main.ui.fact.visible, "Atrás cierra primero el dato curioso")
 	main._on_back()
-	check(main.state == 0 and main.board.station == "menu", "Atrás desde el álbum vuelve al menú")
+	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde el álbum vuelve al menú")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)

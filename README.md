@@ -1,75 +1,75 @@
-# Fichitas — prototipo en Godot 4.7.2
+# Fichitas
 
-Juego educativo 3D de fichas (memoria y asociación). Port a Godot en curso.
+Juego 3D de fichas para aprender jugando. Las fichas parecen pines esmaltados sobre un suelo de cubos de colores, y la cámara viaja de una zona a otra del mismo mundo: menú, materias, tablero y álbum.
 
-Solo vertical: la ventana de pruebas en el PC es de 540×960 (proporción de celular) y en Android la orientación está fijada a vertical.
+Hecho con **Godot 4.7.2** (renderizador *Compatibility*) para **Android**, en vertical.
 
-## Abrir y probar
-1. Godot 4.7.2 → *Importar* → `project.godot`. La primera vez importa los recursos (unos segundos).
-2. **F5** para ejecutar. En el menú elige **Memoria** o **Asociación** y pulsa *Elegir materia* o *Recorrido general*.
-   - Memoria: toca una ficha para girarla; se descubren de dos en dos.
-   - Asociación: todas visibles; toca dos fichas o arrastra una sobre su pareja.
-   - Rueda o pellizco: zoom. Arrastrar el fondo: mover. **Atrás** (o el botón Atrás de Android) vuelve a la pantalla anterior.
+## Cómo se juega
 
-## Android
-Ajustes del editor → *Export → Android*: ruta del JDK (17 o 21, según la documentación de 4.7) y del SDK. Luego *Proyecto → Exportar → Añadir… → Android* y ejecuta en tu dispositivo con la depuración inalámbrica (el icono de Android de la esquina superior derecha).
+Hay dos modos, que se eligen en un paso aparte justo antes de jugar (después de elegir la materia o el recorrido general):
 
-Desde la terminal (el preset ya está creado y firmado con el keystore de depuración que Godot genera solo):
-```
-godot --headless --path . --export-debug "Android" ./fichas-del-saber.apk
-adb install -r fichas-del-saber.apk
-```
-Es un APK de depuración, solo `arm64-v8a`. Para publicar hace falta un keystore de release (y, si hacen falta móviles de 32 bits o emuladores, activar `armeabi-v7a` / `x86_64` en el preset).
+- **Memoria**: las fichas están boca abajo y hay que descubrir las parejas.
+- **Asociación**: las fichas están visibles y hay que unir cada una con su pareja, seleccionándola o arrastrándola.
 
-## Ajustar la luz
-En `scripts/board.gd` están `LIGHT_ENERGY`, `FILL_ENERGY`, `AMBIENT_ENERGY`, `SKY_ENERGY` y `CLEARCOAT`; el color de fondo y de la niebla lo da `FOG_COLOR`, y el del suelo entre los cubos, `_ground_edge()`. Con el juego en ejecución desde el editor, las flechas ↑ ↓ del teclado suben o bajan la luz principal y la ambiental; la consola muestra los valores para copiarlos.
+Las parejas pueden ser de varios tipos: pregunta ↔ respuesta, imagen ↔ palabra, concepto ↔ definición, elemento ↔ símbolo.
 
-## Qué incluye
-- Renderizador **Compatibility** (OpenGL): funciona en móviles y en equipos antiguos sin Vulkan.
-- Ficha: losa dorada con bisel (malla procedural), hueco oscurecido alrededor de la cara, cara con la imagen y dorso con emblema azul, reflejos de estudio, sombra proyectada, destello al emparejar y halo del resaltado con la silueta de la ficha; las pendientes flotan sobre la losa y las resueltas se hunden en ella y quedan un poco translúcidas.
-- Escena: luz principal con sombras que caen hacia abajo + luz de relleno, brillo (glow) muy suave, niebla de profundidad, suelo de cubos de colores (`scripts/floor_cubes.gd`, un solo `MultiMesh`) y tablero con marco barnizado y losa de puntos. No hay SSAO: el renderizador Compatibility no lo soporta.
-- Entrada unificada táctil + ratón (`scripts/board.gd`), cámara casi cenital sin rotación durante el juego. Un solo mundo 3D con tres estaciones de cámara: **menú**, **materias** y **tablero** (`Board.fly_to_station()`). El menú y las materias son losetas doradas rectangulares con la cara 2D horneada (`scripts/plaque.gd`, `scripts/cards.gd`), dispuestas en una columna; las listas largas se recorren paneando la cámara (no hay `ScrollContainer`).
-- Dos modos de juego, menú, **pantalla de materias** con niveles propios (de 3 parejas hasta el tamaño del paquete) y **recorrido general** de 20 niveles. Las materias de pago se muestran bloqueadas (`"premium": true` en `pack.json`). Las cuatro acciones del menú (Memoria, Asociación, Elegir materia y Recorrido general) se apilan como botones rectangulares; la lista de materias usa el mismo formato para recorrido general, repaso, materias y próximas.
-- **Progreso en JSON** (`user://progress.json`): nivel, nivel por materia, dominio por pareja, calendario de repaso, sonido y vibración.
-- **Repaso espaciado:** cada nivel mezcla parejas pendientes (máximo 60 %, las más atrasadas primero), nuevas y el resto. La pantalla de materias muestra cuántas parejas esperan y una tarjeta **Repaso** (con ≥3 pendientes) que reúne hasta 10 de todas las materias en una sola sesión.
-- **Dominio al completar:** miniaturas grandes y adaptativas de las parejas del nivel (la cuadrícula y la tarjeta crecen según cuántas haya) con su planta (brote, dos hojas, árbol) y contorno verde en las que mejoraron.
-- **Audio y vibración:** efectos de giro, acierto, error y final sintetizados en memoria (`scripts/audio.gd`, sin archivos), vibración suave solo en móvil y ajustes en el menú.
-- Interfaz con fuentes **Nunito Bold** y **Baloo 2 ExtraBold** (licencia OFL, en `fonts/`), pieles de botón con relieve, iconos dibujados (flecha, candado, destellos, plantas), logotipo y patrón de fondo **generados por código** en `scripts/ui_theme.gd` (sin archivos de imagen añadidos). En el menú, el logotipo, el título, el subtítulo y los ajustes son una capa 2D sobre el suelo 3D, con las cuatro acciones como losetas doradas; los halos y las fichas/destellos flotantes siguen vivos en la capa 2D.
-- Paquetes JSON en `packs/` (mismo formato que la versión web). Imágenes provisionales en PNG.
+Los niveles son progresivos: cada uno suma más parejas. Al completar un nivel no hay cronómetro ni estrellas; solo se avanza al siguiente. El tablero es una cuadrícula adaptable, con filas y columnas calculadas según la cantidad de parejas.
 
-## Aún no está
-Quitar paquetes externos desde la interfaz y carga de imágenes de usuario. El álbum con datos curiosos y la carga de paquetes (.zip) ya están en el juego. El modo oscuro se retiró.
+## Un solo mundo, varias estaciones
 
-## Pruebas (sin pantalla)
-```
-godot --headless --path . --import
-godot --headless --path . --script res://tests/run_tests.gd
-godot --headless --path . --script res://tests/test_game.gd     # tablero, memoria y asociación
-godot --headless --path . --script res://tests/test_flow.gd     # menús, niveles, materias y guardado
-godot --headless --path . --script res://tests/test_review.gd   # repaso, sesión Repaso, miniaturas y sonidos
-godot --headless --path . --script res://tests/test_packs.gd    # paquetes externos (.zip)
-```
+No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de colores, y la cámara se mueve en horizontal entre estaciones:
 
-## Paquetes propios (.zip)
-En **Elegir materia → Cargar paquete** se elige un `.zip` con este contenido (también vale que `pack.json` esté dentro de una sola carpeta):
+| Estación | Qué es |
+|---|---|
+| **Menú** | Vista lejana, con el logo y las opciones: jugar, recorrido general y álbum. |
+| **Materias** | Fichas de cada materia. Se hace zoom y se recorren a mano, igual que en el tablero. |
+| **Modo** | Paso "¿Cómo quieres jugar?": dos losetas grandes, Memoria y Asociación. La partida empieza al tocar una. |
+| **Tablero** | La partida. La cámara baja hasta la posición de juego. |
+| **Nivel completado** | Una loseta 3D real en el piso, a la que se llega moviendo la cámara. |
+| **Álbum de datos curiosos** | Fichas iguales a las del juego, con la cámara moviéndose en vertical. |
 
-```
-mi-paquete.zip
-  pack.json
-  img/1a.png, img/1b.png, ...
-```
-```json
-{
-  "format": 1,
-  "id": "historia",
-  "name": "Historia",
-  "unlock": 12,
-  "pairs": [
-    { "a": "img/1a.png", "b": "img/1b.png", "fact": "Dato curioso opcional" }
-  ]
-}
-```
-- `id`: minúsculas, números, `-` y `_` (máx. 32); no puede ser el de una materia oficial. Importar otra vez el mismo `id` reemplaza el paquete.
-- 3 a 60 parejas. Imágenes `.png`, `.jpg` o `.webp` (hasta 6 MB y 4096 px; se guardan reducidas a 1024 px como PNG).
-- `unlock` (1 a 20) es opcional: sin él, el paquete aparece en Elegir materia y en el álbum, pero no entra en el recorrido general.
-- Se guardan en `user://packs/<id>/`.
+La cámara no rota libremente: solo hace zoom y se desplaza.
+
+## Estilo visual
+
+- Estilo educativo, con colores vivos y aspecto de juguete de calidad.
+- Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
+- Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, la barra superior, las materias y "Nivel completado".
+
+## Contenido
+
+Las materias son colecciones temáticas (matemáticas, química, física, inglés, biología, historia, etc.). Los símbolos, fórmulas y gráficas se incluyen como imágenes.
+
+Los paquetes de fichas son archivos JSON. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos desde el selector de archivos del celular ("Cargar paquete").
+
+## Sonido
+
+Efectos simples: giro de ficha, acierto y error. Por ahora no hay música.
+
+## Requisitos para desarrollar
+
+- Godot **4.7.2**
+- Renderizador **Compatibility**
+- Un dispositivo Android (o emulador) para probar el tacto, el rendimiento y el vuelo de cámara
+
+## Ejecutar el proyecto
+
+1. Clonar el repositorio:
+   ```bash
+   git clone https://github.com/hmamigo/Fichitas.git
+   ```
+2. Abrir la carpeta del proyecto con Godot 4.7.2.
+3. Ejecutar la escena principal (F5), o exportar a Android para probar en el dispositivo.
+
+## Estado
+
+En desarrollo. Lo que viene:
+
+- Paquetes externos de fichas, con más pulido.
+- Carga de imágenes del usuario.
+
+Por ahora el juego no tiene materias premium, códigos de desbloqueo ni donaciones. Primero se termina el juego y se ve si gusta.
+
+## Licencia
+
+TODO: indicar la licencia del proyecto.

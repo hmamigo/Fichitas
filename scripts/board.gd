@@ -10,11 +10,12 @@ signal sfx(sound: String)  # "flip", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
-const MENU_DIST := 18.0   # distancia de la cámara en el menú: las 4 losetas (alto ≈ 4,5) ocupan ~1/3 del alto visible; calibrada a mano
-# Las estaciones van en fila a lo largo de X: álbum, menú, materias, tablero (en el origen) y victoria.
+const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
+# Las estaciones van en fila a lo largo de X: álbum, menú, materias, modo, tablero (en el origen) y victoria.
 # 10 de separación: el tablero apaisado de PC puede medir ~11 de ancho y no debe tocar la mesa de materias.
 const STATION_GAP := 10.0
 const SUBJ_X := -STATION_GAP          # materias: a la izquierda del tablero
+const MODE_X := -STATION_GAP * 0.5    # modo: entre materias y tablero
 const MENU_X := -2.0 * STATION_GAP    # menú: a la izquierda de las materias
 const ALBUM_X := -3.0 * STATION_GAP   # álbum: a la izquierda del menú
 const WIN_X := STATION_GAP            # nivel completado: a la derecha del tablero
@@ -32,9 +33,9 @@ const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
 const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
 const LIGHT_ENERGY := 0.43    # luz direccional principal
-const FILL_ENERGY := 0.14     # luz de relleno (sin sombras)
-const AMBIENT_ENERGY := 0.20  # luz ambiental
-const SKY_ENERGY := 0.55      # brillo del entorno (reflejos)
+const FILL_ENERGY := 0.05     # luz de relleno (sin sombras)
+const AMBIENT_ENERGY := 0.18  # luz ambiental
+const SKY_ENERGY := 0.50      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.6        # barniz de las caras
 # Chispas al emparejar (ajustables)
 const SPARK_AMOUNT := 16       # estrellas por ficha
@@ -59,10 +60,11 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
-var station: String = "menu"  # "menu", "subjects", "album", "game" o "win"
+var station: String = "menu"  # "menu", "subjects", "mode", "album", "game" o "win"
 var menu_look_z: float = MENU_LOOK_DZ  # lo ajusta `center_menu` según la franja 2D
 var menu_station: StationMenu
 var subject_station: StationSubjects
+var mode_station: StationMode
 var album_station: StationAlbum
 var win_station: StationWin
 var cam: Camera3D
@@ -141,6 +143,9 @@ func _ready() -> void:
 	subject_station = StationSubjects.new()
 	subject_station.position = Vector3(SUBJ_X, 0.0, 0.0)
 	add_child(subject_station)
+	mode_station = StationMode.new()
+	mode_station.position = Vector3(MODE_X, 0.0, 0.0)
+	add_child(mode_station)
 	album_station = StationAlbum.new()
 	album_station.position = Vector3(ALBUM_X, 0.0, 0.0)
 	add_child(album_station)
@@ -197,12 +202,17 @@ func stop() -> void:
 	_refresh_floor()
 
 ## Construye las losetas de una estación y reajusta los huecos del suelo.
-func build_menu(mode_now: String, level: int) -> void:
-	menu_station.build(mode_now, level)
+func build_menu(level: int) -> void:
+	menu_station.build(level)
 	_refresh_floor()
 
 func build_subjects(cards: Array) -> void:
 	subject_station.build(cards)
+	_refresh_floor()
+
+## Paso previo a la partida: las dos formas de jugar.
+func build_mode(mode_now: String) -> void:
+	mode_station.build(mode_now)
 	_refresh_floor()
 
 func build_album(data: Array) -> void:
@@ -498,6 +508,14 @@ func _pose() -> Dictionary:
 			"tilt": subject_station.TILT,
 			"yaw": 0.0,
 		}
+	if station == "mode" and mode_station != null:
+		var m: Vector3 = mode_station.position
+		return {
+			"target": Vector3(m.x + cam_x, m.y, m.z + cam_z),
+			"dist": mode_station.fit_distance() / zoom,
+			"tilt": mode_station.TILT,
+			"yaw": 0.0,
+		}
 	if station == "album" and album_station != null:
 		var a: Vector3 = album_station.position
 		return {
@@ -560,7 +578,7 @@ func _pan_bounds(dist: float) -> Vector2:
 		return album_station.pan_bounds(dist)
 	if station == "win" and win_station != null:
 		return win_station.pan_bounds(dist)
-	if station == "menu":
+	if station == "menu" or station == "mode":
 		return Vector2.ZERO
 	return Vector2(float(cols) * ST * 0.5, float(rows) * ST * 0.5)
 
@@ -608,6 +626,8 @@ func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 		menu_station.visible = keep_stations_visible or station == "menu"
 	if subject_station != null:
 		subject_station.visible = keep_stations_visible or station == "subjects"
+	if mode_station != null:
+		mode_station.visible = keep_stations_visible or station == "mode"
 	if album_station != null:
 		album_station.visible = keep_stations_visible or station == "album"
 	if win_station != null:
@@ -638,7 +658,7 @@ func _refresh_floor() -> void:
 		var w: float = float(cols) * ST + 0.5
 		var h: float = float(rows) * ST + 0.5
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
-	for st in [menu_station, subject_station, album_station, win_station]:
+	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
 		if st != null and (st as Node3D).visible:
 			var r: Rect2 = st.clear_rect()
 			if r.size.x > 0.0:
@@ -780,6 +800,8 @@ func _station_tap(pos: Vector2) -> void:
 		menu_station.tap(pos, cam)
 	elif station == "subjects" and subject_station != null:
 		subject_station.tap(pos, cam)
+	elif station == "mode" and mode_station != null:
+		mode_station.tap(pos, cam)
 	elif station == "album" and album_station != null:
 		album_station.tap(pos, cam)
 	elif station == "win" and win_station != null:

@@ -67,15 +67,23 @@ func _run() -> void:
 	check(main.board.subject_station.tiles.size() == 13, "la tarjeta Repaso aparece en materias")
 	main._play_review()
 	await process_frame
-	check(main.cur_review and main.state == 2, "entra en la sesión de repaso")
+	check(main.cur_review and main.state == main.S.MODE and main.ui.mode_screen.visible, "el repaso abre el paso de modo")
+	var mem_tile: Plaque = null
+	for t in main.board.mode_station.tiles:
+		if (t as Plaque).key == "mem":
+			mem_tile = t
+	var mspot: Vector2 = main.board.cam.unproject_position(mem_tile.global_position)
+	main.board.mode_station.tap(mspot, main.board.cam)
+	await process_frame
+	check(main.cur_review and main.state == main.S.GAME, "entra en la sesión de repaso")
 	check(main.board.tiles.size() == 8, "4 parejas pendientes = 8 fichas")
 	check(main.ui.lv_label.text.begins_with("Repaso"), "el HUD dice Repaso")
 	main._on_won()
-	check(main.state == 3 and main.board.station == "win", "estación de repaso completado")
+	check(main.state == main.S.WIN and main.board.station == "win", "estación de repaso completado")
 	check(main.board.win_station.title == "¡Repaso completado!", "título de repaso")
 	check(main.board.win_station.dom_count == 4, "miniaturas de dominio del repaso")
 	main._on_next()
-	check(main.state == 1, "el repaso vuelve a materias")
+	check(main.state == main.S.SUBJECTS, "el repaso vuelve a materias")
 
 	print("Sonidos")
 	var a := GameAudio.new()

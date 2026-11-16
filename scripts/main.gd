@@ -1,7 +1,7 @@
 extends Node
 ## Orquestador: menús, niveles y guardado. El tablero y la interfaz solo emiten señales.
 
-enum S { MENU, SUBJECTS, GAME, WIN, ALBUM }
+enum S { MENU, SUBJECTS, MODE, GAME, WIN, ALBUM }
 const COMING := ["Historia", "Más materias"]
 
 var board: Board
@@ -16,6 +16,10 @@ var cur_review: bool = false
 var cur_pairs: Array = []
 var stage_before: Dictionary = {}
 var _pack_dialog: FileDialog
+# Sesión preparada para el paso "¿Cómo quieres jugar?".
+var _pending_pairs: Array = []
+var _pending_label: String = ""
+var _mode_from: int = S.SUBJECTS   # estación a la que vuelve "Atrás" desde el modo
 
 func _ready() -> void:
 	Progress.load_data()
@@ -31,13 +35,13 @@ func _ready() -> void:
 	board.won.connect(_on_won)
 	board.sfx.connect(_on_sfx)
 	board.pair_done.connect(func(id: String, clean: bool) -> void: Progress.record(id, clean))
-	board.menu_station.play_general.connect(func() -> void: _play(""))
+	board.menu_station.play_general.connect(func() -> void: _play("", S.MENU))
 	board.menu_station.open_subjects.connect(_go_subjects)
-	board.menu_station.mode_changed.connect(_on_mode)
+	board.menu_station.open_album.connect(_go_album)
 	board.subject_station.chosen.connect(_on_subject)
 	board.subject_station.info.connect(ui.toast)
+	board.mode_station.chosen.connect(_on_mode_chosen)
 	board.album_station.opened.connect(_on_album_open)
-	ui.album_pressed.connect(_go_album)
 	ui.back_pressed.connect(_on_back)
 	board.win_station.next.connect(_on_next)
 	ui.sound_toggled.connect(_on_sound)
@@ -45,7 +49,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_view_resized)
 	_go_menu()
 
-func _on_mode(m: String) -> void:
+func _remember_mode(m: String) -> void:
 	Progress.data["mode"] = m
 	Progress.save()
 	board.mode = m
@@ -77,9 +81,7 @@ func _pack(id: String) -> Dictionary:
 func _go_menu() -> void:
 	state = S.MENU
 	board.stop()
-	var mode: String = str(Progress.data["mode"])
-	board.mode = mode
-	board.build_menu(mode, Progress.level())
+	board.build_menu(Progress.level())
 	ui.show_menu({
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
@@ -208,7 +210,16 @@ func _on_pack_file(path: String) -> void:
 	_go_subjects()  # redibuja la lista con la materia nueva
 	ui.toast("«%s» agregada: %d parejas." % [res["name"], res["pairs"]])
 
-func _play(sid: String) -> void:
+## Prepara la sesión y lleva al paso "¿Cómo quieres jugar?".
+## `origin` es la estación a la que vuelve "Atrás" si no se empieza la partida.
+func _play(sid: String, origin: int = S.SUBJECTS) -> void:
+	if not _prepare(sid):
+		return
+	_go_mode(origin)
+
+## Calcula las parejas del nivel y deja la sesión lista. Devuelve false si no hay
+## suficientes parejas para jugar.
+func _prepare(sid: String) -> bool:
 	cur_sid = sid
 	cur_review = false
 	var pairs: Array = []
@@ -221,7 +232,7 @@ func _play(sid: String) -> void:
 	else:
 		var p: Dictionary = _pack(sid)
 		if p.is_empty():
-			return
+			return false
 		var steps: Array = Levels.steps_for(p)
 		last_level = steps.size()
 		var v: int = Progress.subj_level(sid)
@@ -229,9 +240,32 @@ func _play(sid: String) -> void:
 		pairs = Levels.pick_subject(p, cur_level)
 		label = "%s · Nivel %d" % [p["name"], cur_level]
 	if pairs.size() < 3:
-		return
+		return false
 	cur_last = cur_level >= last_level
-	_start(pairs, label)
+	_pending_pairs = pairs
+	_pending_label = label
+	return true
+
+## Detalle de la sesión que se muestra en la cabecera del paso de modo.
+func _pending_detail() -> String:
+	if cur_review:
+		return "Repaso · %d parejas" % _pending_pairs.size()
+	if cur_sid == "":
+		return "Recorrido general · Nivel %d" % cur_level
+	return "%s · Nivel %d" % [_pack(cur_sid)["name"], cur_level]
+
+## Estación del modo: la cámara se detiene sobre las dos losetas y espera la elección.
+func _go_mode(origin: int) -> void:
+	_mode_from = origin
+	state = S.MODE
+	board.stop()
+	ui.show_mode(_pending_detail())
+	board.build_mode(str(Progress.data["mode"]))
+	board.fly_to_station("mode", 0.9 if board.station != "mode" else 0.0)
+
+func _on_mode_chosen(m: String) -> void:
+	_remember_mode(m)
+	_start(_pending_pairs, _pending_label)
 
 ## Repaso: hasta 10 parejas pendientes de todas las materias abiertas, en una sola sesión.
 func _play_review() -> void:
@@ -242,7 +276,9 @@ func _play_review() -> void:
 	cur_sid = ""
 	cur_level = 0
 	cur_last = true
-	_start(due.slice(0, mini(10, due.size())), "Repaso")
+	_pending_pairs = due.slice(0, mini(10, due.size()))
+	_pending_label = "Repaso"
+	_go_mode(S.SUBJECTS)
 
 func _start(pairs: Array, label: String) -> void:
 	cur_pairs = pairs
@@ -253,8 +289,8 @@ func _start(pairs: Array, label: String) -> void:
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
 	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
-	# Desde las materias, la cámara baja hasta el tablero; desde la victoria, vuelve a la izquierda
-	board.fly_to_station("game", 1.1 if from_win else 1.3)
+	# Desde el paso de modo, la cámara baja hasta el tablero; desde la victoria, vuelve a la izquierda
+	board.fly_to_station("game", 1.1 if from_win else 0.95)
 	board.start(pairs, 0.6 if from_win else 0.78)
 
 func _on_won() -> void:
@@ -304,10 +340,22 @@ func _on_next() -> void:
 	else:
 		(Progress.data["subj"] as Dictionary)[cur_sid] = cur_level + 1
 	Progress.save()
-	_play(cur_sid)
+	# Siguiente nivel: se conserva el modo elegido, sin volver al paso de modo.
+	if not _prepare(cur_sid):
+		if cur_sid == "":
+			_go_menu()
+		else:
+			_go_subjects()
+		return
+	_start(_pending_pairs, _pending_label)
 
 func _on_back() -> void:
 	match state:
+		S.MODE:
+			if _mode_from == S.MENU:
+				_go_menu()
+			else:
+				_go_subjects()
 		S.GAME, S.WIN:
 			if cur_review or cur_sid != "":
 				_go_subjects()
