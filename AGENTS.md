@@ -46,14 +46,61 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
 - Filo dorado, placas color crema, marco azul del tablero.
 - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
-- Todo elemento nuevo (menú, barra superior, nivel completado, materias, álbum) debe parecer parte del mismo juego.
+- Todo elemento nuevo (menú, botones superiores, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
+
+## Flujo de pantallas y estados
+
+`main.gd` guarda un único estado (`enum S`) y lo recorre así:
+
+| Estado | Estación / capa | Qué se ve | Se llega desde |
+|---|---|---|---|
+| `MENU` | `StationMenu` (x = -20) | Logo, tres losetas (Jugar, Recorrido general, Álbum) y pastilla con Sonido/Vibración. | Arranque, "Atrás". |
+| `SUBJECTS` | `StationSubjects` (x = -10) | Losetas por materia, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
+| `MODE` | `StationMode` (x = -5) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
+| `GAME` | Tablero (x = 0) | Fichas y barra de juego. | Tocar una loseta de modo o "Siguiente nivel". |
+| `WIN` | `StationWin` (x = +10) | Mesa de nivel completado. | Al emparejar todo. |
+| `ALBUM` | `StationAlbum` (x = -30) | Secciones por materia, parejas dominadas y dato curioso. | Loseta Álbum. |
+
+- Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
+- "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.
+- "Atrás" (`_on_back()`) desde `MODE` vuelve a `SUBJECTS` o `MENU` según `_mode_from`; desde `GAME`/`WIN` vuelve a materias o al menú según el origen; desde `ALBUM` cierra primero el dato curioso.
+- Los modos nunca se eligen desde el menú principal.
 
 ## Paquetes de contenido
 
-- Los paquetes de fichas son **JSON**. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos ("Cargar paquete", con el selector de archivos de Android, que ya funciona).
+- Los paquetes de fichas son **JSON**. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos ("Cargar paquete", con el selector de archivos de Android).
 - Las imágenes (símbolos, fórmulas, gráficas) las crea el autor y se usan como imagen, sin renderizar fórmulas dentro del juego.
 - Pendiente: pulir los paquetes externos y la carga de imágenes del usuario.
 - Cualquier cambio en el formato de los paquetes debe mantener compatibilidad con los existentes, o actualizarlos todos.
+
+### Formato
+
+`packs/index.json` es el índice de los paquetes oficiales y su orden:
+
+```json
+{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf"]}
+```
+
+Cada materia vive en `packs/<id>/pack.json`:
+
+```json
+{
+  "format": 1,
+  "id": "qui",
+  "name": "Química",
+  "unlock": 2,
+  "pairs": [
+    {"id": "01", "a": "01a.png", "b": "01b.png", "fact": "Au viene del latín «aurum»."}
+  ]
+}
+```
+
+- `format`: si está, debe ser `1`.
+- `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
+- `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
+- `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
+- Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
+- Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
 
 ## Decisiones cerradas (no reintroducir sin que el autor lo pida)
 
@@ -75,8 +122,71 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 
 ## Estructura del proyecto
 
-TODO: pegar acá la salida de `tree -L 2` del repositorio (escenas, scripts, paquetes, recursos) y una línea por carpeta explicando qué contiene.
+```
+Fichitas/
+├── scenes/            main.tscn: la única escena; el resto se arma por código
+├── scripts/           mundo 3D, interfaz, contenido, progreso y utilidades
+├── tests/             pruebas sin ventana y capturas
+├── packs/             paquetes oficiales: index.json + una carpeta por materia
+├── assets/            iconos SVG, shaders del fondo y licencias de terceros
+├── fonts/             Nunito y Baloo 2 (OFL), empaquetadas en el juego
+├── addons/godot_ai/   plugin de editor y ayudante de depuración (MCP); no es jugabilidad
+├── tools/             utilidades sueltas del autor
+├── project.godot      Compatibility, 960×1707 vertical, escena principal
+├── export_presets.cfg preset Android (no se versiona: puede llevar contraseñas)
+├── icon.svg
+├── AGENTS.md
+└── README.md
+```
+
+### Scripts
+
+| Archivo | Rol |
+|---|---|
+| `main.gd` | Orquesta estados, niveles, guardado y vuelos de cámara; conecta las señales. |
+| `board.gd` | El mundo 3D: cámara, entorno, suelo, entrada táctil, fichas y reglas de los dos modos. Emite `won`, `pair_done` y `sfx`. Guarda las estaciones y el encuadre (pose, paneo, huecos del suelo). |
+| `station_menu.gd` | Mesa del menú: Jugar, Recorrido general y Álbum. |
+| `station_subjects.gd` | Mesa de materias, con recorrido general y repaso. |
+| `station_mode.gd` | Paso "¿Cómo quieres jugar?": Memoria y Asociación. |
+| `station_win.gd` | Mesa de nivel completado. |
+| `station_album.gd` | Mesa del álbum: secciones por materia y parejas en fichas. |
+| `album_tile.gd` | Ficha del álbum (boca arriba si la pareja está dominada). |
+| `plaque.gd` | Loseta genérica del mundo: cara horneada, pulsación y animación de entrada. |
+| `tile_look.gd` | Piezas visuales compartidas: metal dorado, dorso con emblema y mesas con marco. |
+| `tile_mesh.gd` | Mallas procedurales: losa redondeada con bisel y caras planas. |
+| `pick3d.gd` | Toques sobre piezas planas: rayo desde la cámara contra el plano de la mesa. |
+| `face_tex.gd` | Hornea controles 2D a textura para usarlos como cara de una loseta. |
+| `cards.gd` | Caras 2D de las losetas, dibujadas con el tema. |
+| `ui.gd` | Capas 2D: cabeceras, barra de juego y dato curioso. Solo dibuja y emite señales. |
+| `ui_theme.gd` | Tema de interfaz: relieve, fuentes, pieles de botón, iconos y logo. |
+| `audio.gd` | Efectos de sonido sintetizados en memoria. |
+| `progress.gd` | Guardado JSON en `user://`: nivel, dominio, calendario de repaso y ajustes. |
+| `levels.gd` | Tamaños de nivel, selección de parejas y repaso espaciado. |
+| `packs.gd` | Carga los paquetes oficiales y los externos. |
+| `pack_import.gd` | Importa `.zip` externos con validación estricta. |
+| `cam_view.gd` | Geometría de la vista: qué entra en pantalla y a qué distancia. |
+| `floor_cubes.gd` | Suelo de cubos de colores en un solo `MultiMesh`. |
 
 ## Pruebas
 
-TODO: indicar cómo se prueba (escena de prueba, GUT si se usa, exportación a Android).
+No se usa GUT: cada archivo de `tests/` es un `SceneTree` que corre sin ventana y termina con código 0 si todo pasa (imprime `Resultado: TODO OK`). Ejecutar todas después de cada cambio:
+
+```bash
+godot --headless --path . --script res://tests/run_tests.gd
+godot --headless --path . --script res://tests/test_game.gd
+godot --headless --path . --script res://tests/test_flow.gd
+godot --headless --path . --script res://tests/test_review.gd
+godot --headless --path . --script res://tests/test_packs.gd
+```
+
+| Prueba | Qué cubre |
+|---|---|
+| `run_tests` | Malla de ficha y carga de los 8 paquetes oficiales. |
+| `test_game` | Reglas del tablero: parejas, arrastre, victoria, chispas y nivel de 24 parejas. |
+| `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara y guardado. |
+| `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |
+| `test_packs` | Importación de paquetes externos: validación, imágenes, reemplazo y borrado. |
+
+- Al agregar un script con `class_name`, ejecutar una vez `godot --headless --path . --import` para actualizar la caché de clases (`.godot/global_script_class_cache.cfg`); si no, Godot falla con "Could not resolve external class member".
+- `tests/_shot.gd` guarda capturas en `/tmp/opencode/m_*.png` y necesita pantalla (`DISPLAY`), así que no corre en headless. No es una prueba.
+- En Android: exportar con el preset **Android**, instalar con `adb install -r <apk>` y mirar los errores con `adb logcat -s godot`. La depuración usa ADB inalámbrico.
