@@ -78,7 +78,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 `packs/index.json` es el índice de los paquetes oficiales y su orden:
 
 ```json
-{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf"]}
+{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani"]}
 ```
 
 Cada materia vive en `packs/<id>/pack.json`:
@@ -181,7 +181,7 @@ godot --headless --path . --script res://tests/test_packs.gd
 
 | Prueba | Qué cubre |
 |---|---|
-| `run_tests` | Malla de ficha y carga de los 8 paquetes oficiales. |
+| `run_tests` | Malla de ficha y carga de los 9 paquetes oficiales. |
 | `test_game` | Reglas del tablero: parejas, arrastre, victoria, chispas y nivel de 24 parejas. |
 | `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara y guardado. |
 | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |

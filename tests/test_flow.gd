@@ -132,7 +132,7 @@ func _run() -> void:
 	check(int(saved["level"]) == 2 and (saved["mp"] as Dictionary).size() >= 3 and (saved["sr"] as Dictionary).size() >= 3, "progreso, dominio y repaso guardados en JSON")
 	print("Materias (asociación)")
 	main._go_subjects()
-	check(main.state == main.S.SUBJECTS and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 12, "pantalla de materias con 12 losetas")
+	check(main.state == main.S.SUBJECTS and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 13, "pantalla de materias con 13 losetas")
 	check(main.board.menu_station.visible and main.board.subject_station.visible, "las mesas de origen y destino se ven durante el vuelo")
 	await create_timer(1.1).timeout
 	check(not main.board.menu_station.visible and main.board.subject_station.visible, "al llegar solo queda visible la mesa activa")
@@ -196,7 +196,7 @@ func _run() -> void:
 	main._on_next()
 	check(main.state == main.S.SUBJECTS and Progress.subj_level("qui") == steps.size() + 1, "materia completada vuelve a materias")
 	main._go_subjects()
-	check(main.board.subject_station.tiles.size() == 12, "materias se redibuja")
+	check(main.board.subject_station.tiles.size() == 13, "materias se redibuja")
 	main._on_back()
 	check(main.state == main.S.MENU, "Atrás vuelve al menú")
 	var p0: Dictionary = main.packs[0]

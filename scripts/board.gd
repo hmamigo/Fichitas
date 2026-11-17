@@ -33,11 +33,11 @@ const MATCH_Y := -0.09  # las resueltas se hunden en la losa
 const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
 const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
-const LIGHT_ENERGY := 0.43    # luz direccional principal
+const LIGHT_ENERGY := 0.25    # luz direccional principal
 const FILL_ENERGY := 0.05     # luz de relleno (sin sombras)
-const AMBIENT_ENERGY := 0.18  # luz ambiental
-const SKY_ENERGY := 0.50      # brillo del entorno (reflejos)
-const CLEARCOAT := 0.6        # barniz de las caras
+const AMBIENT_ENERGY := 0.15  # luz ambiental
+const SKY_ENERGY := 0.15      # brillo del entorno (reflejos)
+const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
 const SPARK_AMOUNT := 16       # estrellas por ficha
 const SPARK_LIFE := 0.55       # segundos que viven

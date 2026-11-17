@@ -11,10 +11,12 @@ const ICONS := "res://assets/icons/"
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
 	"bio": "d1b3ff", "geo": "7fd6d1", "ast": "a9b8ff", "inf": "ffc27a",
+	"ani": "ff9fcb",
 }
 const PACK_ICONS := {
 	"mat": "calculator", "qui": "alembic", "fis": "atom", "ing": "book_open",
 	"bio": "leaf", "geo": "globe", "ast": "planet", "inf": "laptop",
+	"ani": "paw",
 }
 static var _icon_cache: Dictionary = {}
 static var _glow_cache: Dictionary = {}

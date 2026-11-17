@@ -1,0 +1,68 @@
+{
+ "format": 1,
+ "id": "ani",
+ "name": "Animales",
+ "unlock": 99,
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Las abejas visitan las flores para tomar néctar y, sin querer, llevan el polen de una flor a otra."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Las vacas comen hierba y pasan muchas horas del día pastando."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "A muchos monos les encantan las frutas, como las bananas."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Los osos pardos pescan salmones en los ríos, aunque también comen frutos y raíces."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Las gallinas picotean granos, como el maíz, y también semillas e insectos pequeños."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Las orugas comen hojas sin parar para crecer y, más adelante, convertirse en mariposas."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Las ardillas guardan nueces y castañas para tener comida cuando llega el invierno."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Muchos pájaros buscan lombrices en la tierra para alimentar a sus pichones."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Los caballos comen sobre todo pasto y heno; una manzana es un premio que les encanta."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Los conejos comen pasto, heno y verduras de hoja."
+  },
+  {
+   "a": "11a.png",
+   "b": "11b.png",
+   "fact": "Los gatos son cazadores: en el campo cazan ratones y otros animales pequeños."
+  },
+  {
+   "a": "12a.png",
+   "b": "12b.png",
+   "fact": "Las ranas atrapan moscas y otros insectos con su lengua larga y pegajosa."
+  }
+ ]
+}
