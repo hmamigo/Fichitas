@@ -56,7 +56,25 @@ func _init() -> void:
 	check(not found.is_empty() and int(found["unlock"]) == PackImport.NO_UNLOCK, "sin unlock no entra al recorrido general")
 	check(not found.is_empty() and found["pairs"][0]["fact"] == "Dato 0" and found["pairs"][0]["a"] != null, "conserva el dato curioso y las imágenes")
 	check(not found.is_empty() and not bool(found["premium"]), "un paquete externo nunca es de pago")
-	check(all.size() >= official.size() + 1 and all[0]["id"] == official[0], "los oficiales siguen primero")
+	var all_ids: Array = []
+	var cat_idx: Array = []
+	var order_ok: bool = true
+	for p2 in all:
+		all_ids.append(p2["id"])
+		var ci: int = 0
+		for k in Packs.CATEGORIES.size():
+			if Packs.CATEGORIES[k]["id"] == p2["category"]:
+				ci = k
+		if not cat_idx.is_empty() and ci < int(cat_idx[cat_idx.size() - 1]):
+			order_ok = false
+		cat_idx.append(ci)
+	var official_ok: bool = true
+	for o in official:
+		official_ok = official_ok and all_ids.has(o)
+	check(all.size() >= official.size() + 1 and official_ok, "load_all incluye todos los oficiales y el externo")
+	check(order_ok, "los paquetes salen agrupados por categoría")
+	check(not found.is_empty() and found["category"] == Packs.DEFAULT_CATEGORY, "un paquete externo sin categoría cae en la intermedia")
+	check(Packs.valid_category("peques") == "peques" and Packs.valid_category("xyz") == Packs.DEFAULT_CATEGORY, "valid_category acepta las conocidas y corrige el resto")
 
 	print("Variantes válidas")
 	r = PackImport.import_bytes(_pack_zip("otro", 3, {"unlock": 5}, "mi-paquete/"), official)

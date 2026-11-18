@@ -33,10 +33,10 @@ const MATCH_Y := -0.09  # las resueltas se hunden en la losa
 const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
 const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
-const LIGHT_ENERGY := 0.25    # luz direccional principal
-const FILL_ENERGY := 0.05     # luz de relleno (sin sombras)
-const AMBIENT_ENERGY := 0.15  # luz ambiental
-const SKY_ENERGY := 0.15      # brillo del entorno (reflejos)
+const LIGHT_ENERGY := 0.30    # luz direccional principal
+const FILL_ENERGY := 0.1     # luz de relleno (sin sombras)
+const AMBIENT_ENERGY := 0.20  # luz ambiental
+const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
 const SPARK_AMOUNT := 16       # estrellas por ficha
@@ -661,6 +661,9 @@ func _refresh_floor() -> void:
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
 	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
 		if st != null and (st as Node3D).visible:
+			if st.has_method("clear_rects"):
+				clears.append_array(st.clear_rects())
+				continue
 			var r: Rect2 = st.clear_rect()
 			if r.size.x > 0.0:
 				clears.append(r)

@@ -3,6 +3,7 @@
  "id": "bio",
  "name": "Biología",
  "unlock": 5,
+ "category": "nerds",
  "pairs": [
   {
    "a": "01a.png",

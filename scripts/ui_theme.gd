@@ -8,15 +8,16 @@ extends RefCounted
 const BODY := "res://fonts/nunito-700.woff2"
 const TITLE := "res://fonts/baloo2-800.woff2"
 const ICONS := "res://assets/icons/"
+const EMOJI := "res://assets/emoji/"   # iconos a color (Noto Emoji): tienen prioridad sobre los SVG del mismo nombre
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
 	"bio": "d1b3ff", "geo": "7fd6d1", "ast": "a9b8ff", "inf": "ffc27a",
-	"ani": "ff9fcb",
+	"ani": "ff9fcb", "contar": "c6e86a",
 }
 const PACK_ICONS := {
-	"mat": "calculator", "qui": "alembic", "fis": "atom", "ing": "book_open",
-	"bio": "leaf", "geo": "globe", "ast": "planet", "inf": "laptop",
-	"ani": "paw",
+	"mat": "abaco", "qui": "alembic", "fis": "atomo", "ing": "dialogo",
+	"bio": "adn", "geo": "tierra", "ast": "planeta", "inf": "laptop",
+	"ani": "patas", "contar": "numeros",
 }
 static var _icon_cache: Dictionary = {}
 static var _glow_cache: Dictionary = {}
@@ -138,7 +139,9 @@ static func icon(name: String, size: int = 32, col: Color = INK) -> ImageTexture
 	var key: String = "%s|%d|%s" % [name, size, col.to_html(true)]
 	if _icon_cache.has(key):
 		return _icon_cache[key]
-	var tex := load(ICONS + name + ".svg") as Texture2D
+	# Un icono a color (assets/emoji/) se usa tal cual; un SVG de línea se tiñe con `col`
+	var colored: bool = ResourceLoader.exists(EMOJI + name + ".png")
+	var tex := load(EMOJI + name + ".png" if colored else ICONS + name + ".svg") as Texture2D
 	if tex == null:
 		return null
 	var img: Image = tex.get_image()
@@ -147,10 +150,11 @@ static func icon(name: String, size: int = 32, col: Color = INK) -> ImageTexture
 	img.convert(Image.FORMAT_RGBA8)
 	if img.get_width() != size or img.get_height() != size:
 		img.resize(size, size, Image.INTERPOLATE_LANCZOS)
-	for y in size:
-		for x in size:
-			var a: float = img.get_pixel(x, y).a
-			img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * a))
+	if not colored:
+		for y in size:
+			for x in size:
+				var a: float = img.get_pixel(x, y).a
+				img.set_pixel(x, y, Color(col.r, col.g, col.b, col.a * a))
 	var out := ImageTexture.create_from_image(img)
 	_icon_cache[key] = out
 	return out

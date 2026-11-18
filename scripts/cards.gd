@@ -143,6 +143,70 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 		root.add_child(lk)
 	return root
 
+## Rótulo plano (no se toca): icono, título, una línea y, debajo, una barra de color o de
+## progreso (`frac` entre 0 y 1). Fondo transparente: se pinta directo sobre la mesa.
+## Las medidas escalan con el alto `h` (128 px = 1 unidad del mundo).
+static func label(d: Dictionary, w: int, h: int) -> Control:
+	var sc: float = float(h) / 128.0
+	var col: Color = d["color"]
+	var ink: Color = d["ink"] if d.has("ink") else col.darkened(0.6)
+	var root := _root(w, h)
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.add_theme_constant_override("margin_left", int(8 * sc))
+	m.add_theme_constant_override("margin_right", int(8 * sc))
+	m.add_theme_constant_override("margin_top", int(2 * sc))
+	m.add_theme_constant_override("margin_bottom", int(6 * sc))
+	root.add_child(m)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", int(8 * sc))
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(v)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", int(14 * sc))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(row)
+	row.add_child(_icon(str(d.get("icon", "")), int(70 * sc), ink))
+	var tv := VBoxContainer.new()
+	tv.alignment = BoxContainer.ALIGNMENT_CENTER
+	tv.add_theme_constant_override("separation", 0)
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tv)
+	var title := _label(str(d["name"]), int(44 * sc), ink, true)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	tv.add_child(title)
+	var sub := _label(str(d.get("sub", "")), int(25 * sc), ink.lerp(Color.WHITE, 0.2))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	tv.add_child(sub)
+	# Barra de abajo: de progreso si hay `frac`, y si no una línea de color
+	var frac: float = float(d.get("frac", -1.0))
+	var bar := Control.new()
+	bar.custom_minimum_size = Vector2(0, (14 if frac >= 0.0 else 7) * sc)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(bar)
+	var track := Panel.new()
+	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var tb := StyleBoxFlat.new()
+	tb.bg_color = Color(col.r, col.g, col.b, 0.6 if frac >= 0.0 else 0.95)
+	tb.set_corner_radius_all(int(8 * sc))
+	track.add_theme_stylebox_override("panel", tb)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(track)
+	if frac > 0.0:
+		var fill := Panel.new()
+		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fill.anchor_right = clampf(frac, 0.0, 1.0)
+		var fb := StyleBoxFlat.new()
+		fb.bg_color = col.darkened(0.12)
+		fb.set_corner_radius_all(int(8 * sc))
+		fill.add_theme_stylebox_override("panel", fb)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.add_child(fill)
+	return root
+
 ## Cara de una acción del menú: icono (o punto de color), título y subtítulo.
 static func action(title: String, sub: String, icon: String, dot: bool, bg: Color, ink: Color, w: int, h: int) -> Control:
 	var root := _root(w, h)
@@ -238,7 +302,7 @@ static func _medal(size: int) -> Control:
 	fs.set_border_width_all(2 * k)
 	face.add_theme_stylebox_override("panel", fs)
 	rim.add_child(face)
-	face.add_child(_icon("stars", 50 * k, Color("d08a12")))
+	face.add_child(_icon("trofeo", 50 * k, Color("d08a12")))
 	return rim
 
 static func _wrap(l: Label, width: int) -> Label:

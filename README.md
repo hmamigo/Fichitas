@@ -47,7 +47,7 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 
 ## Contenido
 
-Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y una para los más pequeños, Animales (cada animal con su comida, sin necesidad de leer). Los símbolos, fórmulas y gráficas se incluyen como imágenes. Animales no entra en el recorrido general: solo se juega desde su propia materia.
+Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y, para los más pequeños, Animales (cada animal con su comida) y Contar (cantidades y números), que se juegan sin leer. Las materias se agrupan en tres categorías: Peques, Exploradores y Nerds. Los símbolos, fórmulas y gráficas se incluyen como imágenes. Las materias de Peques no entran en el recorrido general: solo se juegan desde su propia materia.
 
 Los paquetes de fichas son archivos JSON. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos desde el selector de archivos del celular ("Cargar paquete").
 
@@ -103,4 +103,4 @@ Los recursos de terceros conservan sus licencias:
 
 - Iconos de `assets/icons/`: @icons, licencia MIT (ver `assets/icons/LICENSE.txt`).
 - Fuentes Nunito y Baloo 2: SIL Open Font License 1.1 (ver `fonts/LICENSE-*.txt`).
-- Ilustraciones de `packs/ani/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt` y `packs/ani/LICENSE-Apache-2.0.txt`).
+- Ilustraciones de `packs/ani/` y `packs/contar/` e iconos a color de `assets/emoji/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt`, `assets/emoji/LICENSE.txt` y los `LICENSE-Apache-2.0.txt` de cada carpeta).

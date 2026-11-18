@@ -47,6 +47,8 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Filo dorado, placas color crema, marco azul del tablero.
 - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
 - Todo elemento nuevo (menú, botones superiores, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
+- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa en 3D, `_flat_tile` en 2D). Un rótulo nuevo que no se toca no debe parecer un botón.
+- Los iconos de menús y materias son PNG a color de `assets/emoji/` (Noto Emoji); `UiTheme.icon()` los prefiere a los SVG de línea del mismo nombre.
 
 ## Flujo de pantallas y estados
 
@@ -55,7 +57,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 | Estado | Estación / capa | Qué se ve | Se llega desde |
 |---|---|---|---|
 | `MENU` | `StationMenu` (x = -25) | Logo, tres losetas (Jugar, Recorrido general, Álbum) y pastilla con Sonido/Vibración. | Arranque, "Atrás". |
-| `SUBJECTS` | `StationSubjects` (x = -15) | Losetas por materia, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
+| `SUBJECTS` | `StationSubjects` (x = -15) | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds, Más), cada una con su rótulo plano arriba y el marco de su color; las losetas son las materias, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
 | `MODE` | `StationMode` (x = -9) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
 | `GAME` | Tablero (x = 0) | Fichas y barra de juego. | Tocar una loseta de modo o "Siguiente nivel". |
 | `WIN` | `StationWin` (x = +10) | Mesa de nivel completado. | Al emparejar todo. |
@@ -89,6 +91,7 @@ Cada materia vive en `packs/<id>/pack.json`:
   "id": "qui",
   "name": "Química",
   "unlock": 2,
+  "category": "nerds",
   "pairs": [
     {"id": "01", "a": "01a.png", "b": "01b.png", "fact": "Au viene del latín «aurum»."}
   ]
@@ -98,6 +101,7 @@ Cada materia vive en `packs/<id>/pack.json`:
 - `format`: si está, debe ser `1`.
 - `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
 - `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
+- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99.
 - `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
 - Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
 - Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
@@ -128,7 +132,7 @@ Fichitas/
 ├── scripts/           mundo 3D, interfaz, contenido, progreso y utilidades
 ├── tests/             pruebas sin ventana y capturas
 ├── packs/             paquetes oficiales: index.json + una carpeta por materia
-├── assets/            iconos SVG, shaders del fondo y licencias de terceros
+├── assets/            iconos (SVG de línea en icons/, PNG a color en emoji/), shaders del fondo y licencias de terceros
 ├── fonts/             Nunito y Baloo 2 (OFL), empaquetadas en el juego
 ├── addons/godot_ai/   plugin de editor y ayudante de depuración (MCP); no es jugabilidad
 ├── tools/             utilidades sueltas del autor
@@ -146,7 +150,8 @@ Fichitas/
 | `main.gd` | Orquesta estados, niveles, guardado y vuelos de cámara; conecta las señales. |
 | `board.gd` | El mundo 3D: cámara, entorno, suelo, entrada táctil, fichas y reglas de los dos modos. Emite `won`, `pair_done` y `sfx`. Guarda las estaciones y el encuadre (pose, paneo, huecos del suelo). |
 | `station_menu.gd` | Mesa del menú: Jugar, Recorrido general y Álbum. |
-| `station_subjects.gd` | Mesa de materias, con recorrido general y repaso. |
+| `station_subjects.gd` | Mesas de materias por grupo, con recorrido general y repaso. |
+| `flat_label.gd` | Rótulo plano 3D (no se toca) pintado sobre la mesa; contenido en `Cards.label`. |
 | `station_mode.gd` | Paso "¿Cómo quieres jugar?": Memoria y Asociación. |
 | `station_win.gd` | Mesa de nivel completado. |
 | `station_album.gd` | Mesa del álbum: secciones por materia y parejas en fichas. |

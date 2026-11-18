@@ -132,11 +132,21 @@ func _go_subjects() -> void:
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
-	cards.append({"id": "", "name": "Recorrido general", "icon": "compass", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "frac": float(mini(Progress.level(), Levels.max_level()) - 1) / float(Levels.max_level()), "sub3": due_txt, "color": Color("9cc8ff")})
+	# Cada cabecera abre una mesa nueva con su rótulo plano (no se toca) y el color de su marco
+	cards.append({"id": "hdr:todos", "header": true, "name": "Para todos", "sub": "Mezcla las materias abiertas",
+		"icon": "juego", "color": "9cc8ff", "ink": "1f5fa8", "frame": "2f86d6"})
+	cards.append({"id": "", "name": "Recorrido general", "icon": "brujula", "sub": "Nivel %d de %d" % [mini(Progress.level(), Levels.max_level()), Levels.max_level()], "sub2": "", "frac": float(mini(Progress.level(), Levels.max_level()) - 1) / float(Levels.max_level()), "sub3": due_txt, "color": Color("9cc8ff")})
 	if due.size() >= 3:  # el repaso necesita al menos tres parejas
-		cards.append({"id": ":review", "name": "Repaso", "icon": "stars", "sub": "%d parejas esperando" % due.size(),
+		cards.append({"id": ":review", "name": "Repaso", "icon": "cerebro", "sub": "%d parejas esperando" % due.size(),
 			"sub2": "De todas las materias", "color": Color("ffce6b")})
+	var last_cat: String = ""
 	for p in packs:
+		if p.get("category", Packs.DEFAULT_CATEGORY) != last_cat:   # `packs` viene agrupado por categoría: una cabecera por grupo
+			last_cat = p.get("category", Packs.DEFAULT_CATEGORY)
+			for c in Packs.CATEGORIES:
+				if c["id"] == last_cat:
+					cards.append({"id": "hdr:" + last_cat, "header": true, "name": c["name"], "sub": c["sub"],
+						"icon": c["icon"], "color": c["color"], "ink": c["ink"], "frame": c["frame"]})
 		var steps: Array = Levels.steps_for(p)
 		var v: int = Progress.subj_level(p["id"])
 		var dom: int = 0
@@ -153,7 +163,9 @@ func _go_subjects() -> void:
 			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
 			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"] if locked else ""})
-	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "sprout", "sub": "Una materia tuya (.zip)",
+	cards.append({"id": "hdr:mas", "header": true, "name": "Más", "sub": "Tus paquetes y lo que viene",
+		"icon": "magia", "color": "b9c6d9", "ink": "3f526e", "frame": "6b82a3"})
+	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "paquete", "sub": "Una materia tuya (.zip)",
 		"sub2": "", "color": Color("b8e6c9")})
 	for n in COMING:
 		var exists: bool = false
@@ -161,7 +173,7 @@ func _go_subjects() -> void:
 			if p["name"] == n:
 				exists = true
 		if not exists:
-			cards.append({"id": "coming:" + n, "name": n, "icon": "book" if n == "Historia" else "stars", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
+			cards.append({"id": "coming:" + n, "name": n, "icon": "templo" if n == "Historia" else "magia", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
 				"info": "«%s» llegará pronto. Algunas materias nuevas serán de pago." % n})
 	board.build_subjects(cards)
 	board.fly_to_station("subjects", 1.0)

@@ -3,6 +3,7 @@
  "id": "mat",
  "name": "Matemáticas",
  "unlock": 1,
+ "category": "exploradores",
  "pairs": [
   {
    "a": "01a.png",

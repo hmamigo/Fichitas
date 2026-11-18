@@ -25,7 +25,7 @@ const PAN_PAD_X := 0.10
 const PAN_PAD_Y := 0.11          # aire arriba y abajo al recorrer (fracción del alto visible)
 
 var tiles: Array = []            # AlbumTile
-var _heads: Array = []           # Plaque
+var _heads: Array = []           # FlatLabel (planos: no se tocan)
 var _table: Node3D
 var _height: float = 0.0         # alto total de las secciones (sin marco)
 var _shared: Dictionary = {}
@@ -62,14 +62,14 @@ func build(data: Array) -> void:
 		for q in pairs:
 			if int((q as Dictionary)["stage"]) == 2:
 				dom += 1
-		var head := Plaque.new()
-		head.setup(Vector2(w, HEAD_H), "", "")
+		var head := FlatLabel.new()
+		head.setup(Vector2(w, HEAD_H))
 		head.position.z = z + HEAD_H * 0.5
 		add_child(head)
 		var face_d: Dictionary = d.duplicate()
 		face_d["sub"] = "De pago" if locked else "Dominadas %d de %d" % [dom, pairs.size()]
 		face_d["frac"] = -1.0 if (locked or pairs.is_empty()) else float(dom) / float(pairs.size())
-		head.bake(Cards.subject(face_d, fw, fh), fw, fh)
+		head.bake(Cards.label(face_d, fw, fh), fw, fh)
 		head.pop_in(minf(0.02 * float(order), 0.8))
 		views.append_array(head.views())
 		_heads.append(head)

@@ -3,6 +3,7 @@
  "id": "ast",
  "name": "Astronomía",
  "unlock": 7,
+ "category": "exploradores",
  "pairs": [
   {
    "a": "01a.png",

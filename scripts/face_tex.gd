@@ -9,13 +9,13 @@ static func available() -> bool:
 	return DisplayServer.get_name() != "headless"
 
 ## Crea el viewport con `content` dentro. Quien llama es dueño de liberarlo.
-static func render(host: Node, content: Control, w: int, h: int) -> SubViewport:
+static func render(host: Node, content: Control, w: int, h: int, transparent: bool = false) -> SubViewport:
 	if not available():
 		return null
 	var vp := SubViewport.new()
 	vp.size = Vector2i(w, h)
 	vp.disable_3d = true
-	vp.transparent_bg = false
+	vp.transparent_bg = transparent   # los rótulos planos van sin fondo, pintados sobre la mesa
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	host.add_child(vp)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE

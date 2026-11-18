@@ -172,7 +172,22 @@ func _toggle(text: String, icon_on: String, icon_off: String, parent: Control) -
 
 func _paint_toggle(b: Button, on: bool) -> void:
 	var icon_name: String = str(b.get_meta("icon_on" if on else "icon_off"))
-	b.icon = UiTheme.icon(icon_name, 34, Color.WHITE if on else UiTheme.INK)
+	var tex: ImageTexture = UiTheme.icon(icon_name, 34, UiTheme.INK)
+	# Activa, la pastilla es azul: el icono a color va sobre un círculo claro para que se vea
+	b.icon = _chip(tex, 46) if on and tex != null else tex
+
+## Icono centrado sobre un círculo blanco de diámetro `size`.
+func _chip(tex: ImageTexture, size: int) -> ImageTexture:
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var c: float = float(size) * 0.5
+	for y in size:
+		for x in size:
+			var d: float = Vector2(float(x) + 0.5, float(y) + 0.5).distance_to(Vector2(c, c))
+			img.set_pixel(x, y, Color(1, 1, 1, clampf(c - d, 0.0, 1.0) * 0.95))
+	var icon_img: Image = tex.get_image()
+	var off: int = (size - icon_img.get_width()) / 2
+	img.blend_rect(icon_img, Rect2i(0, 0, icon_img.get_width(), icon_img.get_height()), Vector2i(off, off))
+	return ImageTexture.create_from_image(img)
 
 ## Punto de color del modo: blanco cuando la pastilla está activa.
 func _star_icon(size: int, col: Color) -> TextureRect:
@@ -226,6 +241,25 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: in
 	fs.set_corner_radius_all(radius - 7)
 	fs.border_color = face_col.lightened(0.55)
 	fs.set_border_width_all(3)
+	fs.content_margin_left = pad_h
+	fs.content_margin_right = pad_h
+	face.add_theme_stylebox_override("panel", fs)
+	rim.add_child(face)
+	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
+	return rim
+
+## Rótulo plano 2D (no se toca): panel translúcido sin filo dorado ni relieve. Mantiene la
+## estructura de `_enamel_tile` (el hijo 0 es la cara) para poder usarse en su lugar.
+func _flat_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: int = 26) -> PanelContainer:
+	var rim := PanelContainer.new()
+	rim.custom_minimum_size = min_size
+	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rim.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var face := PanelContainer.new()
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fs := StyleBoxFlat.new()
+	fs.bg_color = Color(face_col.r, face_col.g, face_col.b, 0.92)
+	fs.set_corner_radius_all(radius)
 	fs.content_margin_left = pad_h
 	fs.content_margin_right = pad_h
 	face.add_theme_stylebox_override("panel", fs)
@@ -452,7 +486,7 @@ func _build_hud() -> void:
 	m.add_child(h)
 	h.add_child(_back_tile("Atrás"))
 	# Nivel y modo: placa crema con el mismo filo dorado
-	var plate := _enamel_tile(Vector2(0, 90), Color("fffdf7"), 28)
+	var plate := _flat_tile(Vector2(0, 90), Color("fffdf7"), 28)
 	lv_label = _label("", UiTheme.T_BODY, true, UiTheme.BLUE_DARK)
 	lv_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	(plate.get_child(0) as Control).add_child(lv_label)
@@ -568,7 +602,7 @@ func _build_subjects() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Menú"))
-	var plate := _enamel_tile(Vector2(0, 96), Color("fffdf7"), 28)
+	var plate := _flat_tile(Vector2(0, 96), Color("fffdf7"), 28)
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(plate)
 	var hb := VBoxContainer.new()
@@ -606,7 +640,7 @@ func _build_mode() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Atrás"))
-	var plate := _enamel_tile(Vector2(0, 110), Color("fffdf7"), 28)
+	var plate := _flat_tile(Vector2(0, 110), Color("fffdf7"), 28)
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(plate)
 	var hb := VBoxContainer.new()
@@ -642,7 +676,7 @@ func _build_album() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Menú"))
-	var plate := _enamel_tile(Vector2(0, 96), Color("fffdf7"), 28)
+	var plate := _flat_tile(Vector2(0, 96), Color("fffdf7"), 28)
 	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(plate)
 	var hb := VBoxContainer.new()

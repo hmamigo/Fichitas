@@ -3,6 +3,7 @@
  "id": "inf",
  "name": "Informática",
  "unlock": 8,
+ "category": "nerds",
  "pairs": [
   {
    "a": "01a.png",

@@ -3,6 +3,7 @@
  "id": "ing",
  "name": "Inglés",
  "unlock": 4,
+ "category": "exploradores",
  "pairs": [
   {
    "a": "01a.png",

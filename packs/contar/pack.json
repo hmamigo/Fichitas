@@ -1,0 +1,59 @@
+{
+ "format": 1,
+ "id": "contar",
+ "name": "Contar",
+ "unlock": 99,
+ "category": "peques",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Tenemos una sola nariz y una sola boca."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Tenemos dos ojos, dos orejas, dos manos y dos pies."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Un triángulo tiene tres lados y tres esquinas."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Los gatos y los perros caminan con cuatro patas."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "En cada mano tenemos cinco dedos."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Un dado tiene seis caras, con puntos del 1 al 6."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Una semana tiene siete días."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Las arañas tienen ocho patas."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Nueve es tres veces tres."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Con las dos manos juntas contamos diez dedos."
+  }
+ ]
+}

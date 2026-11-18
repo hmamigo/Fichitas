@@ -3,6 +3,7 @@
  "id": "qui",
  "name": "Química",
  "unlock": 2,
+ "category": "nerds",
  "pairs": [
   {
    "a": "01a.png",

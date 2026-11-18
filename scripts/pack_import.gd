@@ -123,7 +123,7 @@ static func _import_open(zr: ZIPReader, reserved: Array) -> Dictionary:
 			files.append(saved[entry])
 		out_pairs.append({"id": pr["id"], "a": files[0], "b": files[1], "fact": pr["fact"]})
 	var pack := {"format": 1, "id": id, "name": meta["name"], "unlock": meta["unlock"],
-		"pairs": out_pairs}
+		"category": meta["category"], "pairs": out_pairs}
 	var jf := FileAccess.open(tmp_dir + "/pack.json", FileAccess.WRITE)
 	if jf == null:
 		_rm_rf(tmp_dir)
@@ -188,7 +188,8 @@ static func _validate(j: Dictionary, reserved: Array) -> Dictionary:
 		used.append(pid)
 		var fact: String = str((p as Dictionary).get("fact", "")).strip_edges().substr(0, MAX_FACT)
 		pairs.append({"id": pid, "a": a, "b": b, "fact": fact})
-	return {"id": id, "name": name, "unlock": unlock, "pairs": pairs}
+	return {"id": id, "name": name, "unlock": unlock, "pairs": pairs,
+		"category": Packs.valid_category(str(j.get("category", "")))}
 
 ## Ruta relativa segura dentro del zip, o "" si no vale (absoluta, con "..", con ":", etc.).
 static func _rel_path(p: String) -> String:

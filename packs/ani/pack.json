@@ -3,6 +3,7 @@
  "id": "ani",
  "name": "Animales",
  "unlock": 99,
+ "category": "peques",
  "pairs": [
   {
    "a": "01a.png",

@@ -23,11 +23,11 @@ var _table: Node3D
 func build(level: int) -> void:
 	clear()
 	var defs: Array = [
-		{"key": "subjects", "title": "Jugar", "sub": "Elige materia y nivel", "icon": "book_open",
+		{"key": "subjects", "title": "Jugar", "sub": "Elige materia y nivel", "icon": "juego",
 			"bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
-		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "compass",
+		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "brujula",
 			"bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
-		{"key": "album", "title": "Álbum", "sub": "Tus parejas dominadas", "icon": "book",
+		{"key": "album", "title": "Álbum", "sub": "Tus parejas dominadas", "icon": "cuaderno",
 			"bg": Color("e3d7ff"), "ink": Color("4b3a9a")},
 	]
 	var h: float = float(defs.size()) * CARD_H + float(defs.size() - 1) * GAP

@@ -117,11 +117,11 @@ static func plate_texture(hx: float, hz: float) -> ImageTexture:
 
 ## Mesa completa (marco azul + losa de puntos) de `w` × `h`, centrada en el origen
 ## del nodo padre. Es la misma que la del tablero: así el mundo se ve de una pieza.
-static func table(parent: Node3D, w: float, h: float) -> Node3D:
+static func table(parent: Node3D, w: float, h: float, frame_col: Color = Color("2f86d6")) -> Node3D:
 	var node := Node3D.new()
 	parent.add_child(node)
 	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color("2f86d6")
+	fm.albedo_color = frame_col
 	fm.roughness = 0.30
 	fm.metallic = 0.25
 	fm.clearcoat_enabled = true

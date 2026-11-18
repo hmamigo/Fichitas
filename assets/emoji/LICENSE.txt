@@ -1,0 +1,5 @@
+Iconos a color de esta carpeta (menús, materias, categorías): Noto Emoji,
+© Google LLC, https://github.com/googlefonts/noto-emoji
+Se usan bajo la Apache License 2.0 (texto completo en LICENSE-Apache-2.0.txt).
+Se redujeron a 160 px. El nombre del archivo es el nombre del icono (UiTheme.icon):
+si existe aquí, se usa en lugar del SVG de assets/icons/ del mismo nombre.

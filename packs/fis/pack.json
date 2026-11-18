@@ -3,6 +3,7 @@
  "id": "fis",
  "name": "Física",
  "unlock": 3,
+ "category": "nerds",
  "pairs": [
   {
    "a": "01a.png",

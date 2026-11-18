@@ -3,6 +3,7 @@
  "id": "geo",
  "name": "Geografía",
  "unlock": 6,
+ "category": "exploradores",
  "pairs": [
   {
    "a": "01a.png",
