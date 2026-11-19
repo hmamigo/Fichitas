@@ -3,15 +3,16 @@ extends Node3D
 ## Suelo de cubos de colores: un solo MultiMesh (una llamada de dibujo).
 ## Los cubos junto al tablero quedan bajos y suaves; los lejanos crecen y dan profundidad.
 
-const STEP := 1.0
-const SIDE := 0.9
-# Debe cubrir las seis estaciones (Board: álbum en x = -35, menú en -25, materias en -15,
-# modo en -9, tablero en 0, victoria en +10). A los lados basta el ancho de una pantalla vertical; la mesa del álbum mide
-# ~±22 en Z (todas las materias en una sola mesa larga), de ahí las filas.
-const X_MIN := -43        # primera columna (izquierda del álbum)
-const X_MAX := 20         # última columna (derecha de la estación de victoria)
-const Z_FAR := 24         # filas hacia el fondo (−Z)
-const Z_NEAR := 24        # filas hacia la cámara (+Z)
+const STEP := 1.15        # separación entre centros de cubos
+const SIDE := 0.88        # lado de cada cubo: la rendija entre cubos es STEP − SIDE
+# Cobertura en UNIDADES DEL MUNDO. Debe cubrir lo que ve la cámara en las seis estaciones (Board:
+# álbum en x = -35, menú en -25, materias en -15, modo en -9, tablero en 0, victoria en +10) también
+# en sus extremos de paneo: la mesa de materias mide ~±20 en Z y la del álbum ~±26, y la vista
+# llega unos 6 más allá; en pantalla apaisada o ultra ancha asoma más a los lados. Hay margen de sobra.
+const X_MIN := -54        # borde izquierdo (más allá del álbum)
+const X_MAX := 30         # borde derecho (más allá de la estación de victoria)
+const Z_FAR := 38         # hacia el fondo (−Z)
+const Z_NEAR := 38        # hacia la cámara (+Z)
 const TOP_MIN := -0.43    # cima más baja: justo sobre el suelo base
 const BASE_Y := -0.60     # base de todos los cubos
 const MAX_RISE := 1.1     # altura máxima de los cubos lejanos (más bajos = el fondo se aleja)
@@ -33,8 +34,8 @@ var _last: PackedFloat32Array = PackedFloat32Array()  # distancia con la que se 
 func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 20261112
-	for j in range(-Z_FAR, Z_NEAR + 1):
-		for i in range(X_MIN, X_MAX + 1):
+	for j in range(ceili(-float(Z_FAR) / STEP), floori(float(Z_NEAR) / STEP) + 1):
+		for i in range(ceili(float(X_MIN) / STEP), floori(float(X_MAX) / STEP) + 1):
 			var c: Color = PALETTE[rng.randi() % PALETTE.size()]
 			c = c.lerp(Color.WHITE, 0.12).lightened(rng.randf_range(-0.04, 0.06))
 			_cells.append({"x": float(i) * STEP, "z": float(j) * STEP, "col": c, "n": rng.randf()})

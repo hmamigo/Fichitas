@@ -1,7 +1,7 @@
 class_name StationAlbum
 extends Node3D
 ## Mesa del álbum: una sola mesa larga con una sección por materia. Cada sección lleva
-## una loseta de cabecera (nombre, dominadas, barra) y las parejas como fichas iguales
+## un rótulo plano de cabecera (nombre, dominadas, barra) y las parejas como fichas iguales
 ## a las del juego, de dos en dos: boca arriba si están dominadas, boca abajo si no.
 ## Se recorre con la cámara (paneo vertical), igual que la mesa de materias.
 
@@ -9,6 +9,7 @@ signal opened(pair: Dictionary)   # tocó una pareja dominada: {id, a, b, fact, 
 
 const COLS := 6                  # fichas por fila (3 parejas)
 const PITCH := 0.9               # casilla de cada ficha en el mundo
+const TITLE_H := 1.0             # rótulo plano "Álbum" arriba de la mesa (no se toca)
 const HEAD_H := 1.2              # alto de la cabecera de cada materia
 const HEAD_GAP := 0.22           # aire entre la cabecera y sus fichas
 const SEC_GAP := 0.5             # aire entre secciones
@@ -47,6 +48,7 @@ func build(data: Array) -> void:
 		if rows > 0:
 			total += HEAD_GAP + float(rows) * PITCH
 	total -= SEC_GAP
+	total += TITLE_H + SEC_GAP       # el rótulo y su aire
 	_height = total
 	_table = TileLook.table(self, w + 0.5, total + 0.5)
 	var views: Array = []
@@ -54,6 +56,12 @@ func build(data: Array) -> void:
 	var order: int = 0
 	var fw: int = int(w * float(PX))
 	var fh: int = int(HEAD_H * float(PX))
+	var title := FlatLabel.make(self, Vector2(w, TITLE_H), {"name": "Álbum", "sub": "Las parejas que ya dominas.",
+		"icon": "cuaderno", "color": Color("c9b8ff"), "ink": Color("4b3a9a")}, 0.0, PX)
+	title.position.z = z + TITLE_H * 0.5
+	views.append_array(title.views())
+	_heads.append(title)
+	z += TITLE_H + SEC_GAP
 	for s in data.size():
 		var d: Dictionary = data[s]
 		var pairs: Array = d["pairs"]

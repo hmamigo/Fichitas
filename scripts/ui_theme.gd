@@ -89,6 +89,17 @@ const T_TINY := 28   # pies de pantalla y notas
 static func title_font() -> Font:
 	return load(TITLE)
 
+static func body_font() -> Font:
+	return load(BODY)
+
+## Tamaño de fuente (entre `min_size` y `max_size`) con el que `text` cabe en `avail` píxeles.
+## Se mide con la fuente misma: el mínimo de un Label fuera del árbol aún no es fiable.
+static func fit_font_size(text: String, font: Font, max_size: int, min_size: int, avail: float) -> int:
+	var size: int = max_size
+	while size > min_size and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > avail:
+		size -= 1
+	return size
+
 ## Color de la tarjeta de una materia: el de su paquete, o uno derivado de su id.
 static func pack_color(id: String) -> Color:
 	return Color(PACK_COLORS[id]) if PACK_COLORS.has(id) else Color.from_hsv(float(id.hash() % 360) / 360.0, 0.4, 1.0)

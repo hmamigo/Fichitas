@@ -168,17 +168,23 @@ static func label(d: Dictionary, w: int, h: int) -> Control:
 	row.add_theme_constant_override("separation", int(14 * sc))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(row)
-	row.add_child(_icon(str(d.get("icon", "")), int(70 * sc), ink))
+	var has_icon: bool = str(d.get("icon", "")) != ""
+	if has_icon:
+		row.add_child(_icon(str(d["icon"]), int(70 * sc), ink))
 	var tv := VBoxContainer.new()
 	tv.alignment = BoxContainer.ALIGNMENT_CENTER
 	tv.add_theme_constant_override("separation", 0)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(tv)
-	var title := _label(str(d["name"]), int(44 * sc), ink, true)
+	# Los textos se encogen hasta caber (un tablero estrecho deja poco ancho)
+	var avail: float = float(w) - 16.0 * sc - (84.0 * sc if has_icon else 0.0)
+	var tsize: int = UiTheme.fit_font_size(str(d["name"]), UiTheme.title_font(), int(44 * sc), int(20 * sc), avail)
+	var title := _label(str(d["name"]), tsize, ink, true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tv.add_child(title)
-	var sub := _label(str(d.get("sub", "")), int(25 * sc), ink.lerp(Color.WHITE, 0.2))
+	var ssize: int = UiTheme.fit_font_size(str(d.get("sub", "")), UiTheme.body_font(), int(25 * sc), int(14 * sc), avail)
+	var sub := _label(str(d.get("sub", "")), ssize, ink.lerp(Color.WHITE, 0.2))
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tv.add_child(sub)
 	# Barra de abajo: de progreso si hay `frac`, y si no una línea de color
@@ -279,59 +285,30 @@ static func dom_layout(n: int, w: int) -> Dictionary:
 				"h": 2 * DOM_PAD + rows * (side + DOM_ROW) + (rows - 1) * DOM_SEP}
 	return best
 
-## Medalla: ficha dorada con destellos.
-static func _medal(size: int) -> Control:
-	var k: int = WIN_K
-	var rim := PanelContainer.new()
-	rim.custom_minimum_size = Vector2(size, size)
-	rim.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var rs := StyleBoxFlat.new()
-	rs.bg_color = Color("f0b232")
-	rs.set_corner_radius_all(22 * k)
-	rs.border_color = Color("a8690f")
-	rs.border_width_bottom = 6 * k
-	rs.set_content_margin_all(5 * k)
-	rim.add_theme_stylebox_override("panel", rs)
-	var face := PanelContainer.new()
-	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fs := StyleBoxFlat.new()
-	fs.bg_color = Color("fff0a8")
-	fs.set_corner_radius_all(17 * k)
-	fs.border_color = Color("fff0a8").lightened(0.55)
-	fs.set_border_width_all(2 * k)
-	face.add_theme_stylebox_override("panel", fs)
-	rim.add_child(face)
-	face.add_child(_icon("trofeo", 50 * k, Color("d08a12")))
-	return rim
-
 static func _wrap(l: Label, width: int) -> Label:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size = Vector2(width, 0)
 	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	return l
 
-## Cabecera: medalla, título y mensaje.
+## Cabecera plana (no se toca): trofeo, título y mensaje, sin fondo, sobre la mesa.
 static func win_header(title: String, msg: String, w: int, h: int) -> Control:
 	var k: int = WIN_K
-	var col := Color("ffeeb0")
 	var root := _root(w * k, h * k)
-	_bg(root, col.lightened(0.08))
-	var pc := PanelContainer.new()
-	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pc.add_theme_stylebox_override("panel", _face_box(col))
-	root.add_child(pc)
 	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + side, 14 * k)
-	pc.add_child(m)
+		m.add_theme_constant_override("margin_" + side, 10 * k)
+	root.add_child(m)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 6 * k)
+	v.add_theme_constant_override("separation", 4 * k)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	m.add_child(v)
-	v.add_child(_medal(72 * k))
-	var inner: int = (w - 28) * k
+	var trophy := _icon("trofeo", 84 * k, Color.WHITE)
+	trophy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(trophy)
+	var inner: int = (w - 20) * k
 	v.add_child(_wrap(_label(title, 38 * k, UiTheme.BLUE_DARK, true), inner))
 	v.add_child(_wrap(_label(msg, 26 * k, UiTheme.INK), inner))
 	return root
@@ -350,8 +327,7 @@ static func _dom_tile(d: Dictionary, side: int) -> Control:
 	sb.set_corner_radius_all(14 * k)
 	sb.set_content_margin_all(5 * k)
 	sb.set_border_width_all(3 * k)
-	sb.border_color = Color("f0b232")      # filo dorado, como las fichas del juego
-	sb.border_width_bottom = 6 * k
+	sb.border_color = Color("e3d4ad")      # borde suave: no se toca, así que sin filo dorado
 	if up:
 		sb.set_border_width_all(4 * k)
 		sb.border_color = Color("42cd84")
@@ -387,16 +363,11 @@ static func win_doms(doms: Array, w: int) -> Control:
 	var k: int = WIN_K
 	var lay: Dictionary = dom_layout(doms.size(), w)
 	var h: int = int(lay["h"])
-	var col := Color("fffbee")
 	var root := _root(w * k, h * k)
-	_bg(root, col.lightened(0.08))
-	var pc := PanelContainer.new()
-	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pc.add_theme_stylebox_override("panel", _face_box(col))
-	root.add_child(pc)
 	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pc.add_child(center)
+	root.add_child(center)
 	var grid := GridContainer.new()
 	grid.columns = int(lay["cols"])
 	grid.add_theme_constant_override("h_separation", DOM_SEP * k)

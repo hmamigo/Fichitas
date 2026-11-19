@@ -43,7 +43,7 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 
 - Estilo educativo, con colores vivos y aspecto de juguete de calidad.
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
-- Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, la barra superior, el paso de modo, las materias, "Nivel completado" y el álbum.
+- Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver.
 
 ## Contenido
 

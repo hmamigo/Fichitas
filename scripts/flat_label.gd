@@ -10,6 +10,18 @@ var size := Vector2.ONE
 var _mat: StandardMaterial3D
 var _vp: SubViewport
 
+## Crea un rótulo con el contenido de `Cards.label(data, ...)` ya horneado. `data` lleva
+## {name, sub, icon, color, ink, frac?} con los colores como `Color`.
+static func make(parent: Node3D, s: Vector2, data: Dictionary, delay: float = 0.0, ppu: int = 128) -> FlatLabel:
+	var lb := FlatLabel.new()
+	lb.setup(s)
+	parent.add_child(lb)
+	var w: int = int(s.x * float(ppu))
+	var h: int = int(s.y * float(ppu))
+	lb.bake(Cards.label(data, w, h), w, h)
+	lb.pop_in(delay)
+	return lb
+
 func setup(s: Vector2) -> void:
 	size = s
 	_mat = StandardMaterial3D.new()

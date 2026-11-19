@@ -108,10 +108,10 @@ func _run() -> void:
 	_choose_mode(main, "mem")
 	await process_frame
 	check(main.board.tiles.size() == 6 and main.board.mode == "mem" and main.ui.hud_bar.visible, "nivel 1: 3 parejas")
-	check(main.ui.lv_label.text.ends_with("Memoria"), "el HUD muestra el modo elegido")
+	check(str(main.board.game_title.get("sub", "")).ends_with("Memoria"), "el título de la mesa del tablero muestra el modo elegido")
 	await _solve(main, 0.8)
 	await create_timer(2.8).timeout
-	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 3, "nivel completado lleva la cámara a la estación de victoria")
+	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 1 and main.board.win_station.labels.size() == 2, "nivel completado lleva la cámara a la estación de victoria (cabecera y miniaturas planas, solo el botón es loseta)")
 	check(main.board.win_station.title == "¡Nivel 1 completado!" and main.board.win_station.dom_count == 3, "la victoria muestra el título y las 3 parejas")
 	await create_timer(1.3).timeout
 	check(main.board.win_station.visible and not main.board.menu_station.visible, "al llegar solo se ve la mesa de victoria")
@@ -121,7 +121,20 @@ func _run() -> void:
 		var wg: Vector3 = main.board._ground_point(wcorner)
 		wfloor_ok = wfloor_ok and wg.x >= FloorCubes.X_MIN and wg.x <= FloorCubes.X_MAX and wg.z >= -FloorCubes.Z_FAR and wg.z <= FloorCubes.Z_NEAR
 	check(wfloor_ok, "las cuatro esquinas de la vista de la victoria caen sobre el suelo de cubos")
-	var wbtn: Plaque = main.board.win_station.tiles[2]
+	# Las listas largas (materias y álbum) también deben tener suelo en sus dos extremos de paneo
+	main._go_subjects()
+	await create_timer(1.3).timeout
+	for zsign in [-1.0, 1.0]:
+		main.board.cam_z = zsign * main.board.subject_station.pan_bounds(main.board.subject_station.fit_distance()).y
+		await create_timer(0.5).timeout
+		check(_view_on_floor(main), "materias: la vista cae sobre el suelo en el extremo %s" % ("superior" if zsign < 0.0 else "inferior"))
+	main._go_album()
+	await create_timer(1.5).timeout
+	for zsign2 in [-1.0, 1.0]:
+		main.board.cam_z = zsign2 * main.board.album_station.pan_bounds(main.board.album_station.fit_distance()).y
+		await create_timer(0.5).timeout
+		check(_view_on_floor(main), "álbum: la vista cae sobre el suelo en el extremo %s" % ("superior" if zsign2 < 0.0 else "inferior"))
+	var wbtn: Plaque = main.board.win_station.tiles[0]
 	var wspot: Vector2 = main.board.cam.unproject_position(wbtn.global_position)
 	main.board.win_station.tap(wspot, main.board.cam)
 	await process_frame
@@ -222,3 +235,12 @@ func _run() -> void:
 	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde el álbum vuelve al menú")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)
+
+## ¿Las cuatro esquinas de la vista (y el centro del borde superior) caen sobre el suelo de cubos?
+func _view_on_floor(main: Node) -> bool:
+	var vp: Vector2 = main.get_viewport().get_visible_rect().size
+	var ok: bool = true
+	for corner in [Vector2.ZERO, Vector2(vp.x, 0.0), Vector2(0.0, vp.y), vp, Vector2(vp.x * 0.5, 0.0)]:
+		var g: Vector3 = main.board._ground_point(corner)
+		ok = ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
+	return ok

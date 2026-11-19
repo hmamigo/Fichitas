@@ -258,7 +258,21 @@ func _prepare(sid: String) -> bool:
 	_pending_label = label
 	return true
 
-## Detalle de la sesión que se muestra en la cabecera del paso de modo.
+## Icono y color de la sesión actual (repaso, recorrido general o una materia).
+func _session_look() -> Dictionary:
+	if cur_review:
+		return {"icon": "cerebro", "color": Color("ffce6b")}
+	if cur_sid == "":
+		return {"icon": "brujula", "color": Color("9cc8ff")}
+	return {"icon": UiTheme.pack_icon(cur_sid), "color": UiTheme.pack_color(cur_sid)}
+
+## Rótulo plano que va sobre una mesa: lo que antes decía la barra superior 2D.
+func _title_data(name: String, sub: String) -> Dictionary:
+	var look: Dictionary = _session_look()
+	var col: Color = look["color"]
+	return {"name": name, "sub": sub, "icon": look["icon"], "color": col, "ink": col.darkened(0.62)}
+
+## Detalle de la sesión que se muestra en el rótulo del paso de modo.
 func _pending_detail() -> String:
 	if cur_review:
 		return "Repaso · %d parejas" % _pending_pairs.size()
@@ -271,8 +285,8 @@ func _go_mode(origin: int) -> void:
 	_mode_from = origin
 	state = S.MODE
 	board.stop()
-	ui.show_mode(_pending_detail())
-	board.build_mode(str(Progress.data["mode"]))
+	ui.show_mode()
+	board.build_mode(str(Progress.data["mode"]), _title_data("¿Cómo quieres jugar?", _pending_detail()))
 	board.fly_to_station("mode", 0.9 if board.station != "mode" else 0.0)
 
 func _on_mode_chosen(m: String) -> void:
@@ -300,7 +314,11 @@ func _start(pairs: Array, label: String) -> void:
 	var from_win: bool = state == S.WIN
 	state = S.GAME
 	board.mode = str(Progress.data["mode"])
-	ui.show_hud("%s · %s" % [label, "Memoria" if board.mode == "mem" else "Asociación"])
+	var mode_name: String = "Memoria" if board.mode == "mem" else "Asociación"
+	var tname: String = "Repaso" if cur_review else ("Recorrido general" if cur_sid == "" else str(_pack(cur_sid)["name"]))
+	var tsub: String = "%d parejas · %s" % [pairs.size(), mode_name] if cur_review else "Nivel %d · %s" % [cur_level, mode_name]
+	board.set_title(_title_data(tname, tsub))   # va en la franja de la mesa del tablero
+	ui.show_hud()
 	# Desde el paso de modo, la cámara baja hasta el tablero; desde la victoria, vuelve a la izquierda
 	board.fly_to_station("game", 1.1 if from_win else 0.95)
 	board.start(pairs, 0.6 if from_win else 0.78)

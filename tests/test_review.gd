@@ -77,7 +77,7 @@ func _run() -> void:
 	await process_frame
 	check(main.cur_review and main.state == main.S.GAME, "entra en la sesión de repaso")
 	check(main.board.tiles.size() == 8, "4 parejas pendientes = 8 fichas")
-	check(main.ui.lv_label.text.begins_with("Repaso"), "el HUD dice Repaso")
+	check(str(main.board.game_title.get("name", "")) == "Repaso", "el título de la mesa del tablero dice Repaso")
 	main._on_won()
 	check(main.state == main.S.WIN and main.board.station == "win", "estación de repaso completado")
 	check(main.board.win_station.title == "¡Repaso completado!", "título de repaso")

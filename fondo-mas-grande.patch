@@ -1,0 +1,91 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index c9aa22f..9e8fda0 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -28,7 +28,7 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
+ 
+ ## Arquitectura visual: un solo mundo con estaciones
+ 
+-Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones.
++Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum) y en pantallas apaisadas; `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
+ 
+ - Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado** y **álbum de datos curiosos**.
+ - Menú, materias, modo y tablero están en **fila horizontal**, y la cámara se mueve en horizontal entre ellos.
+diff --git a/scripts/floor_cubes.gd b/scripts/floor_cubes.gd
+index 406d6bf..2e29353 100644
+--- a/scripts/floor_cubes.gd
++++ b/scripts/floor_cubes.gd
+@@ -3,15 +3,16 @@ extends Node3D
+ ## Suelo de cubos de colores: un solo MultiMesh (una llamada de dibujo).
+ ## Los cubos junto al tablero quedan bajos y suaves; los lejanos crecen y dan profundidad.
+ 
+-const STEP := 1.0
+-const SIDE := 0.9
+-# Debe cubrir las seis estaciones (Board: álbum en x = -35, menú en -25, materias en -15,
+-# modo en -9, tablero en 0, victoria en +10). A los lados basta el ancho de una pantalla vertical; la mesa del álbum mide
+-# ~±22 en Z (todas las materias en una sola mesa larga), de ahí las filas.
+-const X_MIN := -43        # primera columna (izquierda del álbum)
+-const X_MAX := 20         # última columna (derecha de la estación de victoria)
+-const Z_FAR := 24         # filas hacia el fondo (−Z)
+-const Z_NEAR := 24        # filas hacia la cámara (+Z)
++const STEP := 1.15        # separación entre centros de cubos
++const SIDE := 0.88        # lado de cada cubo: la rendija entre cubos es STEP − SIDE
++# Cobertura en UNIDADES DEL MUNDO. Debe cubrir lo que ve la cámara en las seis estaciones (Board:
++# álbum en x = -35, menú en -25, materias en -15, modo en -9, tablero en 0, victoria en +10) también
++# en sus extremos de paneo: la mesa de materias mide ~±20 en Z y la del álbum ~±26, y la vista
++# llega unos 6 más allá; en pantalla apaisada o ultra ancha asoma más a los lados. Hay margen de sobra.
++const X_MIN := -54        # borde izquierdo (más allá del álbum)
++const X_MAX := 30         # borde derecho (más allá de la estación de victoria)
++const Z_FAR := 38         # hacia el fondo (−Z)
++const Z_NEAR := 38        # hacia la cámara (+Z)
+ const TOP_MIN := -0.43    # cima más baja: justo sobre el suelo base
+ const BASE_Y := -0.60     # base de todos los cubos
+ const MAX_RISE := 1.1     # altura máxima de los cubos lejanos (más bajos = el fondo se aleja)
+@@ -33,8 +34,8 @@ var _last: PackedFloat32Array = PackedFloat32Array()  # distancia con la que se
+ func _ready() -> void:
+ 	var rng := RandomNumberGenerator.new()
+ 	rng.seed = 20261112
+-	for j in range(-Z_FAR, Z_NEAR + 1):
+-		for i in range(X_MIN, X_MAX + 1):
++	for j in range(ceili(-float(Z_FAR) / STEP), floori(float(Z_NEAR) / STEP) + 1):
++		for i in range(ceili(float(X_MIN) / STEP), floori(float(X_MAX) / STEP) + 1):
+ 			var c: Color = PALETTE[rng.randi() % PALETTE.size()]
+ 			c = c.lerp(Color.WHITE, 0.12).lightened(rng.randf_range(-0.04, 0.06))
+ 			_cells.append({"x": float(i) * STEP, "z": float(j) * STEP, "col": c, "n": rng.randf()})
+diff --git a/tests/test_flow.gd b/tests/test_flow.gd
+index 90ff852..5adb29f 100644
+--- a/tests/test_flow.gd
++++ b/tests/test_flow.gd
+@@ -121,6 +121,19 @@ func _run() -> void:
+ 		var wg: Vector3 = main.board._ground_point(wcorner)
+ 		wfloor_ok = wfloor_ok and wg.x >= FloorCubes.X_MIN and wg.x <= FloorCubes.X_MAX and wg.z >= -FloorCubes.Z_FAR and wg.z <= FloorCubes.Z_NEAR
+ 	check(wfloor_ok, "las cuatro esquinas de la vista de la victoria caen sobre el suelo de cubos")
++	# Las listas largas (materias y álbum) también deben tener suelo en sus dos extremos de paneo
++	main._go_subjects()
++	await create_timer(1.3).timeout
++	for zsign in [-1.0, 1.0]:
++		main.board.cam_z = zsign * main.board.subject_station.pan_bounds(main.board.subject_station.fit_distance()).y
++		await create_timer(0.5).timeout
++		check(_view_on_floor(main), "materias: la vista cae sobre el suelo en el extremo %s" % ("superior" if zsign < 0.0 else "inferior"))
++	main._go_album()
++	await create_timer(1.5).timeout
++	for zsign2 in [-1.0, 1.0]:
++		main.board.cam_z = zsign2 * main.board.album_station.pan_bounds(main.board.album_station.fit_distance()).y
++		await create_timer(0.5).timeout
++		check(_view_on_floor(main), "álbum: la vista cae sobre el suelo en el extremo %s" % ("superior" if zsign2 < 0.0 else "inferior"))
+ 	var wbtn: Plaque = main.board.win_station.tiles[0]
+ 	var wspot: Vector2 = main.board.cam.unproject_position(wbtn.global_position)
+ 	main.board.win_station.tap(wspot, main.board.cam)
+@@ -222,3 +235,12 @@ func _run() -> void:
+ 	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde el álbum vuelve al menú")
+ 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
+ 	quit(0 if fails == 0 else 1)
++
++## ¿Las cuatro esquinas de la vista (y el centro del borde superior) caen sobre el suelo de cubos?
++func _view_on_floor(main: Node) -> bool:
++	var vp: Vector2 = main.get_viewport().get_visible_rect().size
++	var ok: bool = true
++	for corner in [Vector2.ZERO, Vector2(vp.x, 0.0), Vector2(0.0, vp.y), vp, Vector2(vp.x * 0.5, 0.0)]:
++		var g: Vector3 = main.board._ground_point(corner)
++		ok = ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
++	return ok

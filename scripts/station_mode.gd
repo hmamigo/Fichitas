@@ -18,13 +18,17 @@ const TILT := 0.17             # igual que la cámara del tablero
 const FIT_PAD_W := 2.6         # aire a los lados (la mesa completa mide 4,5 de ancho)
 const FIT_PAD_H := 2.0         # aire arriba y abajo
 
+const LABEL_H := 1.0           # rótulo plano con el título (no se toca)
+
 var tiles: Array = []
+var labels: Array = []
 var _table: Node3D
 var _height: float = 0.0
 
 ## `last_mode` queda disponible para el día que se quiera destacar el último modo,
 ## pero tocar una loseta ya elige y arranca: por eso no se marca ninguna como activa.
-func build(last_mode: String = "mem") -> void:
+## `title`: {name, sub, icon, color, ink} del rótulo que va arriba de las dos losetas (opcional).
+func build(last_mode: String = "mem", title: Dictionary = {}) -> void:
 	clear()
 	var defs: Array = [
 		{"key": "mem", "title": "Memoria", "sub": "Fichas boca abajo",
@@ -32,14 +36,21 @@ func build(last_mode: String = "mem") -> void:
 		{"key": "assoc", "title": "Asociación", "sub": "Fichas a la vista",
 			"dot": true, "bg": UiTheme.MINT, "ink": UiTheme.INK},
 	]
-	_height = float(defs.size()) * CARD_H + float(defs.size() - 1) * GAP
+	var head: float = (LABEL_H + GAP) if not title.is_empty() else 0.0
+	_height = float(defs.size()) * CARD_H + float(defs.size() - 1) * GAP + head
 	_table = TileLook.table(self, CARD_W + 0.55, _height + 0.55)
 	var views: Array = []
+	var z0: float = -_height * 0.5
+	if not title.is_empty():
+		var lb := FlatLabel.make(self, Vector2(CARD_W, LABEL_H), title, 0.0)
+		lb.position.z = z0 + LABEL_H * 0.5
+		views.append_array(lb.views())
+		labels.append(lb)
 	for i in defs.size():
 		var d: Dictionary = defs[i]
 		var p := Plaque.new()
 		p.setup(Vector2(CARD_W, CARD_H), str(d["key"]))
-		p.position.z = (float(i) - float(defs.size() - 1) * 0.5) * (CARD_H + GAP)
+		p.position.z = z0 + head + CARD_H * 0.5 + float(i) * (CARD_H + GAP)
 		add_child(p)
 		p.bake(Cards.action(str(d["title"]), str(d["sub"]), "", bool(d["dot"]),
 			d["bg"], d["ink"], FACE_W, FACE_H), FACE_W, FACE_H)
@@ -52,6 +63,9 @@ func clear() -> void:
 	for t in tiles:
 		(t as Node).queue_free()
 	tiles.clear()
+	for l in labels:
+		(l as Node).queue_free()
+	labels.clear()
 	if _table != null:
 		_table.queue_free()
 		_table = null

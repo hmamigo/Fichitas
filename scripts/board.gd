@@ -8,6 +8,7 @@ signal pair_done(pair_id: String, clean: bool)
 signal sfx(sound: String)  # "flip", "ok", "err", "win"
 
 const ST := 1.12      # separación entre fichas
+const TITLE_H := 0.9  # franja de la mesa con el título de la partida (rótulo plano, no se toca)
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
@@ -68,6 +69,7 @@ var subject_station: StationSubjects
 var mode_station: StationMode
 var album_station: StationAlbum
 var win_station: StationWin
+var game_title: Dictionary = {}   # {name, sub, icon, color}: rótulo sobre la mesa del tablero ({} = sin franja)
 var cam: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
@@ -211,9 +213,17 @@ func build_subjects(cards: Array) -> void:
 	subject_station.build(cards)
 	_refresh_floor()
 
-## Paso previo a la partida: las dos formas de jugar.
-func build_mode(mode_now: String) -> void:
-	mode_station.build(mode_now)
+## Título de la partida (materia, nivel y modo): va en una franja de la mesa del tablero.
+## Hay que fijarlo antes de `start`, para que la primera distribución ya cuente con la franja.
+func set_title(d: Dictionary) -> void:
+	game_title = d
+
+func _title_extra() -> float:
+	return TITLE_H if not game_title.is_empty() else 0.0
+
+## Paso previo a la partida: las dos formas de jugar. `title` es el rótulo plano de la mesa.
+func build_mode(mode_now: String, title: Dictionary = {}) -> void:
+	mode_station.build(mode_now, title)
 	_refresh_floor()
 
 func build_album(data: Array) -> void:
@@ -417,7 +427,7 @@ func _layout() -> void:
 	var best_cells: int = 1 << 30
 	for c in range(2, n + 1):
 		var r: int = ceili(float(n) / float(c))
-		var s: float = minf(a / float(c), 0.86 / float(r))
+		var s: float = minf(a / float(c), 0.86 / (float(r) + _title_extra() / ST))
 		if s > best_s + 1e-6 or (absf(s - best_s) < 1e-6 and c * r < best_cells):
 			best_s = s
 			best_c = c
@@ -435,7 +445,7 @@ func _layout() -> void:
 	_build_board()
 	var tn: float = tan(deg_to_rad(FOV * 0.5))
 	var w: float = float(cols) * ST + 0.5
-	var h: float = float(rows) * ST + 0.5
+	var h: float = float(rows) * ST + 0.5 + _title_extra()
 	fit = maxf((h + 0.3) / (2.0 * tn), (w + 0.3) / (a * 2.0 * tn)) * 1.12
 	# El degradado del suelo se ajusta a lo que ve la cámara en este nivel
 	if ground_mesh != null:
@@ -450,7 +460,14 @@ func _build_board() -> void:
 	add_child(board)
 	var w: float = float(cols) * ST + 0.5
 	var h: float = float(rows) * ST + 0.5
-	TileLook.table(board, w, h)
+	var extra: float = _title_extra()
+	# Con título, la mesa crece hacia arriba (−z) y el rótulo ocupa esa franja
+	var tb: Node3D = TileLook.table(board, w, h + extra)
+	tb.position.z = -extra * 0.5
+	if extra > 0.0:
+		var lb := FlatLabel.make(board, Vector2(float(cols) * ST, extra), game_title, 0.0)
+		lb.position.z = -(float(rows) * ST * 0.5 + 0.25 + extra * 0.5)
+		FaceTex.settle(lb.views())
 
 # ---------- Cámara y estaciones ----------
 
@@ -535,7 +552,8 @@ func _pose() -> Dictionary:
 		}
 	if station == "menu":
 		return {"target": Vector3(MENU_X, MENU_LOOK_Y, menu_look_z), "dist": MENU_DIST, "tilt": TILT, "yaw": 0.0}
-	return {"target": Vector3(cam_x, 0.0, cam_z), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
+	# La mesa del tablero crece hacia arriba con el título: la cámara mira un poco más allá del centro
+	return {"target": Vector3(cam_x, 0.0, cam_z - _title_extra() * 0.5), "dist": fit / zoom, "tilt": TILT, "yaw": 0.0}
 
 ## Pose que se está viendo ahora mismo (a mitad de un vuelo, la mezcla).
 func _pose_now() -> Dictionary:
@@ -658,7 +676,8 @@ func _refresh_floor() -> void:
 	if cols > 0 and rows > 0:
 		var w: float = float(cols) * ST + 0.5
 		var h: float = float(rows) * ST + 0.5
-		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - 0.22, w + 0.44, h + 0.44))
+		var ex: float = _title_extra()
+		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - ex - 0.22, w + 0.44, h + ex + 0.44))
 	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
 		if st != null and (st as Node3D).visible:
 			if st.has_method("clear_rects"):

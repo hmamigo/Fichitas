@@ -28,7 +28,7 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
 
 ## Arquitectura visual: un solo mundo con estaciones
 
-Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones.
+Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum) y en pantallas apaisadas; `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
 
 - Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado** y **álbum de datos curiosos**.
 - Menú, materias, modo y tablero están en **fila horizontal**, y la cámara se mueve en horizontal entre ellos.
@@ -38,7 +38,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - En Materias el usuario hace zoom y recorre las fichas a mano, igual que en el tablero.
 - La cámara **no rota libremente**: solo zoom y desplazamiento.
 - El fondo de cubos va algo alejado, y el menú un poco más abajo, no pegado al logo.
-- No agregar pantallas 2D ni paneles de UI que rompan esta lógica. Si hace falta algo de interfaz (barra superior, botones), debe tener la misma estética que las fichas.
+- No agregar pantallas 2D ni paneles de UI que rompan esta lógica. Si hace falta algo de interfaz (botones de volver, avisos), debe tener la misma estética que las fichas. **La capa 2D no lleva títulos**: la barra superior solo tiene el botón de volver y todo texto que informa (menú principal, "¿Cómo quieres jugar?", título y nivel de la partida, álbum, victoria) es un rótulo plano sobre su mesa.
 
 ## Estilo visual (no romper)
 
@@ -47,7 +47,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Filo dorado, placas color crema, marco azul del tablero.
 - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
 - Todo elemento nuevo (menú, botones superiores, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
-- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa en 3D, `_flat_tile` en 2D). Un rótulo nuevo que no se toca no debe parecer un botón.
+- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón.
 - Los iconos de menús y materias son PNG a color de `assets/emoji/` (Noto Emoji); `UiTheme.icon()` los prefiere a los SVG de línea del mismo nombre.
 
 ## Flujo de pantallas y estados
@@ -56,7 +56,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 
 | Estado | Estación / capa | Qué se ve | Se llega desde |
 |---|---|---|---|
-| `MENU` | `StationMenu` (x = -25) | Logo, tres losetas (Jugar, Recorrido general, Álbum) y pastilla con Sonido/Vibración. | Arranque, "Atrás". |
+| `MENU` | `StationMenu` (x = -25) | Logo y pastilla con Sonido/Vibración (2D) y, en la mesa, el rótulo "Menú principal" y tres losetas (Jugar, Recorrido general, Álbum). | Arranque, "Atrás". |
 | `SUBJECTS` | `StationSubjects` (x = -15) | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds, Más), cada una con su rótulo plano arriba y el marco de su color; las losetas son las materias, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
 | `MODE` | `StationMode` (x = -9) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
 | `GAME` | Tablero (x = 0) | Fichas y barra de juego. | Tocar una loseta de modo o "Siguiente nivel". |
@@ -162,7 +162,7 @@ Fichitas/
 | `pick3d.gd` | Toques sobre piezas planas: rayo desde la cámara contra el plano de la mesa. |
 | `face_tex.gd` | Hornea controles 2D a textura para usarlos como cara de una loseta. |
 | `cards.gd` | Caras 2D de las losetas, dibujadas con el tema. |
-| `ui.gd` | Capas 2D: cabeceras, barra de juego y dato curioso. Solo dibuja y emite señales. |
+| `ui.gd` | Capas 2D: botones de volver y dato curioso, sin títulos. Solo dibuja y emite señales. |
 | `ui_theme.gd` | Tema de interfaz: relieve, fuentes, pieles de botón, iconos y logo. |
 | `audio.gd` | Efectos de sonido sintetizados en memoria. |
 | `progress.gd` | Guardado JSON en `user://`: nivel, dominio, calendario de repaso y ajustes. |

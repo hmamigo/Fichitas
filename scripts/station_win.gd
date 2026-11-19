@@ -1,8 +1,9 @@
 class_name StationWin
 extends Node3D
-## Estación de "Nivel completado": una mesa a la derecha del tablero con tres losetas
-## (cabecera con medalla y mensaje, miniaturas de las parejas con su dominio y el
-## botón de seguir). La cámara viaja hasta aquí al ganar y vuelve al tablero al seguir.
+## Estación de "Nivel completado": una mesa a la derecha del tablero. La cabecera (trofeo y
+## mensaje) y las miniaturas de las parejas con su dominio van planas sobre la mesa, porque no
+## se tocan; la única loseta con relieve es el botón de seguir. La cámara viaja hasta aquí al
+## ganar y vuelve al tablero al seguir.
 
 signal next
 
@@ -19,7 +20,8 @@ const FIT_PAD_H := 0.9         # aire arriba y abajo al encuadrar la pila entera
 const PAN_PAD_X := 0.10
 const PAN_PAD_Y := 0.11
 
-var tiles: Array = []
+var tiles: Array = []          # Plaque: solo el botón de seguir
+var labels: Array = []         # FlatLabel: cabecera y miniaturas, planas
 var title: String = ""
 var dom_count: int = 0
 var _table: Node3D
@@ -33,15 +35,15 @@ func build(data: Dictionary) -> void:
 	dom_count = doms.size()
 	var w: int = int(CARD_W * PPU)
 	var k: int = Cards.WIN_K
-	var parts: Array = []   # {key, h (unidades), face (Control), px_h}
+	var parts: Array = []   # {key, h (unidades), face (Control), px, flat}
 	var head_px: int = int(round(HEAD_H * PPU))
-	parts.append({"key": "head", "h": float(head_px) / PPU, "px": head_px,
+	parts.append({"key": "head", "h": float(head_px) / PPU, "px": head_px, "flat": true,
 		"face": Cards.win_header(title, str(data.get("msg", "")), w, head_px)})
 	if dom_count > 0:
 		var dom_px: int = int(Cards.dom_layout(dom_count, w)["h"])
-		parts.append({"key": "doms", "h": float(dom_px) / PPU, "px": dom_px, "face": Cards.win_doms(doms, w)})
+		parts.append({"key": "doms", "h": float(dom_px) / PPU, "px": dom_px, "flat": true, "face": Cards.win_doms(doms, w)})
 	var btn_px: int = int(round(BTN_H * PPU))
-	parts.append({"key": "next", "h": float(btn_px) / PPU, "px": btn_px,
+	parts.append({"key": "next", "h": float(btn_px) / PPU, "px": btn_px, "flat": false,
 		"face": Cards.win_button(str(data.get("button", "Seguir")), w, btn_px)})
 	_height = GAP * float(parts.size() - 1)
 	for p in parts:
@@ -52,22 +54,37 @@ func build(data: Dictionary) -> void:
 	for i in parts.size():
 		var d: Dictionary = parts[i]
 		var ph: float = float(d["h"])
-		var pl := Plaque.new()
-		pl.setup(Vector2(CARD_W, ph), str(d["key"]))
-		pl.position.z = z + ph * 0.5
+		var delay: float = 0.55 + 0.14 * float(i)   # aparecen cuando la cámara llega
+		if bool(d["flat"]):
+			# Lo que no se toca va plano sobre la mesa; solo el botón es una loseta con relieve
+			var fl := FlatLabel.new()
+			fl.setup(Vector2(CARD_W, ph))
+			fl.position.z = z + ph * 0.5
+			add_child(fl)
+			fl.bake(d["face"], w * k, int(d["px"]) * k)
+			fl.pop_in(delay)
+			views.append_array(fl.views())
+			labels.append(fl)
+		else:
+			var pl := Plaque.new()
+			pl.setup(Vector2(CARD_W, ph), str(d["key"]))
+			pl.position.z = z + ph * 0.5
+			add_child(pl)
+			pl.bake(d["face"], w * k, int(d["px"]) * k)
+			pl.set_selected(true, true)   # la acción principal brilla
+			pl.pop_in(delay)
+			views.append_array(pl.views())
+			tiles.append(pl)
 		z += ph + GAP
-		add_child(pl)
-		pl.bake(d["face"], w * k, int(d["px"]) * k)
-		pl.set_selected(pl.key == "next", true)   # la acción principal brilla
-		pl.pop_in(0.55 + 0.14 * float(i))         # aparecen cuando la cámara llega
-		views.append_array(pl.views())
-		tiles.append(pl)
 	FaceTex.settle(views)
 
 func clear() -> void:
 	for t in tiles:
 		(t as Node).queue_free()
 	tiles.clear()
+	for l in labels:
+		(l as Node).queue_free()
+	labels.clear()
 	if _table != null:
 		_table.queue_free()
 		_table = null

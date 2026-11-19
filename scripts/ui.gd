@@ -8,7 +8,6 @@ signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
 
 var hud_bar: Control
-var lv_label: Label
 var menu: Control
 var sound_btn: Button
 var vib_btn: Button
@@ -18,7 +17,6 @@ var toast_label: Label
 var album: Control
 var fact: Control
 var _th: Theme
-var _mode_sub: Label
 var _fact_card: Control
 var _fact_a: TextureRect
 var _fact_b: TextureRect
@@ -248,25 +246,6 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: in
 	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
 	return rim
 
-## Rótulo plano 2D (no se toca): panel translúcido sin filo dorado ni relieve. Mantiene la
-## estructura de `_enamel_tile` (el hijo 0 es la cara) para poder usarse en su lugar.
-func _flat_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: int = 26) -> PanelContainer:
-	var rim := PanelContainer.new()
-	rim.custom_minimum_size = min_size
-	rim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rim.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	var face := PanelContainer.new()
-	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fs := StyleBoxFlat.new()
-	fs.bg_color = Color(face_col.r, face_col.g, face_col.b, 0.92)
-	fs.set_corner_radius_all(radius)
-	fs.content_margin_left = pad_h
-	fs.content_margin_right = pad_h
-	face.add_theme_stylebox_override("panel", fs)
-	rim.add_child(face)
-	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
-	return rim
-
 ## Botón de volver: ficha esmaltada con un botón transparente encima que cubre toda la ficha.
 func _back_tile(text: String) -> Control:
 	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
@@ -485,12 +464,6 @@ func _build_hud() -> void:
 	h.add_theme_constant_override("separation", 12)
 	m.add_child(h)
 	h.add_child(_back_tile("Atrás"))
-	# Nivel y modo: placa crema con el mismo filo dorado
-	var plate := _flat_tile(Vector2(0, 90), Color("fffdf7"), 28)
-	lv_label = _label("", UiTheme.T_BODY, true, UiTheme.BLUE_DARK)
-	lv_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	(plate.get_child(0) as Control).add_child(lv_label)
-	h.add_child(plate)
 
 func _build_menu() -> void:
 	menu = _screen("none")  # sin fondo: detrás se ve el suelo de cubos 3D
@@ -602,20 +575,6 @@ func _build_subjects() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Menú"))
-	var plate := _flat_tile(Vector2(0, 96), Color("fffdf7"), 28)
-	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(plate)
-	var hb := VBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 0)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(plate.get_child(0) as Control).add_child(hb)
-	var t := _label("Elige una materia", UiTheme.T_HEAD - 6, true, UiTheme.BLUE_DARK)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(t)
-	var st := _label("Cada materia tiene sus propios niveles.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
-	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(st)
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
@@ -640,20 +599,6 @@ func _build_mode() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Atrás"))
-	var plate := _flat_tile(Vector2(0, 110), Color("fffdf7"), 28)
-	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(plate)
-	var hb := VBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 0)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(plate.get_child(0) as Control).add_child(hb)
-	var t := _label("¿Cómo quieres jugar?", UiTheme.T_HEAD - 8, true, UiTheme.BLUE_DARK)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(t)
-	_mode_sub = _label("", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
-	_mode_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(_mode_sub)
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
@@ -676,20 +621,6 @@ func _build_album() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Menú"))
-	var plate := _flat_tile(Vector2(0, 96), Color("fffdf7"), 28)
-	plate.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(plate)
-	var hb := VBoxContainer.new()
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 0)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	(plate.get_child(0) as Control).add_child(hb)
-	var t := _label("Álbum", UiTheme.T_HEAD - 6, true, UiTheme.BLUE_DARK)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(t)
-	var st := _label("Las parejas que ya dominas.", UiTheme.T_SMALL, false, UiTheme.INK_SOFT)
-	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	hb.add_child(st)
 	# La capa no debe tragarse los toques: las fichas viven en la escena 3D
 	_pass_through(album)
 
@@ -774,9 +705,9 @@ func show_menu(opts: Dictionary = {}) -> void:
 	_layout_menu_deco()
 	_animate_menu()
 
-func show_hud(text: String) -> void:
+## Barra superior de la partida: solo el botón de volver; el título va en la mesa del tablero.
+func show_hud() -> void:
 	hide_all()
-	lv_label.text = text
 	hud_bar.visible = true
 
 ## Las tarjetas de materia son losetas 3D: aquí solo queda la cabecera y el aviso.
@@ -787,10 +718,9 @@ func show_subjects() -> void:
 	_update_columns()
 	subjects.visible = true
 
-## Paso previo a la partida: `detail` es la sesión que se va a jugar.
-func show_mode(detail: String) -> void:
+## Paso previo a la partida: solo el botón de volver; el título va en la mesa de modo.
+func show_mode() -> void:
 	hide_all()
-	_mode_sub.text = detail
 	mode_screen.visible = true
 
 func show_album() -> void:
