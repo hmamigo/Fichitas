@@ -4,7 +4,8 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
 
 ## Idioma y trato
 
-- Comunicación, comentarios y mensajes de commit en **español**.
+- Comunicación y comentarios en **español**.
+- Mensajes de commit en **inglés**.
 - Los nombres de código (variables, funciones, nodos) pueden estar en inglés o español, pero hay que seguir el criterio que ya use el archivo que se edita.
 - El autor está aprendiendo inglés: si aparece vocabulario técnico en inglés, está bien, pero explicalo brevemente cuando no sea obvio.
 

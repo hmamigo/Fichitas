@@ -32,9 +32,9 @@ func build(last_mode: String = "mem", title: Dictionary = {}) -> void:
 	clear()
 	var defs: Array = [
 		{"key": "mem", "title": "Memoria", "sub": "Fichas boca abajo",
-			"dot": true, "bg": UiTheme.LAVENDER, "ink": UiTheme.INK},
+			"icon": "cerebro", "bg": UiTheme.LAVENDER, "ink": UiTheme.INK},
 		{"key": "assoc", "title": "Asociación", "sub": "Fichas a la vista",
-			"dot": true, "bg": UiTheme.MINT, "ink": UiTheme.INK},
+			"icon": "dialogo", "bg": UiTheme.MINT, "ink": UiTheme.INK},
 	]
 	var head: float = (LABEL_H + GAP) if not title.is_empty() else 0.0
 	_height = float(defs.size()) * CARD_H + float(defs.size() - 1) * GAP + head
@@ -52,7 +52,7 @@ func build(last_mode: String = "mem", title: Dictionary = {}) -> void:
 		p.setup(Vector2(CARD_W, CARD_H), str(d["key"]))
 		p.position.z = z0 + head + CARD_H * 0.5 + float(i) * (CARD_H + GAP)
 		add_child(p)
-		p.bake(Cards.action(str(d["title"]), str(d["sub"]), "", bool(d["dot"]),
+		p.bake(Cards.action(str(d["title"]), str(d["sub"]), str(d["icon"]), false,
 			d["bg"], d["ink"], FACE_W, FACE_H), FACE_W, FACE_H)
 		p.pop_in(0.04 * float(i))
 		views.append_array(p.views())
