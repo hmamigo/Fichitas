@@ -32,3 +32,6 @@ desktop.ini
 # --- Herramientas locales del editor ---
 addons/.godot_ai_update/
 @icons picker.html
+
+# --- Patch
+*.patch
