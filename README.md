@@ -30,11 +30,11 @@ No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de
 
 | Estación | Qué es |
 |---|---|
-| **Menú** | Vista lejana, con el logo y las opciones: jugar, recorrido general y álbum. |
-| **Materias** | Fichas de cada materia. Se hace zoom y se recorren a mano, igual que en el tablero. |
+| **Menú** | Vista lejana, con el logo y una mesa "Menú principal" con las opciones: jugar, recorrido general y álbum. |
+| **Materias** | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds y Más), cada una con su color. Se hace zoom y se recorre a mano, igual que en el tablero. |
 | **Modo** | Paso "¿Cómo quieres jugar?": dos losetas grandes, Memoria y Asociación. La partida empieza al tocar una. |
-| **Tablero** | La partida. La cámara baja hasta la posición de juego. |
-| **Nivel completado** | Una loseta 3D real en el piso, a la que se llega moviendo la cámara. |
+| **Tablero** | La partida, con su título (materia, nivel y modo) sobre la mesa. La cámara baja hasta la posición de juego. |
+| **Nivel completado** | Una mesa a la derecha del tablero, con el trofeo, las parejas del nivel y el botón de seguir. |
 | **Álbum de datos curiosos** | Fichas iguales a las del juego, con la cámara moviéndose en vertical. |
 
 La cámara no rota libremente: solo hace zoom y se desplaza.
@@ -44,6 +44,8 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 - Estilo educativo, con colores vivos y aspecto de juguete de calidad.
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
 - Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver.
+- Cada grupo de materias tiene su mesa con el marco de su color, y los iconos son a color.
+- El suelo está hecho de cubos de tres tamaños; los altos quedan lejos de las mesas para que no compitan con ellas.
 
 ## Contenido
 
@@ -90,8 +92,9 @@ En Android, exportar con el preset **Android**, instalar con `adb install -r <ap
 
 En desarrollo. Lo que viene:
 
-- Paquetes externos de fichas, con más pulido.
-- Carga de imágenes del usuario.
+- Probar el rendimiento y el tacto en un celular real (el suelo tiene unos 9 000 cubos).
+- Más materias para Peques (colores, formas, mamá y cría).
+- Paquetes externos de fichas, con más pulido, y carga de imágenes del usuario.
 
 Por ahora el juego no tiene materias premium, códigos de desbloqueo ni donaciones. Primero se termina el juego y se ve si gusta.
 

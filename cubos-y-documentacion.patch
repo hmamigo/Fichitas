@@ -1,0 +1,260 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 9e8fda0..b67c901 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -28,16 +28,17 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
+ 
+ ## Arquitectura visual: un solo mundo con estaciones
+ 
+-Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum) y en pantallas apaisadas; `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
++Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum), en pantallas muy altas y en ventanas apaisadas de escritorio (solo para desarrollo); `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
+ 
+ - Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado** y **álbum de datos curiosos**.
+-- Menú, materias, modo y tablero están en **fila horizontal**, y la cámara se mueve en horizontal entre ellos.
++- Las estaciones están en **fila horizontal** (álbum −35, menú −25, materias −15, modo −9, tablero 0, victoria +10) y la cámara se mueve en horizontal entre ellas. El tablero ancho (hasta ±5,5) no debe tocar la mesa del modo: si se mueve una estación, revisar el vuelo en pantalla ancha.
+ - El paso **modo** ("¿Cómo quieres jugar?") va entre materias y tablero: el jugador elige Memoria o Asociación recién cuando ya eligió qué practicar. El menú principal no cambia modos.
+ - El álbum de datos curiosos es una estación 3D como Materias, con fichas iguales a las del juego y la cámara moviéndose en vertical. La cámara debe estar algo más alejada que en otras estaciones.
+-- "Nivel completado" es una **loseta 3D real** en el piso, a la que se llega solo moviendo la cámara.
+-- En Materias el usuario hace zoom y recorre las fichas a mano, igual que en el tablero.
++- "Nivel completado" es una **estación 3D** a la derecha del tablero (una mesa con cabecera, miniaturas y un botón), a la que se llega solo moviendo la cámara.
++- Materias son **varias mesas** (una por grupo), no una columna única; el usuario hace zoom y recorre la lista a mano, igual que en el tablero.
+ - La cámara **no rota libremente**: solo zoom y desplazamiento.
+ - El fondo de cubos va algo alejado, y el menú un poco más abajo, no pegado al logo.
++- Suelo: cubos de **tres tamaños** (grandes de 2×2, medianos y chicos de ½×½) repartidos por bloques sin solaparse. Cerca de cada mesa se quedan bajos y pálidos (`CLEAR_MARGIN`, `RISE_START`) y los altos empiezan más lejos. Presupuesto de rendimiento: unos 9 000 cubos de 96 triángulos (~860 000); no subirlo sin medir en un móvil modesto.
+ - No agregar pantallas 2D ni paneles de UI que rompan esta lógica. Si hace falta algo de interfaz (botones de volver, avisos), debe tener la misma estética que las fichas. **La capa 2D no lleva títulos**: la barra superior solo tiene el botón de volver y todo texto que informa (menú principal, "¿Cómo quieres jugar?", título y nivel de la partida, álbum, victoria) es un rótulo plano sobre su mesa.
+ 
+ ## Estilo visual (no romper)
+@@ -46,7 +47,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
+ - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
+ - Filo dorado, placas color crema, marco azul del tablero.
+ - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
+-- Todo elemento nuevo (menú, botones superiores, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
++- Todo elemento nuevo (menú, botón de volver, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
+ - Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón.
+ - Los iconos de menús y materias son PNG a color de `assets/emoji/` (Noto Emoji); `UiTheme.icon()` los prefiere a los SVG de línea del mismo nombre.
+ 
+@@ -58,10 +59,10 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
+ |---|---|---|---|
+ | `MENU` | `StationMenu` (x = -25) | Logo y pastilla con Sonido/Vibración (2D) y, en la mesa, el rótulo "Menú principal" y tres losetas (Jugar, Recorrido general, Álbum). | Arranque, "Atrás". |
+ | `SUBJECTS` | `StationSubjects` (x = -15) | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds, Más), cada una con su rótulo plano arriba y el marco de su color; las losetas son las materias, Recorrido general y Repaso. | Jugar, "Atrás" desde modo/juego. |
+-| `MODE` | `StationMode` (x = -9) | "¿Cómo quieres jugar?" con Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
+-| `GAME` | Tablero (x = 0) | Fichas y barra de juego. | Tocar una loseta de modo o "Siguiente nivel". |
+-| `WIN` | `StationWin` (x = +10) | Mesa de nivel completado. | Al emparejar todo. |
+-| `ALBUM` | `StationAlbum` (x = -35) | Secciones por materia, parejas dominadas y dato curioso. | Loseta Álbum. |
++| `MODE` | `StationMode` (x = -9) | Rótulo "¿Cómo quieres jugar?" (con la sesión) y las losetas Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
++| `GAME` | Tablero (x = 0) | Fichas sobre su mesa, con el título de la partida (materia, nivel y modo) en una franja plana arriba; la capa 2D solo tiene "Atrás". | Tocar una loseta de modo o "Siguiente nivel". |
++| `WIN` | `StationWin` (x = +10) | Cabecera con trofeo y miniaturas de las parejas (planas) y la loseta "Siguiente nivel". | Al emparejar todo. |
++| `ALBUM` | `StationAlbum` (x = -35) | Rótulo "Álbum" y una sección por materia con sus parejas dominadas y dato curioso. | Loseta Álbum. |
+ 
+ - Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
+ - "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.
+@@ -80,7 +81,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
+ `packs/index.json` es el índice de los paquetes oficiales y su orden:
+ 
+ ```json
+-{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani"]}
++{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar"]}
+ ```
+ 
+ Cada materia vive en `packs/<id>/pack.json`:
+@@ -101,7 +102,7 @@ Cada materia vive en `packs/<id>/pack.json`:
+ - `format`: si está, debe ser `1`.
+ - `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
+ - `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
+-- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99.
++- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
+ - `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
+ - Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
+ - Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
+@@ -149,28 +150,28 @@ Fichitas/
+ |---|---|
+ | `main.gd` | Orquesta estados, niveles, guardado y vuelos de cámara; conecta las señales. |
+ | `board.gd` | El mundo 3D: cámara, entorno, suelo, entrada táctil, fichas y reglas de los dos modos. Emite `won`, `pair_done` y `sfx`. Guarda las estaciones y el encuadre (pose, paneo, huecos del suelo). |
+-| `station_menu.gd` | Mesa del menú: Jugar, Recorrido general y Álbum. |
++| `station_menu.gd` | Mesa del menú: rótulo "Menú principal" y las losetas Jugar, Recorrido general y Álbum. |
+ | `station_subjects.gd` | Mesas de materias por grupo, con recorrido general y repaso. |
+-| `flat_label.gd` | Rótulo plano 3D (no se toca) pintado sobre la mesa; contenido en `Cards.label`. |
+-| `station_mode.gd` | Paso "¿Cómo quieres jugar?": Memoria y Asociación. |
+-| `station_win.gd` | Mesa de nivel completado. |
+-| `station_album.gd` | Mesa del álbum: secciones por materia y parejas en fichas. |
++| `flat_label.gd` | Rótulo plano 3D (no se toca) pintado sobre la mesa; su contenido lo dibuja `Cards.label`. `FlatLabel.make()` lo crea ya horneado. |
++| `station_mode.gd` | Paso "¿Cómo quieres jugar?": rótulo con la sesión y las losetas Memoria y Asociación. |
++| `station_win.gd` | Mesa de nivel completado: cabecera y miniaturas planas y la loseta de seguir. |
++| `station_album.gd` | Mesa del álbum: rótulo, secciones por materia (cabeceras planas) y parejas en fichas. |
+ | `album_tile.gd` | Ficha del álbum (boca arriba si la pareja está dominada). |
+ | `plaque.gd` | Loseta genérica del mundo: cara horneada, pulsación y animación de entrada. |
+ | `tile_look.gd` | Piezas visuales compartidas: metal dorado, dorso con emblema y mesas con marco. |
+ | `tile_mesh.gd` | Mallas procedurales: losa redondeada con bisel y caras planas. |
+ | `pick3d.gd` | Toques sobre piezas planas: rayo desde la cámara contra el plano de la mesa. |
+ | `face_tex.gd` | Hornea controles 2D a textura para usarlos como cara de una loseta. |
+-| `cards.gd` | Caras 2D de las losetas, dibujadas con el tema. |
++| `cards.gd` | Caras 2D que se hornean a textura: losetas (`subject`, `action`, `win_button`) y rótulos planos (`label`, `win_header`, `win_doms`). |
+ | `ui.gd` | Capas 2D: botones de volver y dato curioso, sin títulos. Solo dibuja y emite señales. |
+-| `ui_theme.gd` | Tema de interfaz: relieve, fuentes, pieles de botón, iconos y logo. |
++| `ui_theme.gd` | Tema de interfaz: relieve, fuentes, iconos (a color de `assets/emoji/` o SVG de línea) y logo. |
+ | `audio.gd` | Efectos de sonido sintetizados en memoria. |
+ | `progress.gd` | Guardado JSON en `user://`: nivel, dominio, calendario de repaso y ajustes. |
+ | `levels.gd` | Tamaños de nivel, selección de parejas y repaso espaciado. |
+-| `packs.gd` | Carga los paquetes oficiales y los externos. |
++| `packs.gd` | Carga los paquetes oficiales y los externos, y define las categorías (`CATEGORIES`). |
+ | `pack_import.gd` | Importa `.zip` externos con validación estricta. |
+ | `cam_view.gd` | Geometría de la vista: qué entra en pantalla y a qué distancia. |
+-| `floor_cubes.gd` | Suelo de cubos de colores en un solo `MultiMesh`. |
++| `floor_cubes.gd` | Suelo de cubos de colores y tres tamaños en un solo `MultiMesh`. |
+ 
+ ## Pruebas
+ 
+@@ -188,7 +189,7 @@ godot --headless --path . --script res://tests/test_packs.gd
+ |---|---|
+ | `run_tests` | Malla de ficha y carga de los 9 paquetes oficiales. |
+ | `test_game` | Reglas del tablero: parejas, arrastre, victoria, chispas y nivel de 24 parejas. |
+-| `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara y guardado. |
++| `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara, cobertura del suelo en los extremos de las listas y guardado. |
+ | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |
+ | `test_packs` | Importación de paquetes externos: validación, imágenes, reemplazo y borrado. |
+ 
+diff --git a/README.md b/README.md
+index 3fc85c2..464bdcd 100644
+--- a/README.md
++++ b/README.md
+@@ -30,11 +30,11 @@ No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de
+ 
+ | Estación | Qué es |
+ |---|---|
+-| **Menú** | Vista lejana, con el logo y las opciones: jugar, recorrido general y álbum. |
+-| **Materias** | Fichas de cada materia. Se hace zoom y se recorren a mano, igual que en el tablero. |
++| **Menú** | Vista lejana, con el logo y una mesa "Menú principal" con las opciones: jugar, recorrido general y álbum. |
++| **Materias** | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds y Más), cada una con su color. Se hace zoom y se recorre a mano, igual que en el tablero. |
+ | **Modo** | Paso "¿Cómo quieres jugar?": dos losetas grandes, Memoria y Asociación. La partida empieza al tocar una. |
+-| **Tablero** | La partida. La cámara baja hasta la posición de juego. |
+-| **Nivel completado** | Una loseta 3D real en el piso, a la que se llega moviendo la cámara. |
++| **Tablero** | La partida, con su título (materia, nivel y modo) sobre la mesa. La cámara baja hasta la posición de juego. |
++| **Nivel completado** | Una mesa a la derecha del tablero, con el trofeo, las parejas del nivel y el botón de seguir. |
+ | **Álbum de datos curiosos** | Fichas iguales a las del juego, con la cámara moviéndose en vertical. |
+ 
+ La cámara no rota libremente: solo hace zoom y se desplaza.
+@@ -44,6 +44,8 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
+ - Estilo educativo, con colores vivos y aspecto de juguete de calidad.
+ - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
+ - Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver.
++- Cada grupo de materias tiene su mesa con el marco de su color, y los iconos son a color.
++- El suelo está hecho de cubos de tres tamaños; los altos quedan lejos de las mesas para que no compitan con ellas.
+ 
+ ## Contenido
+ 
+@@ -90,8 +92,9 @@ En Android, exportar con el preset **Android**, instalar con `adb install -r <ap
+ 
+ En desarrollo. Lo que viene:
+ 
+-- Paquetes externos de fichas, con más pulido.
+-- Carga de imágenes del usuario.
++- Probar el rendimiento y el tacto en un celular real (el suelo tiene unos 9 000 cubos).
++- Más materias para Peques (colores, formas, mamá y cría).
++- Paquetes externos de fichas, con más pulido, y carga de imágenes del usuario.
+ 
+ Por ahora el juego no tiene materias premium, códigos de desbloqueo ni donaciones. Primero se termina el juego y se ve si gusta.
+ 
+diff --git a/scripts/floor_cubes.gd b/scripts/floor_cubes.gd
+index 2e29353..63917cf 100644
+--- a/scripts/floor_cubes.gd
++++ b/scripts/floor_cubes.gd
+@@ -1,10 +1,18 @@
+ class_name FloorCubes
+ extends Node3D
+ ## Suelo de cubos de colores: un solo MultiMesh (una llamada de dibujo).
+-## Los cubos junto al tablero quedan bajos y suaves; los lejanos crecen y dan profundidad.
++## Los cubos junto a las mesas quedan bajos y suaves; los lejanos crecen y dan profundidad.
++## Hay tres tamaños (grandes de 2×2, medianos de 1×1 y chicos de ½×½) repartidos por bloques de
++## 2×2 sin solaparse, así el fondo tiene ritmo y no es una cuadrícula uniforme.
+ 
+-const STEP := 1.15        # separación entre centros de cubos
+-const SIDE := 0.88        # lado de cada cubo: la rendija entre cubos es STEP − SIDE
++const STEP := 1.0         # lado de la celda mediana
++const SIDE := 0.9         # lado del cubo mediano: la rendija es el 10 % de la celda
++const P_LARGE := 0.20     # probabilidad de que un bloque 2×2 sea un solo cubo grande
++const P_SMALL := 0.20     # probabilidad de que una celda mediana se divida en 4 cubos chicos
++# Zona alrededor de cada mesa donde los cubos se quedan bajos y pálidos, y distancia desde la que
++# empiezan a crecer: cuanto mayores, más lejos de las mesas aparecen los cubos altos.
++const CLEAR_MARGIN := 1.5
++const RISE_START := 0.6
+ # Cobertura en UNIDADES DEL MUNDO. Debe cubrir lo que ve la cámara en las seis estaciones (Board:
+ # álbum en x = -35, menú en -25, materias en -15, modo en -9, tablero en 0, victoria en +10) también
+ # en sus extremos de paneo: la mesa de materias mide ~±20 en Z y la del álbum ~±26, y la vista
+@@ -34,15 +42,27 @@ var _last: PackedFloat32Array = PackedFloat32Array()  # distancia con la que se
+ func _ready() -> void:
+ 	var rng := RandomNumberGenerator.new()
+ 	rng.seed = 20261112
+-	for j in range(ceili(-float(Z_FAR) / STEP), floori(float(Z_NEAR) / STEP) + 1):
+-		for i in range(ceili(float(X_MIN) / STEP), floori(float(X_MAX) / STEP) + 1):
+-			var c: Color = PALETTE[rng.randi() % PALETTE.size()]
+-			c = c.lerp(Color.WHITE, 0.12).lightened(rng.randf_range(-0.04, 0.06))
+-			_cells.append({"x": float(i) * STEP, "z": float(j) * STEP, "col": c, "n": rng.randf()})
++	var j0: int = ceili(-float(Z_FAR) / STEP)
++	var i0: int = ceili(float(X_MIN) / STEP)
++	j0 -= posmod(j0, 2)   # los bloques de 2×2 empiezan en índices pares
++	i0 -= posmod(i0, 2)
++	for j in range(j0, floori(float(Z_NEAR) / STEP) + 1, 2):
++		for i in range(i0, floori(float(X_MAX) / STEP) + 1, 2):
++			if rng.randf() < P_LARGE:
++				_add_cube(rng, float(i) + 0.5, float(j) + 0.5, 2.0)    # un cubo grande ocupa el bloque
++				continue
++			for dj in 2:
++				for di in 2:
++					if rng.randf() < P_SMALL:
++						for sj in 2:
++							for si in 2:   # cuatro chicos dentro de la celda
++								_add_cube(rng, float(i + di) - 0.25 + 0.5 * float(si), float(j + dj) - 0.25 + 0.5 * float(sj), 0.5)
++					else:
++						_add_cube(rng, float(i + di), float(j + dj), 1.0)
+ 	var mm := MultiMesh.new()
+ 	mm.transform_format = MultiMesh.TRANSFORM_3D
+ 	mm.use_colors = true
+-	mm.mesh = TileMesh.slab(SIDE * 0.5, SIDE * 0.5, 0.12, 1.0, 0.05, 2, 3)
++	mm.mesh = TileMesh.slab(SIDE * 0.5, SIDE * 0.5, 0.12, 1.0, 0.05, 1, 2)   # 96 triángulos: hay miles
+ 	mm.instance_count = _cells.size()
+ 	var mat := StandardMaterial3D.new()
+ 	mat.vertex_color_use_as_albedo = true
+@@ -61,6 +81,12 @@ func _ready() -> void:
+ 	_grow_clears()
+ 	_rebuild()
+ 
++## Un cubo de escala horizontal `s` (0,5 chico, 1 mediano, 2 grande) centrado en (x, z).
++func _add_cube(rng: RandomNumberGenerator, x: float, z: float, s: float) -> void:
++	var c: Color = PALETTE[rng.randi() % PALETTE.size()]
++	c = c.lerp(Color.WHITE, 0.12).lightened(rng.randf_range(-0.04, 0.06))
++	_cells.append({"x": x * STEP, "z": z * STEP, "s": s, "col": c, "n": rng.randf()})
++
+ ## Zona libre alrededor de una mesa (semiancho y semialto, ya con el marco).
+ func set_clear_rect(hw: float, hh: float) -> void:
+ 	set_clears([Rect2(-hw, -hh, hw * 2.0, hh * 2.0)])
+@@ -77,7 +103,7 @@ func set_clears(rects: Array) -> void:
+ func _grow_clears() -> void:
+ 	_grown.clear()
+ 	for r in _clears:
+-		_grown.append((r as Rect2).grow(0.7))  # margen extra: que ningún cubo asome en el borde
++		_grown.append((r as Rect2).grow(CLEAR_MARGIN))  # margen: los cubos altos empiezan lejos de la mesa
+ 
+ ## Distancia de un cubo al hueco más cercano.
+ func _clear_dist(x: float, z: float) -> float:
+@@ -97,15 +123,18 @@ func _rebuild() -> void:
+ 		var z: float = cell["z"]
+ 		# A partir de 7 de distancia ya no cambia ni la altura ni el color: se recorta,
+ 		# y los cubos que no cambian respecto al último dibujo se saltan.
+-		var d: float = minf(_clear_dist(x, z), 7.0)
++		var s: float = cell["s"]
++		# Un cubo grande se mide desde su borde, no desde su centro; y crece más que uno chico
++		var d: float = minf(maxf(_clear_dist(x, z) - maxf(s - 1.0, 0.0) * SIDE * 0.5, 0.0), 7.0)
+ 		if absf(d - _last[k]) < 0.0001:
+ 			continue
+ 		_last[k] = d
+ 		var n: float = cell["n"]
+-		var rise: float = smoothstep(0.2, 7.0, d) * (0.10 + MAX_RISE * n * n)
++		var hmul: float = 0.8 if s < 0.9 else (1.35 if s > 1.5 else 1.0)
++		var rise: float = smoothstep(RISE_START, 7.0, d) * (0.10 + MAX_RISE * n * n) * hmul
+ 		var top: float = TOP_MIN + rise
+ 		var h: float = top - BASE_Y
+-		var t := Transform3D(Basis.from_scale(Vector3(1.0, h, 1.0)), Vector3(x, BASE_Y + h * 0.5, z))
++		var t := Transform3D(Basis.from_scale(Vector3(s, h, s)), Vector3(x, BASE_Y + h * 0.5, z))
+ 		mm.set_instance_transform(k, t)
+ 		# Más cerca de una mesa: más pálido, para que mande el color de las fichas
+ 		var base: Color = (cell["col"] as Color).lerp(FADE_COLOR, FADE)
