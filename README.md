@@ -1,6 +1,6 @@
 # Fichitas
 
-Juego 3D de fichas para aprender jugando. Las fichas parecen pines esmaltados sobre un suelo de cubos de colores, y la cámara viaja de una zona a otra del mismo mundo: menú, materias, modo, tablero, nivel completado y álbum.
+Juego 3D de fichas para aprender jugando. Las fichas parecen pines esmaltados sobre un suelo de edificios de colores, y la cámara viaja de una zona a otra del mismo mundo: menú, materias, modo, tablero, nivel completado y álbum.
 
 Hecho con **Godot 4.7.2** (renderizador *Compatibility*) para **Android**, en vertical.
 
@@ -34,7 +34,7 @@ El álbum de datos curiosos se abre como una loseta más del menú.
 
 ## Un solo mundo, varias estaciones
 
-No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de colores, y la cámara se mueve en horizontal entre estaciones:
+No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de edificios de colores, y la cámara se mueve en horizontal entre estaciones:
 
 | Estación | Qué es |
 |---|---|
@@ -53,7 +53,8 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
 - Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver. El menú no tiene pie de texto: solo el logo, el título, el lema y los ajustes.
 - Cada grupo de materias tiene su mesa con el marco de su color, y los iconos son a color.
-- El suelo está hecho de cubos de tres tamaños; los altos quedan lejos de las mesas y todos los cubos se mezclan con el color del fondo, así no compiten con las fichas.
+- El suelo es una ciudad pastel de edificios de tres tamaños, con alturas por pisos, ventanas suaves en las fachadas y torres con remate escalonado. Las mesas flotan sobre ella: alrededor de cada una hay una plaza baja y pálida, y los edificios altos quedan lejos. Todos se mezclan con el color del fondo, así no compiten con las fichas.
+- **Fondo ligero**: un ajuste del menú que quita los edificios chicos y los remates y usa cajas simples (menos de la mitad de instancias), pensado para móviles antiguos. Si nunca se elige, los móviles de pocos núcleos arrancan en ligero.
 
 ## Contenido
 
@@ -90,6 +91,7 @@ godot --headless --path . --script res://tests/test_game.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
+godot --headless --path . --script res://tests/test_floor.gd
 ```
 
 `tests/_shot.gd` genera capturas en `/tmp/opencode/` para revisar el aspecto; necesita pantalla y no forma parte de las pruebas.
@@ -100,7 +102,7 @@ En Android, exportar con el preset **Android**, instalar con `adb install -r <ap
 
 En desarrollo. Lo que viene:
 
-- Probar el rendimiento y el tacto en un celular real (el suelo tiene unos 9 000 cubos).
+- Probar el rendimiento y el tacto en un celular real (el suelo completo tiene unas 9 400 instancias; el ligero, unas 5 200) y ajustar el valor inicial del fondo ligero.
 - Más materias para Peques (colores, formas, mamá y cría).
 - Paquetes externos de fichas, con más pulido, y carga de imágenes del usuario.
 

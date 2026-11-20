@@ -419,10 +419,11 @@ func _build_environment() -> void:
 	ground_mat.roughness = 0.95
 	ground_mat.metallic = 0.0
 	ground_pad.material_override = ground_mat
-	ground_pad.position.y = -0.45
+	ground_pad.position.y = FloorCubes.GROUND_Y + 0.005
 	ground_pad.visible = false
 	add_child(ground_pad)
 	floor_cubes = FloorCubes.new()
+	floor_cubes.light = Progress.light()
 	add_child(floor_cubes)
 	# Suelo lejano: el mismo color del borde, para que no se vea el límite
 	var far := MeshInstance3D.new()
@@ -433,7 +434,7 @@ func _build_environment() -> void:
 	far_mat.albedo_color = _ground_edge()
 	far_mat.roughness = 0.95
 	far.material_override = far_mat
-	far.position.y = -0.455
+	far.position.y = FloorCubes.GROUND_Y
 	add_child(far)
 
 func _face_material(tex: Texture2D) -> StandardMaterial3D:

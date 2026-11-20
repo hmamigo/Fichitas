@@ -29,7 +29,7 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
 
 ## Arquitectura visual: un solo mundo con estaciones
 
-Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum), en pantallas muy altas y en ventanas apaisadas de escritorio (solo para desarrollo); `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
+Todo ocurre sobre el **mismo suelo de edificios de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum), en pantallas muy altas y en ventanas apaisadas de escritorio (solo para desarrollo); `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
 
 - Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado** y **álbum de datos curiosos**.
 - Las estaciones están en **fila horizontal** (álbum −35, menú −25, materias −15, modo −9, tablero 0, victoria +10) y la cámara se mueve en horizontal entre ellas. El tablero ancho (hasta ±5,5) no debe tocar la mesa del modo: si se mueve una estación, revisar el vuelo en pantalla ancha.
@@ -39,7 +39,8 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Materias son **varias mesas** (una por grupo), no una columna única; el usuario hace zoom y recorre la lista a mano, igual que en el tablero.
 - La cámara **no rota libremente**: solo zoom y desplazamiento.
 - El fondo de cubos va algo alejado, y el menú un poco más abajo, no pegado al logo.
-- Suelo: cubos de **tres tamaños** (grandes de 2×2, medianos y chicos de ½×½) repartidos por bloques sin solaparse. Cerca de cada mesa se quedan bajos y pálidos (`CLEAR_MARGIN`, `RISE_START`) y los altos empiezan más lejos. Todos se mezclan con la niebla del tablero (`FADE`) para que el fondo no compita con las fichas. Presupuesto de rendimiento: unos 9 000 cubos de 96 triángulos (~860 000); no subirlo sin medir en un móvil modesto.
+- Suelo: **ciudad de edificios** de **tres tamaños** (grandes de 2×2, medianos y chicos de ½×½) repartidos por bloques sin solaparse, en un solo `MultiMesh`. Las alturas van **de piso en piso** (`FLOOR_H`) y cada barrio es más bajo o más alto según un ruido suave (`POW_LOW`/`POW_HIGH`); las torres de al menos `TOWER_MIN_FLOORS` pisos llevan un **remate escalonado**. Las fachadas (ventanas alineadas por pisos) y las azoteas (borde) las pinta `assets/shaders/buildings.gdshader`; el detalle debe ser suave y no competir con las fichas. **Distancia a las mesas**: el suelo queda `SINK` más abajo que las mesas (distancia vertical; `FloorCubes.GROUND_Y` es también la altura del plano lejano de `Board`) y alrededor de cada mesa hay una plaza baja y pálida (`CLEAR_MARGIN`, `RISE_START`) antes de que los edificios empiecen a crecer. Todos se mezclan con la niebla del tablero (`FADE`) para que el fondo no compita con las fichas. En la vista del juego la mesa ocupa casi toda la pantalla: si se agranda la plaza, el perfil de edificios solo se ve en el menú, materias y álbum. Presupuesto de rendimiento: unas 9 400 instancias de 96 triángulos (~900 000); no subirlo sin medir en un móvil modesto (`test_floor` falla por encima de 10 500).
+- **Fondo ligero** (`FloorCubes.set_light`, ajuste "Fondo ligero" en el menú): sin edificios chicos ni remates, más edificios grandes y cajas simples de 12 triángulos en vez de cubos biselados (≈5 200 instancias, menos de la mitad). Lo elige el jugador (`Progress.data["light"]`); si nunca eligió, `Progress.light()` lo decide por el equipo (4 núcleos o menos → ligero). No hay que tocar nada más al cambiarlo: el suelo se regenera al instante.
 - No agregar pantallas 2D ni paneles de UI que rompan esta lógica. Si hace falta algo de interfaz (botones de volver, avisos), debe tener la misma estética que las fichas. **La capa 2D no lleva títulos**: la barra superior solo tiene el botón de volver y todo texto que informa (menú principal, "¿Cómo quieres jugar?", título y nivel de la partida, álbum, victoria) es un rótulo plano sobre su mesa.
 
 ## Estilo visual (no romper)
@@ -62,7 +63,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - **Contador de parejas**: la franja del título del tablero muestra "Nivel 2 · Memoria · 1 de 3". Se actualiza una vez por pareja (`Board.set_progress` + `FlatLabel.update`), no en cada frame.
 - **Álbum legible**: las dos fichas de una pareja van juntas y entre parejas hay más aire (`PAIR_GAP`). Tocar una pareja no dominada avisa en qué materia jugarla.
 - **Victoria con muchas parejas**: entran hasta 12 miniaturas (`main.WIN_DOMS`) y el resto se resume en una ficha "+N". El alto de la cuadrícula se mide con las fichas dibujadas, no con el total.
-- **Menú sin ruido**: el lema va plano con halo (nunca en una pastilla, que parecería un botón) y no hay pie 2D. La capa 2D del menú solo lleva el logo, el título y la pastilla de Sonido/Vibración.
+- **Menú sin ruido**: el lema va plano con halo (nunca en una pastilla, que parecería un botón) y no hay pie 2D. La capa 2D del menú solo lleva el logo, el título y la pastilla de ajustes (Sonido, Vibración —solo en móvil— y Fondo ligero).
 
 ## Flujo de pantallas y estados
 
@@ -179,12 +180,12 @@ Fichitas/
 | `ui.gd` | Capas 2D: botones de volver y dato curioso, sin títulos. Solo dibuja y emite señales. |
 | `ui_theme.gd` | Tema de interfaz: relieve, fuentes, iconos (a color de `assets/emoji/` o SVG de línea) y logo. |
 | `audio.gd` | Efectos de sonido sintetizados en memoria. |
-| `progress.gd` | Guardado JSON en `user://`: nivel, dominio, calendario de repaso y ajustes (incluido `hint`, el aviso de desplazamiento ya visto). |
+| `progress.gd` | Guardado JSON en `user://`: nivel, dominio, calendario de repaso y ajustes (incluido `hint`, el aviso de desplazamiento ya visto, y `light`, el fondo ligero: `true`/`false`, o `null` si nunca eligió). |
 | `levels.gd` | Tamaños de nivel, selección de parejas y repaso espaciado. |
 | `packs.gd` | Carga los paquetes oficiales y los externos, y define las categorías (`CATEGORIES`). |
 | `pack_import.gd` | Importa `.zip` externos con validación estricta. |
 | `cam_view.gd` | Geometría de la vista: qué entra en pantalla y a qué distancia. |
-| `floor_cubes.gd` | Suelo de cubos de colores y tres tamaños en un solo `MultiMesh`. |
+| `floor_cubes.gd` | Suelo de edificios de colores, tres tamaños y alturas por pisos, en un solo `MultiMesh`; modo ligero (`set_light`). Su aspecto lo da `assets/shaders/buildings.gdshader`. |
 
 ## Pruebas
 
@@ -196,15 +197,17 @@ godot --headless --path . --script res://tests/test_game.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
+godot --headless --path . --script res://tests/test_floor.gd
 ```
 
 | Prueba | Qué cubre |
 |---|---|
-| `run_tests` | Malla de ficha y carga de los 9 paquetes oficiales. |
+| `run_tests` | Malla de ficha y carga de los 10 paquetes oficiales. |
 | `test_game` | Reglas del tablero: parejas, arrastre, victoria, chispas y nivel de 24 parejas. |
 | `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara, cobertura del suelo en los extremos de las listas, contador de parejas, memoria de la posición de las listas y guardado. |
 | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |
 | `test_packs` | Importación de paquetes externos: validación, imágenes, reemplazo y borrado. |
+| `test_floor` | Suelo de edificios: presupuesto de instancias, modo ligero, alturas por pisos, plaza baja bajo las mesas, remates, distancia vertical y elección guardada. En headless Godot no guarda las transformaciones del `MultiMesh`, así que la prueba lee los datos propios del suelo (`_floors`, `_cells`); el aspecto se revisa con capturas. |
 
 - Al agregar un script con `class_name`, ejecutar una vez `godot --headless --path . --import` para actualizar la caché de clases (`.godot/global_script_class_cache.cfg`); si no, Godot falla con "Could not resolve external class member".
 - `tests/_shot.gd` guarda capturas en `/tmp/opencode/m_*.png` y necesita pantalla (`DISPLAY`), así que no corre en headless. No es una prueba.
