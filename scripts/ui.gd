@@ -6,14 +6,12 @@ extends CanvasLayer
 signal back_pressed
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
-signal light_toggled(on: bool)
 signal sfx(name: String)
 
 var hud_bar: Control
 var menu: Control
 var sound_btn: Button
 var vib_btn: Button
-var light_btn: Button
 var subjects: Control
 var mode_screen: Control
 var toast_label: Label
@@ -546,12 +544,6 @@ func _build_menu() -> void:
 	vib_btn.toggled.connect(func(on: bool) -> void: vib_toggled.emit(on))
 	vib_btn.pressed.connect(func() -> void: sfx.emit("tap"))
 	_juice(vib_btn)
-	# Fondo ligero: menos edificios y más simples, para móviles antiguos (hoja = ligero, árbol = completo)
-	light_btn = _toggle("Fondo ligero", "leaf", "tree", opts)
-	light_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	light_btn.toggled.connect(func(on: bool) -> void: light_toggled.emit(on))
-	light_btn.pressed.connect(func() -> void: sfx.emit("tap"))
-	_juice(light_btn)
 	# La capa es solo texto: los toques van a las losetas 3D (menos los ajustes)
 	_pass_through(menu)
 
@@ -710,7 +702,7 @@ func menu_band_center() -> float:
 		return 0.5
 	return clampf((top + bottom) * 0.5 / menu.size.y, 0.05, 0.95)
 
-## opts: {sound, vib, vib_visible, light}. Las acciones están en las losetas 3D del menú.
+## opts: {sound, vib, vib_visible}. Las acciones están en las losetas 3D del menú.
 func show_menu(opts: Dictionary = {}) -> void:
 	hide_all()
 	var snd: bool = bool(opts.get("sound", true))
@@ -720,9 +712,6 @@ func show_menu(opts: Dictionary = {}) -> void:
 	vib_btn.visible = bool(opts.get("vib_visible", false))
 	vib_btn.set_pressed_no_signal(vb)
 	_paint_toggle(vib_btn, vb)
-	var lt: bool = bool(opts.get("light", false))
-	light_btn.set_pressed_no_signal(lt)
-	_paint_toggle(light_btn, lt)
 	menu.visible = true
 	_layout_menu_deco()
 	_animate_menu()

@@ -41,10 +41,11 @@ const AMBIENT_ENERGY := 0.20  # luz ambiental
 const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
-const SPARK_AMOUNT := 16       # estrellas por ficha
-const SPARK_LIFE := 0.55       # segundos que viven
-const SPARK_SIZE := 0.13       # lado de cada estrella
-const SPARK_GOLD := Color("ffd45e")
+const SPARK_AMOUNT := 22       # estrellas por ficha
+const SPARK_LIFE := 0.80       # segundos que viven
+const SPARK_SIZE := 0.24       # lado de cada estrella
+const SPARK_GOLD := Color("ffb400")   # dorado intenso: se distingue sobre las fichas claras
+const SPARK_ORANGE := Color("ff8a00")  # al apagarse
 const SPARK_PALE := Color("fffdf2")
 
 class Tile:
@@ -423,7 +424,6 @@ func _build_environment() -> void:
 	ground_pad.visible = false
 	add_child(ground_pad)
 	floor_cubes = FloorCubes.new()
-	floor_cubes.light = Progress.light()
 	add_child(floor_cubes)
 	# Suelo lejano: el mismo color del borde, para que no se vea el límite
 	var far := MeshInstance3D.new()
@@ -1071,8 +1071,8 @@ func _sparks(t: Tile) -> void:
 	p.emission_sphere_radius = 0.24
 	p.direction = Vector3.UP
 	p.spread = 180.0
-	p.initial_velocity_min = 1.3
-	p.initial_velocity_max = 2.6
+	p.initial_velocity_min = 1.8
+	p.initial_velocity_max = 3.6
 	p.gravity = Vector3(0, -3.2, 0)
 	p.damping_min = 0.5
 	p.damping_max = 1.3
@@ -1106,11 +1106,11 @@ func _spark_mesh() -> QuadMesh:
 	q.material = m
 	return q
 
-## Color de la chispa a lo largo de su vida: nace casi blanca y se apaga en dorado.
+## Color de la chispa a lo largo de su vida: nace casi blanca, pasa enseguida a dorado intenso y se apaga en naranja.
 func _spark_ramp() -> Gradient:
 	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.30, 1.0])
-	g.colors = PackedColorArray([SPARK_PALE, SPARK_GOLD, Color(SPARK_GOLD.r, SPARK_GOLD.g, SPARK_GOLD.b, 0.0)])
+	g.offsets = PackedFloat32Array([0.0, 0.18, 0.65, 1.0])
+	g.colors = PackedColorArray([SPARK_PALE, SPARK_GOLD, SPARK_ORANGE, Color(SPARK_ORANGE.r, SPARK_ORANGE.g, SPARK_ORANGE.b, 0.0)])
 	return g
 
 ## Anillo sin iluminar, translúcido, para halos y destellos.

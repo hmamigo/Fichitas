@@ -1,5 +1,9 @@
 extends SceneTree
-## Suelo de edificios: godot --headless --path . --script res://tests/test_floor.gd
+## Suelo de cubos: godot --headless --path . --script res://tests/test_floor.gd
+## (en headless Godot no guarda las transformaciones del MultiMesh: se prueban los datos propios del
+## suelo, `_cells` y `_heights`; el aspecto se revisa con capturas)
+
+const TABLE_BOTTOM := -0.325   # parte baja del marco de una mesa (TileLook.table)
 
 var fails: int = 0
 
@@ -11,115 +15,67 @@ func check(ok: bool, msg: String) -> void:
 func _init() -> void:
 	_run()
 
-## Cuántos edificios hay de cada tamaño (0,5 chico, 1 mediano, 2 grande).
-func _count_size(fc: FloorCubes, small: bool) -> int:
-	var n: int = 0
-	for c in fc._cells:
-		if (float((c as Dictionary)["s"]) < 0.9) == small:
-			n += 1
-	return n
+## Distancia de un cubo a la mesa, medida como en el suelo.
+func _dist(fc: FloorCubes, c: Dictionary) -> float:
+	var s: float = c["s"]
+	return minf(maxf(fc._clear_dist(float(c["x"]), float(c["z"])) - maxf(s - 1.0, 0.0) * FloorCubes.SIDE * 0.5, 0.0), FloorCubes.RISE_END)
 
 func _run() -> void:
-	var table: Array = [Rect2(-3.0, -4.0, 6.0, 8.0)]
-	var full := FloorCubes.new()
-	full.light = false
-	root.add_child(full)
-	var lite := FloorCubes.new()
-	lite.light = true
-	root.add_child(lite)
+	var fc := FloorCubes.new()
+	root.add_child(fc)
 	await process_frame
-	full.set_clears(table)
-	lite.set_clears(table)
+	fc.set_clears([Rect2(-3.0, -4.0, 6.0, 8.0)])
 
 	print("Presupuesto")
-	var nf: int = full.instance_count()
-	var nl: int = lite.instance_count()
-	check(nf <= 10500, "suelo completo: %d instancias (máximo 10 500; antes ~9 000)" % nf)
-	check(nl < int(float(nf) * 0.65), "ligero: %d instancias, bastante menos que el completo (%d)" % [nl, nf])
-	check(lite.instance_count() == lite._cells.size(), "ligero: sin remates")
-	check(full._towers.size() > 100, "completo: hay remates (%d)" % full._towers.size())
+	var n: int = fc.instance_count()
+	check(n >= 3000 and n <= 6500, "%d cubos (cajas de 12 triángulos; antes ~9 000 con 96 triángulos)" % n)
+	check(fc.mmi.multimesh.mesh is BoxMesh, "cajas simples")
+	var sizes: Dictionary = {}
+	for c in fc._cells:
+		sizes[float((c as Dictionary)["s"])] = true
+	check(sizes.size() == 2 and sizes.has(1.0) and sizes.has(2.0), "solo cubos medianos y grandes (sin chicos)")
 
-	print("Modo ligero")
-	check(_count_size(lite, true) == 0, "ligero: ningún edificio chico")
-	var small_full: int = _count_size(full, true)
-	check(small_full > 100, "completo: sí hay edificios chicos (%d)" % small_full)
-	check(lite.mmi.multimesh.mesh is BoxMesh, "ligero: cajas simples (12 triángulos)")
-	check(not (full.mmi.multimesh.mesh is BoxMesh), "completo: cubos biselados")
-
-	print("Edificios")
-	var all_drawn: bool = true
-	var max_floors: int = 0
-	for k in full._cells.size():
-		all_drawn = all_drawn and full._floors[k] >= 1
-		max_floors = maxi(max_floors, full._floors[k])
-	check(all_drawn, "todos tienen al menos un piso")
-	check(max_floors >= 8, "hay torres de al menos 8 pisos (máximo %d)" % max_floors)
-	check(float(max_floors) * FloorCubes.FLOOR_H + FloorCubes.BASE_Y < 4.0, "ninguna torre pasa de 4 unidades sobre la mesa")
-	var plaza_ok: bool = true
-	var plaza_n: int = 0
-	for k in full._cells.size():
-		var c: Dictionary = full._cells[k]
-		if absf(float(c["x"])) < 2.0 and absf(float(c["z"])) < 3.0:
-			plaza_n += 1
-			plaza_ok = plaza_ok and full._floors[k] == 1
-	check(plaza_n > 0 and plaza_ok, "bajo la mesa todo queda de un solo piso (%d edificios)" % plaza_n)
-	var shown: int = 0
-	var towers_total: int = 0
-	var rule_ok: bool = true
-	for k in full._cells.size():
-		var tw: int = int((full._cells[k] as Dictionary)["tw"])
-		if tw < 0:
-			continue
-		towers_total += 1
-		var visible: bool = full._floors[k] >= FloorCubes.TOWER_MIN_FLOORS
-		shown += 1 if visible else 0
-		rule_ok = rule_ok and float((full._cells[k] as Dictionary)["s"]) > 0.9
-	check(towers_total == full._towers.size() and rule_ok, "los remates son de edificios no chicos (%d)" % towers_total)
-	check(shown > 50, "remates visibles sobre las torres altas (%d de %d)" % [shown, towers_total])
-	check(shown < towers_total, "los remates de edificios bajos se esconden (%d)" % (towers_total - shown))
+	print("Profundidad")
+	var near_min: float = INF
+	var near_max: float = -INF
+	var near_n: int = 0
+	var far_max: float = 0.0
+	var near_top_max: float = -INF
+	var all_ok: bool = true
+	for k in fc._cells.size():
+		var c2: Dictionary = fc._cells[k]
+		var h: float = fc._heights[k]
+		all_ok = all_ok and h >= FloorCubes.TOP_MIN - FloorCubes.BASE_Y - 0.0001
+		var d: float = _dist(fc, c2)
+		if d < FloorCubes.RISE_START:
+			near_n += 1
+			near_min = minf(near_min, h)
+			near_max = maxf(near_max, h)
+			near_top_max = maxf(near_top_max, FloorCubes.BASE_Y + h)
+		if d >= FloorCubes.RISE_END:
+			far_max = maxf(far_max, h)
+	check(all_ok, "todos tienen al menos el grosor mínimo")
+	check(near_n > 50, "hay cubos pegados a la mesa (%d)" % near_n)
+	check(near_max - near_min >= 0.5, "pegados a la mesa ya hay relieve: alturas de %.2f a %.2f" % [near_min, near_max])
+	check(near_top_max < TABLE_BOTTOM - 0.25, "ninguno toca la mesa: la cima más alta (%.2f) queda al menos 0,25 bajo ella (%.2f)" % [near_top_max, TABLE_BOTTOM])
+	check(far_max >= 2.5, "lejos de la mesa hay cubos mucho más profundos (hasta %.2f)" % far_max)
+	var distinct: Dictionary = {}
+	for k in fc._cells.size():
+		if _dist(fc, fc._cells[k]) < FloorCubes.RISE_START:
+			distinct[snappedf(fc._heights[k], 0.1)] = true
+	check(distinct.size() >= 6, "pegados a la mesa hay variedad de alturas (%d niveles)" % distinct.size())
 
 	print("Distancia a las mesas")
 	check(FloorCubes.TOP_MIN <= -1.0, "el suelo queda al menos 1 unidad bajo la mesa (cima más baja %.2f)" % FloorCubes.TOP_MIN)
 	check(FloorCubes.GROUND_Y < FloorCubes.TOP_MIN and FloorCubes.BASE_Y < FloorCubes.GROUND_Y, "base < plano del suelo < cima más baja")
-	var near_ok: bool = true
-	var seen_tall: bool = false
-	for k in full._cells.size():
-		var c2: Dictionary = full._cells[k]
-		var s2: float = c2["s"]
-		var d: float = maxf(full._clear_dist(float(c2["x"]), float(c2["z"])) - maxf(s2 - 1.0, 0.0) * FloorCubes.SIDE * 0.5, 0.0)
-		if d < FloorCubes.RISE_START:
-			near_ok = near_ok and full._floors[k] == 1
-		if d >= FloorCubes.RISE_END and full._floors[k] >= 5:
-			seen_tall = true
-	check(near_ok, "a menos de RISE_START de la mesa todo es bajo")
-	check(seen_tall, "lejos de la mesa hay edificios altos")
 
-	print("Cambio de modo")
-	full.set_light(true)
-	check(full.instance_count() == nl, "set_light(true) deja el mismo suelo que el ligero (%d)" % full.instance_count())
-	check(full.mmi.multimesh.mesh is BoxMesh, "set_light(true) cambia la malla")
-	full.set_light(false)
-	check(full.instance_count() == nf, "set_light(false) vuelve al completo (%d)" % full.instance_count())
-	var back_ok: bool = true
-	for k in full._cells.size():
-		back_ok = back_ok and full._floors[k] >= 1
-	check(back_ok, "tras volver, todos los edificios se redibujan con altura")
-
-	print("Elección guardada")
-	Progress.data = {"light": true}
-	check(Progress.light(), "light = true se respeta")
-	Progress.data = {"light": false}
-	check(not Progress.light(), "light = false se respeta")
-	Progress.data = {"light": null}
-	check(Progress.light() == (OS.get_processor_count() <= 4), "sin elección decide el equipo")
-	Progress.data = {"light": true}
+	print("Tablero")
 	var b := Board.new()
 	root.add_child(b)
 	await process_frame
-	check(b.floor_cubes.light, "el tablero arranca con el suelo ligero si está elegido")
 	var plane_ok: bool = false
-	for c in b.get_children():
-		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh and absf((c as MeshInstance3D).position.y - FloorCubes.GROUND_Y) < 0.01:
+	for c3 in b.get_children():
+		if c3 is MeshInstance3D and (c3 as MeshInstance3D).mesh is PlaneMesh and absf((c3 as MeshInstance3D).position.y - FloorCubes.GROUND_Y) < 0.01:
 			plane_ok = true
 	check(plane_ok, "el plano lejano está a la altura del suelo (GROUND_Y)")
 

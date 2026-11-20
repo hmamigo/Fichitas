@@ -1,0 +1,59 @@
+{
+ "format": 1,
+ "id": "colores",
+ "name": "Colores",
+ "unlock": 99,
+ "category": "peques",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Muchas frutas se ponen rojas cuando maduran, como las manzanas, las frutillas y los tomates."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "El color naranja se llama así por la fruta: la naranja."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Los limones son amarillos y muy ácidos: por eso hacen fruncir la cara."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Las ranas verdes se esconden entre las hojas, y su color las ayuda a pasar desapercibidas."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "El agua de un vaso no tiene color, pero el mar se ve azul porque el agua absorbe más la luz roja."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Las uvas pueden ser verdes, rojas o violetas."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Los cerdos tienen la piel rosada y se revuelcan en el barro para refrescarse."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Los osos pardos tienen el pelo marrón, aunque algunos lo tienen más claro y otros más oscuro."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Las cosas negras absorben casi toda la luz que les llega: por eso se calientan más al sol que las blancas."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Los muñecos de nieve son blancos porque la nieve devuelve casi toda la luz que recibe."
+  }
+ ]
+}

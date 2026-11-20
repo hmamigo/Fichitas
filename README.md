@@ -1,6 +1,6 @@
 # Fichitas
 
-Juego 3D de fichas para aprender jugando. Las fichas parecen pines esmaltados sobre un suelo de edificios de colores, y la cámara viaja de una zona a otra del mismo mundo: menú, materias, modo, tablero, nivel completado y álbum.
+Juego 3D de fichas para aprender jugando. Las fichas parecen pines esmaltados sobre un suelo de cubos de colores, y la cámara viaja de una zona a otra del mismo mundo: menú, materias, modo, tablero, nivel completado y álbum.
 
 Hecho con **Godot 4.7.2** (renderizador *Compatibility*) para **Android**, en vertical.
 
@@ -34,7 +34,7 @@ El álbum de datos curiosos se abre como una loseta más del menú.
 
 ## Un solo mundo, varias estaciones
 
-No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de edificios de colores, y la cámara se mueve en horizontal entre estaciones:
+No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de colores, y la cámara se mueve en horizontal entre estaciones:
 
 | Estación | Qué es |
 |---|---|
@@ -53,12 +53,11 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
 - Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver. El menú no tiene pie de texto: solo el logo, el título, el lema y los ajustes.
 - Cada grupo de materias tiene su mesa con el marco de su color, y los iconos son a color.
-- El suelo es una ciudad pastel de edificios de tres tamaños, con alturas por pisos, ventanas suaves en las fachadas y torres con remate escalonado. Las mesas flotan sobre ella: alrededor de cada una hay una plaza baja y pálida, y los edificios altos quedan lejos. Todos se mezclan con el color del fondo, así no compiten con las fichas.
-- **Fondo ligero**: un ajuste del menú que quita los edificios chicos y los remates y usa cajas simples (menos de la mitad de instancias), pensado para móviles antiguos. Si nunca se elige, los móviles de pocos núcleos arrancan en ligero.
+- El suelo son cubos de colores de distinta profundidad (grandes y medianos), ya con relieve pegado a las mesas y cada vez más profundos hacia los lados. Las mesas flotan sobre ellos, y todos se mezclan con el color del fondo para no competir con las fichas. Son cajas simples (~5 200 instancias), pensadas para móviles antiguos.
 
 ## Contenido
 
-Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y, para los más pequeños, Animales (cada animal con su comida) y Contar (cantidades y números), que se juegan sin leer. Las materias se agrupan en tres categorías: Peques, Exploradores y Nerds. Los símbolos, fórmulas y gráficas se incluyen como imágenes. Las materias de Peques no entran en el recorrido general: solo se juegan desde su propia materia.
+Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y, para los más pequeños, Animales (cada animal con su comida), Contar (cantidades y números) y Colores (un objeto con su color), que se juegan sin leer. Las materias se agrupan en tres categorías: Peques, Exploradores y Nerds. Los símbolos, fórmulas y gráficas se incluyen como imágenes. Las materias de Peques no entran en el recorrido general: solo se juegan desde su propia materia.
 
 Los paquetes de fichas son archivos JSON. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos desde el selector de archivos del celular ("Cargar paquete").
 
@@ -102,7 +101,7 @@ En Android, exportar con el preset **Android**, instalar con `adb install -r <ap
 
 En desarrollo. Lo que viene:
 
-- Probar el rendimiento y el tacto en un celular real (el suelo completo tiene unas 9 400 instancias; el ligero, unas 5 200) y ajustar el valor inicial del fondo ligero.
+- Probar el rendimiento y el tacto en un celular real (el suelo tiene unas 5 200 instancias).
 - Más materias para Peques (colores, formas, mamá y cría).
 - Paquetes externos de fichas, con más pulido, y carga de imágenes del usuario.
 
@@ -116,4 +115,4 @@ Los recursos de terceros conservan sus licencias:
 
 - Iconos de `assets/icons/`: @icons, licencia MIT (ver `assets/icons/LICENSE.txt`).
 - Fuentes Nunito y Baloo 2: SIL Open Font License 1.1 (ver `fonts/LICENSE-*.txt`).
-- Ilustraciones de `packs/ani/` y `packs/contar/` e iconos a color de `assets/emoji/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt`, `assets/emoji/LICENSE.txt` y los `LICENSE-Apache-2.0.txt` de cada carpeta).
+- Ilustraciones de `packs/ani/`, `packs/contar/` y `packs/colores/` e iconos a color de `assets/emoji/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt`, `assets/emoji/LICENSE.txt` y los `LICENSE-Apache-2.0.txt` de cada carpeta).

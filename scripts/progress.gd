@@ -8,7 +8,7 @@ static var data: Dictionary = {}
 
 static func defaults() -> Dictionary:
 	return {"v": 1, "level": 1, "mode": "mem", "subj": {}, "mp": {}, "sr": {}, "owned": [],
-		"sound": true, "vib": true, "hint": false, "light": null}
+		"sound": true, "vib": true, "hint": false}
 
 static func load_data() -> void:
 	data = defaults()
@@ -22,14 +22,6 @@ static func save() -> void:
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f != null:
 		f.store_string(JSON.stringify(data))
-
-## Fondo ligero (sin edificios chicos): lo que eligió el jugador; si nunca eligió, lo decide el
-## equipo (los móviles de 4 núcleos o menos, que suelen ser los más antiguos, arrancan en ligero).
-static func light() -> bool:
-	var v = data.get("light", null)
-	if v is bool:
-		return v
-	return OS.get_processor_count() <= 4
 
 static func level() -> int:
 	return maxi(1, int(data["level"]))

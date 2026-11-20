@@ -50,7 +50,6 @@ func _ready() -> void:
 	board.win_station.next.connect(_on_next)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
-	ui.light_toggled.connect(_on_light)
 	get_viewport().size_changed.connect(_on_view_resized)
 	_go_menu()
 
@@ -90,7 +89,6 @@ func _go_menu() -> void:
 		"sound": bool(Progress.data["sound"]),
 		"vib": bool(Progress.data["vib"]),
 		"vib_visible": OS.has_feature("mobile"),
-		"light": Progress.light(),
 	})
 	_center_menu()
 	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
@@ -131,12 +129,6 @@ func _on_vib(on: bool) -> void:
 	Progress.save()
 	if on and OS.has_feature("mobile"):
 		Input.vibrate_handheld(35)
-
-## Fondo ligero: se guarda la elección y el suelo se regenera al momento.
-func _on_light(on: bool) -> void:
-	Progress.data["light"] = on
-	Progress.save()
-	board.floor_cubes.set_light(on)
 
 func _go_subjects() -> void:
 	state = S.SUBJECTS
