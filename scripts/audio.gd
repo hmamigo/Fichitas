@@ -1,6 +1,6 @@
 class_name GameAudio
 extends Node
-## Efectos de sonido sintetizados en memoria (sin archivos): giro, acierto, error y final.
+## Efectos de sonido sintetizados en memoria (sin archivos): giro, toque, acierto, error y final.
 ## Las notas son cortas y suaves; el volumen general se ajusta en cada reproductor.
 
 const RATE := 22050
@@ -34,6 +34,8 @@ func _make(name: String) -> AudioStreamWAV:
 	match name:
 		"flip":
 			notes = [[520.0, 0.055, 0.16]]
+		"tap":
+			notes = [[620.0, 0.040, 0.08]]
 		"ok":
 			notes = [[784.0, 0.085, 0.15], [1174.7, 0.16, 0.14]]
 		"err":

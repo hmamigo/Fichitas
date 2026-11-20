@@ -27,7 +27,7 @@ const MAX_RISE := 1.1     # altura máxima de los cubos lejanos (más bajos = el
 # Perspectiva atmosférica: todos los cubos se mezclan con el color de la niebla del tablero
 # (Board.FOG_COLOR), así el fondo no compite con los colores de las fichas. 0 = sin mezcla.
 const FADE_COLOR := Color("b9d2ee")
-const FADE := 0.35
+const FADE := 0.55
 const PALETTE: Array[Color] = [
 	Color("ffc629"), Color("42cd84"), Color("4a8ff5"), Color("ff7a6b"),
 	Color("a98bff"), Color("ff9ac8"), Color("49c7d6"), Color("ffa63d"),
@@ -138,6 +138,6 @@ func _rebuild() -> void:
 		mm.set_instance_transform(k, t)
 		# Más cerca de una mesa: más pálido, para que mande el color de las fichas
 		var base: Color = (cell["col"] as Color).lerp(FADE_COLOR, FADE)
-		var near: float = 0.25 * (1.0 - smoothstep(0.0, 3.0, d))
+		var near: float = 0.38 * (1.0 - smoothstep(0.0, 3.0, d))
 		var col: Color = base.lerp(Color("eef4fd"), near)
 		mm.set_instance_color(k, col)

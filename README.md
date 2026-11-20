@@ -24,18 +24,26 @@ Los niveles son progresivos: cada uno suma más parejas. Al completar un nivel n
 
 El álbum de datos curiosos se abre como una loseta más del menú.
 
+### Detalles de uso
+
+- La franja del tablero lleva el avance de la partida: por ejemplo, "Nivel 2 · Memoria · 1 de 3".
+- Materias y Álbum recuerdan dónde estabas: al volver seguís con el mismo desplazamiento y zoom.
+- La primera vez que abrís una lista larga, un aviso explica cómo recorrerla y acercarla.
+- En el álbum, las dos fichas de una pareja van juntas; si tocás una que todavía no dominás, te dice en qué materia jugarla.
+- Al ganar un nivel con muchas parejas, la victoria muestra hasta 12 miniaturas y resume el resto en una ficha "+N".
+
 ## Un solo mundo, varias estaciones
 
 No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de colores, y la cámara se mueve en horizontal entre estaciones:
 
 | Estación | Qué es |
 |---|---|
-| **Menú** | Vista lejana, con el logo y una mesa "Menú principal" con las opciones: jugar, recorrido general y álbum. |
-| **Materias** | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds y Más), cada una con su color. Se hace zoom y se recorre a mano, igual que en el tablero. |
+| **Menú** | Vista lejana, con el logo, el lema y una mesa "Menú principal" con las opciones: jugar, recorrido general y álbum. |
+| **Materias** | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds y Más), cada una con su color. Se hace zoom y se recorre a mano, igual que en el tablero; la vista recuerda dónde quedaste. |
 | **Modo** | Paso "¿Cómo quieres jugar?": dos losetas grandes, Memoria y Asociación. La partida empieza al tocar una. |
-| **Tablero** | La partida, con su título (materia, nivel y modo) sobre la mesa. La cámara baja hasta la posición de juego. |
-| **Nivel completado** | Una mesa a la derecha del tablero, con el trofeo, las parejas del nivel y el botón de seguir. |
-| **Álbum de datos curiosos** | Fichas iguales a las del juego, con la cámara moviéndose en vertical. |
+| **Tablero** | La partida, con su título (materia, nivel y modo) y el avance ("1 de 3") sobre la mesa. La cámara baja hasta la posición de juego. |
+| **Nivel completado** | Una mesa a la derecha del tablero, con el trofeo, las parejas del nivel (hasta 12 miniaturas y "+N") y el botón de seguir. |
+| **Álbum de datos curiosos** | Fichas iguales a las del juego, con cada pareja agrupada y la cámara moviéndose en vertical. |
 
 La cámara no rota libremente: solo hace zoom y se desplaza.
 
@@ -43,9 +51,9 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 
 - Estilo educativo, con colores vivos y aspecto de juguete de calidad.
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
-- Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver.
+- Filo dorado, placas color crema y marco azul en el tablero. Esta misma estética se usa en el menú, el paso de modo, las materias, "Nivel completado" y el álbum. Lo que se toca es una loseta dorada con relieve; los títulos y datos van planos sobre la mesa, y la barra superior solo lleva el botón de volver. El menú no tiene pie de texto: solo el logo, el título, el lema y los ajustes.
 - Cada grupo de materias tiene su mesa con el marco de su color, y los iconos son a color.
-- El suelo está hecho de cubos de tres tamaños; los altos quedan lejos de las mesas para que no compitan con ellas.
+- El suelo está hecho de cubos de tres tamaños; los altos quedan lejos de las mesas y todos los cubos se mezclan con el color del fondo, así no compiten con las fichas.
 
 ## Contenido
 
@@ -55,7 +63,7 @@ Los paquetes de fichas son archivos JSON. Hay paquetes incluidos en el juego y t
 
 ## Sonido
 
-Efectos simples: giro de ficha, acierto y error. Por ahora no hay música.
+Efectos simples: giro de ficha, toque, acierto y error. Por ahora no hay música.
 
 ## Requisitos para desarrollar
 

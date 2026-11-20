@@ -5,10 +5,11 @@ extends Node3D
 
 signal won
 signal pair_done(pair_id: String, clean: bool)
-signal sfx(sound: String)  # "flip", "ok", "err", "win"
+signal sfx(sound: String)  # "flip", "tap", "ok", "err", "win"
 
 const ST := 1.12      # separación entre fichas
 const TITLE_H := 0.9  # franja de la mesa con el título de la partida (rótulo plano, no se toca)
+const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del título
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
@@ -70,6 +71,8 @@ var mode_station: StationMode
 var album_station: StationAlbum
 var win_station: StationWin
 var game_title: Dictionary = {}   # {name, sub, icon, color}: rótulo sobre la mesa del tablero ({} = sin franja)
+var progress_matched: int = 0     # parejas ya emparejadas en la partida actual
+var progress_total: int = 0       # parejas del nivel (0 = sin contador)
 var cam: Camera3D
 var sun: DirectionalLight3D
 var env: Environment
@@ -85,6 +88,8 @@ var zoom: float = 1.0
 var floor_cubes: FloorCubes
 var _fly: Tween
 var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
+var _title_label: FlatLabel    # franja del título, para actualizar el contador sin rehornear la mesa
+var _view_mem: Dictionary = {} # "subjects"/"album" -> {x, z, zoom}: dónde quedó cada lista
 var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
 var _arc: float = 0.0          # alejamiento extra de la cámara a mitad del vuelo actual
 var _settled: bool = true      # la cámara ya llegó: se puede tocar
@@ -155,7 +160,14 @@ func _ready() -> void:
 	win_station = StationWin.new()
 	win_station.position = Vector3(WIN_X, 0.0, 0.0)
 	add_child(win_station)
+	# Los toques en las estaciones también suenan (y vibran) como los del tablero
+	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
+		(st as Node).connect("sfx", Callable(self, "_relay_sfx"))
 	get_viewport().size_changed.connect(_layout)
+
+## Repite el sonido de una estación por la señal del tablero, que ya escucha `main`.
+func _relay_sfx(name: String) -> void:
+	sfx.emit(name)
 
 # ---------- API ----------
 
@@ -172,6 +184,8 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 	dragging = false
 	drag_tile = null
 	lock = false
+	progress_matched = 0
+	progress_total = pairs.size()
 	var items: Array = []
 	for pr in pairs:
 		items.append({"id": pr["id"], "tex": pr["a"]})
@@ -197,11 +211,14 @@ func stop() -> void:
 	active = false
 	ptrs.clear()
 	_clear_tiles()
+	_title_label = null
 	if board != null:
 		board.queue_free()
 		board = null
 	cols = 0
 	rows = 0
+	progress_matched = 0
+	progress_total = 0
 	_refresh_floor()
 
 ## Construye las losetas de una estación y reajusta los huecos del suelo.
@@ -217,6 +234,40 @@ func build_subjects(cards: Array) -> void:
 ## Hay que fijarlo antes de `start`, para que la primera distribución ya cuente con la franja.
 func set_title(d: Dictionary) -> void:
 	game_title = d
+
+## Parejas ya emparejadas: la franja del título muestra el avance de la partida.
+func set_progress(matched: int) -> void:
+	matched = clampi(matched, 0, progress_total)
+	if matched == progress_matched:
+		return
+	progress_matched = matched
+	_refresh_title()
+
+## Cantidad de parejas resueltas en el tablero actual.
+func matched_pairs() -> int:
+	var n: int = 0
+	for t in tiles:
+		if (t as Tile).matched:
+			n += 1
+	return n / 2
+
+## Texto del subtítulo con el contador, si la partida tiene parejas.
+func _title_now() -> Dictionary:
+	if progress_total <= 0 or game_title.is_empty():
+		return game_title
+	var d: Dictionary = game_title.duplicate()
+	d["sub"] = "%s · %d de %d" % [str(d.get("sub", "")), progress_matched, progress_total]
+	return d
+
+## Vuelve a hornear la franja con el contador nuevo. Se hace una vez por pareja
+## (no en cada frame) y el rótulo mantiene la textura vieja hasta que la nueva
+## está pintada, así no parpadea.
+func _refresh_title() -> void:
+	if _title_label == null or not is_instance_valid(_title_label):
+		return
+	var w: int = int(_title_label.size.x * float(TITLE_PPU))
+	var h: int = int(_title_label.size.y * float(TITLE_PPU))
+	_title_label.update(Cards.label(_title_now(), w, h), w, h)
 
 func _title_extra() -> float:
 	return TITLE_H if not game_title.is_empty() else 0.0
@@ -464,10 +515,13 @@ func _build_board() -> void:
 	# Con título, la mesa crece hacia arriba (−z) y el rótulo ocupa esa franja
 	var tb: Node3D = TileLook.table(board, w, h + extra)
 	tb.position.z = -extra * 0.5
+	_title_label = null
 	if extra > 0.0:
-		var lb := FlatLabel.make(board, Vector2(float(cols) * ST, extra), game_title, 0.0)
+		var tw: float = float(cols) * ST
+		var lb := FlatLabel.make(board, Vector2(tw, extra), _title_now(), 0.0, TITLE_PPU)
 		lb.position.z = -(float(rows) * ST * 0.5 + 0.25 + extra * 0.5)
 		FaceTex.settle(lb.views())
+		_title_label = lb
 
 # ---------- Cámara y estaciones ----------
 
@@ -606,6 +660,7 @@ func _pan_bounds(dist: float) -> Vector2:
 func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	if _fly != null:
 		_fly.kill()
+	_remember_view()
 	_from = _pose_now()
 	station = name
 	_apply_station_visibility(true)
@@ -613,11 +668,18 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	cam_z = 0.0
 	zoom = 1.0
 	_pan_v = Vector2.ZERO
-	# Las materias empiezan por la primera fila: la lista es más alta que la pantalla
-	if name == "subjects" and subject_station != null:
+	# Las listas largas vuelven donde el jugador las dejó (el desplazamiento se
+	# recorta solo con los límites de la mesa en `_update_cam`).
+	var mem: Dictionary = _view_mem.get(name, {})
+	if not mem.is_empty():
+		cam_x = float(mem["x"])
+		cam_z = float(mem["z"])
+		zoom = float(mem["zoom"])
+	elif name == "subjects" and subject_station != null:
+		# Primera visita: empieza por la primera fila (la lista es más alta que la pantalla)
 		cam_z = subject_station.initial_z(subject_station.fit_distance())
-	# El álbum también empieza por arriba: la primera materia
-	if name == "album" and album_station != null:
+	elif name == "album" and album_station != null:
+		# El álbum también empieza por arriba: la primera materia
 		cam_z = album_station.initial_z(album_station.fit_distance())
 	_arc = 0.0
 	if secs > 0.0 and start_at <= 0.0:
@@ -626,17 +688,27 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 			_arc = minf(travel * ARC_GAIN, ARC_MAX)
 	if secs <= 0.0:
 		_t = 1.0
-		_settled = true
-		_apply_station_visibility()
+		_arrive()
 		return
 	_t = clampf(start_at, 0.0, 0.95)
 	_settled = false
 	_fly = create_tween()
 	_fly.tween_property(self, "_t", 1.0, secs).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	_fly.finished.connect(func() -> void:
-		_settled = true
-		_apply_station_visibility()
-	)
+	_fly.finished.connect(_arrive)
+
+## Guarda el desplazamiento de las listas largas antes de cambiar de estación.
+func _remember_view() -> void:
+	if station != "subjects" and station != "album":
+		return
+	_view_mem[station] = {"x": cam_x, "z": cam_z, "zoom": zoom}
+
+## Fin del vuelo: la mesa de destino queda sola y el tablero se limpia recién ahora,
+## así el mundo no se vacía antes de que la cámara se vaya.
+func _arrive() -> void:
+	_settled = true
+	_apply_station_visibility()
+	if station != "game" and not tiles.is_empty():
+		stop()
 
 ## Mantiene ambas mesas visibles durante el vuelo para que el cambio de estación
 ## se lea como un recorrido continuo, y oculta la inactiva al llegar.

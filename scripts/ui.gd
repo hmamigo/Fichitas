@@ -6,6 +6,7 @@ extends CanvasLayer
 signal back_pressed
 signal sound_toggled(on: bool)
 signal vib_toggled(on: bool)
+signal sfx(name: String)
 
 var hud_bar: Control
 var menu: Control
@@ -14,6 +15,7 @@ var vib_btn: Button
 var subjects: Control
 var mode_screen: Control
 var toast_label: Label
+var toast_panel: Control
 var album: Control
 var fact: Control
 var _th: Theme
@@ -31,7 +33,6 @@ var _menu_title_wrap: Control
 var _menu_title_glow: TextureRect
 var _menu_subtitle: Control
 var _menu_opts: Control
-var _menu_footer: Control
 var _menu_deco: Array = []
 var _menu_title_tiles: Array = []
 var _menu_tween: Tween
@@ -46,6 +47,7 @@ func _ready() -> void:
 	_build_mode()
 	_build_album()
 	_build_fact()
+	_build_toast()
 	get_viewport().size_changed.connect(_update_columns)
 	_update_columns()
 	hide_all()
@@ -271,7 +273,9 @@ func _back_tile(text: String) -> Control:
 	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
 		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
-	back.pressed.connect(func() -> void: back_pressed.emit())
+	back.pressed.connect(func() -> void:
+		sfx.emit("tap")
+		back_pressed.emit())
 	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.03, 0.12))
 	back.mouse_exited.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.16))
 	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
@@ -387,7 +391,7 @@ func _layout_menu_deco() -> void:
 func _animate_menu() -> void:
 	if _menu_tween != null:
 		_menu_tween.kill()
-	var parts: Array = [_menu_logo_wrap, _menu_title_wrap, _menu_subtitle, _menu_footer]
+	var parts: Array = [_menu_logo_wrap, _menu_title_wrap, _menu_subtitle]
 	for p in parts:
 		if p != null:
 			p.modulate.a = 0.0
@@ -406,7 +410,6 @@ func _animate_menu() -> void:
 	_menu_tween.tween_property(_menu_title_wrap, "scale", Vector2.ONE, 0.50).set_delay(0.07).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_menu_tween.tween_property(_menu_subtitle, "modulate:a", 1.0, 0.30).set_delay(0.14)
 	_menu_tween.tween_property(_menu_subtitle, "scale", Vector2.ONE, 0.45).set_delay(0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_menu_tween.tween_property(_menu_footer, "modulate:a", 1.0, 0.30).set_delay(0.30)
 	for i in _menu_deco.size():
 		var w: Control = _menu_deco[i]["wrap"]
 		_menu_tween.tween_property(w, "modulate:a", 1.0, 0.35).set_delay(0.06 + float(i) * 0.035)
@@ -449,6 +452,7 @@ func hide_all() -> void:
 	mode_screen.visible = false
 	album.visible = false
 	fact.visible = false
+	_hide_toast()
 
 # ---------- Construcción ----------
 
@@ -509,19 +513,12 @@ func _build_menu() -> void:
 	v.add_child(title_wrap)
 	_menu_title_wrap = title_wrap
 	title_wrap.add_child(_title_tiles("FICHITAS"))
-	# Descripción en una pastilla translúcida, para que se lea sobre los cubos.
-	var sub_pill := PanelContainer.new()
-	sub_pill.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 4, 12, 12, 28, 0, 10, 0.16))
-	sub_pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	sub_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(sub_pill)
-	_menu_subtitle = sub_pill
-	var sub_row := HBoxContainer.new()
-	sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	sub_row.add_theme_constant_override("separation", 10)
-	sub_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sub_pill.add_child(sub_row)
-	sub_row.add_child(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK))
+	# Lema bajo el logotipo: solo informa, así que va plano (con halo para leerse
+	# sobre los cubos), sin plato ni filo que lo haga parecer un botón.
+	_menu_subtitle = _halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_SMALL, false, UiTheme.INK))
+	_menu_subtitle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_menu_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(_menu_subtitle)
 
 	var gap_mid := Control.new()
 	gap_mid.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -545,19 +542,8 @@ func _build_menu() -> void:
 	vib_btn = _toggle("Vibración", "rumble_phone", "mobile_phone", opts)
 	vib_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vib_btn.toggled.connect(func(on: bool) -> void: vib_toggled.emit(on))
+	vib_btn.pressed.connect(func() -> void: sfx.emit("tap"))
 	_juice(vib_btn)
-	var foot := PanelContainer.new()
-	foot.add_theme_stylebox_override("panel", UiTheme.box(Color("fffdf7"), Color("e6d6a6"), 3, 8, 8, 20, 0, 8, 0.14))
-	foot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(foot)
-	_menu_footer = foot
-	var foot_row := HBoxContainer.new()
-	foot_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	foot_row.add_theme_constant_override("separation", 8)
-	foot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	foot.add_child(foot_row)
-	foot_row.add_child(_label("Sin cronómetro y sin puntuación.", UiTheme.T_TINY, false, UiTheme.INK))
 	# La capa es solo texto: los toques van a las losetas 3D (menos los ajustes)
 	_pass_through(menu)
 
@@ -578,8 +564,6 @@ func _build_subjects() -> void:
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
-	toast_label = _halo(_label("", UiTheme.T_SMALL, false, UiTheme.INK, true))
-	v.add_child(toast_label)
 	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
 	_pass_through(subjects)
 
@@ -599,10 +583,6 @@ func _build_mode() -> void:
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
 	head.add_child(_back_tile("Atrás"))
-	var gap := Control.new()
-	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(gap)
-	v.add_child(_halo(_label("Toca para empezar.", UiTheme.T_SMALL, false, UiTheme.INK)))
 	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
 	_pass_through(mode_screen)
 
@@ -658,8 +638,38 @@ func _build_fact() -> void:
 	close.theme_type_variation = "Gold"
 	close.text = "Cerrar"
 	close.custom_minimum_size = Vector2(0, 96)
-	close.pressed.connect(func() -> void: fact.visible = false)
+	close.pressed.connect(func() -> void:
+		sfx.emit("tap")
+		fact.visible = false)
 	card.add_child(close)
+
+## Aviso temporal fuera de las pantallas: así se puede mostrar sobre materias o álbum.
+## Va abajo, centrado, sobre un plato claro, y no intercepta toques.
+func _build_toast() -> void:
+	var layer := MarginContainer.new()
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_theme_constant_override("margin_left", 26)
+	layer.add_theme_constant_override("margin_right", 26)
+	layer.add_theme_constant_override("margin_bottom", 26)
+	add_child(layer)
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_END
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(v)
+	# Plato plano de papel: el aviso cae sobre cubos y mesas de colores muy distintos,
+	# y solo con el halo del texto no siempre se leía.
+	var plate := PanelContainer.new()
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var sb := UiTheme.box(Color(1, 1, 1, 0.95), Color(1, 1, 1, 0.0), 0, 16, 16, 22, 0, 10, 0.22)
+	plate.add_theme_stylebox_override("panel", sb)
+	plate.visible = false
+	v.add_child(plate)
+	toast_panel = plate
+	toast_label = _label("", UiTheme.T_SMALL, false, UiTheme.INK, true)
+	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_child(toast_label)
 
 func _fact_face(parent: Control) -> TextureRect:
 	var rim := _enamel_tile(Vector2(300, 300), Color("fffdf7"), 8)
@@ -674,6 +684,7 @@ func _fact_face(parent: Control) -> TextureRect:
 
 func _on_fact_dim_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+		sfx.emit("tap")
 		fact.visible = false
 
 # ---------- API ----------
@@ -713,8 +724,6 @@ func show_hud() -> void:
 ## Las tarjetas de materia son losetas 3D: aquí solo queda la cabecera y el aviso.
 func show_subjects() -> void:
 	hide_all()
-	toast_label.text = ""
-	toast_label.modulate.a = 1.0
 	_update_columns()
 	subjects.visible = true
 
@@ -732,6 +741,7 @@ func show_fact(a: Texture2D, b: Texture2D, text: String) -> void:
 	_fact_a.texture = a
 	_fact_b.texture = b
 	_fact_text.text = text if text != "" else "Esta pareja aún no tiene dato curioso."
+	_hide_toast()
 	fact.visible = true
 	if _fact_card != null:
 		_pop(_fact_card)
@@ -745,12 +755,26 @@ func close_fact() -> bool:
 
 func toast(text: String) -> void:
 	toast_label.text = text
-	toast_label.modulate.a = 1.0
+	# El plato se ajusta al texto: con `autowrap` siempre activo, el ancho mínimo es
+	# el de la palabra más larga y el aviso quedaba en una columna de una letra.
+	var avail: float = get_viewport().get_visible_rect().size.x - 84.0
+	var need: float = UiTheme.body_font().get_string_size(
+		text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiTheme.T_SMALL).x
+	var fits: bool = need <= avail
+	toast_label.autowrap_mode = TextServer.AUTOWRAP_OFF if fits else TextServer.AUTOWRAP_WORD_SMART
+	toast_label.custom_minimum_size.x = 0.0 if fits else avail
+	toast_panel.modulate.a = 1.0
+	toast_panel.visible = true
 	if _toast_tween != null:
 		_toast_tween.kill()
 	_toast_tween = create_tween()
 	_toast_tween.tween_interval(3.4)
-	_toast_tween.tween_property(toast_label, "modulate:a", 0.0, 0.4)
+	_toast_tween.tween_property(toast_panel, "modulate:a", 0.0, 0.4)
+	_toast_tween.tween_callback(_hide_toast)
+
+func _hide_toast() -> void:
+	if toast_panel != null:
+		toast_panel.visible = false
 
 func _update_columns() -> void:
 	var vp: Vector2 = get_viewport().get_visible_rect().size

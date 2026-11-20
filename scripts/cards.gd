@@ -64,7 +64,7 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 	var col: Color = d["color"]
 	if locked:
 		col = col.lerp(UiTheme.LOCKED, 0.55)
-	var ink: Color = UiTheme.INK if not locked else UiTheme.INK.lerp(Color.WHITE, 0.35)
+	var ink: Color = UiTheme.INK if not locked else UiTheme.INK.lerp(Color.WHITE, 0.15)
 	var root := _root(w, h)
 	_bg(root, col.lightened(0.08))
 	var pc := PanelContainer.new()
@@ -138,7 +138,7 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 			detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 			v.add_child(detail)
 	if locked:
-		var lk := _icon("lock", 34, UiTheme.INK_SOFT)
+		var lk := _icon("lock", 34, UiTheme.INK)
 		lk.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 14)
 		root.add_child(lk)
 	return root
@@ -183,8 +183,10 @@ static func label(d: Dictionary, w: int, h: int) -> Control:
 	var title := _label(str(d["name"]), tsize, ink, true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tv.add_child(title)
-	var ssize: int = UiTheme.fit_font_size(str(d.get("sub", "")), UiTheme.body_font(), int(25 * sc), int(14 * sc), avail)
-	var sub := _label(str(d.get("sub", "")), ssize, ink.lerp(Color.WHITE, 0.2))
+	# El subtítulo va con el mismo `ink` que el título: sobre la mesa clara y con
+	# puntos, un gris aclarado se perdía (contraste < 3:1 en las cabeceras).
+	var ssize: int = UiTheme.fit_font_size(str(d.get("sub", "")), UiTheme.body_font(), int(30 * sc), int(16 * sc), avail)
+	var sub := _label(str(d.get("sub", "")), ssize, ink)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	tv.add_child(sub)
 	# Barra de abajo: de progreso si hay `frac`, y si no una línea de color
@@ -322,6 +324,19 @@ static func _dom_tile(d: Dictionary, side: int) -> Control:
 	var pc := PanelContainer.new()
 	pc.custom_minimum_size = Vector2((side + 10) * k, (side + DOM_ROW) * k)
 	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if d.has("more"):
+		# Resumen de las parejas que no entran: una ficha más en la cuadrícula
+		var chip := StyleBoxFlat.new()
+		chip.bg_color = Color("fff7e3")
+		chip.set_corner_radius_all(14 * k)
+		chip.set_content_margin_all(5 * k)
+		chip.set_border_width_all(3 * k)
+		chip.border_color = Color("e3d4ad")
+		pc.add_theme_stylebox_override("panel", chip)
+		var more := _label("+%d" % int(d["more"]), int(float(side) * 0.46), UiTheme.INK, true)
+		more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pc.add_child(more)
+		return pc
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = UiTheme.CREAM
 	sb.set_corner_radius_all(14 * k)

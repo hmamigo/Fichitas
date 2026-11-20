@@ -5,10 +5,13 @@ extends Node3D
 ## a las del juego, de dos en dos: boca arriba si están dominadas, boca abajo si no.
 ## Se recorre con la cámara (paneo vertical), igual que la mesa de materias.
 
-signal opened(pair: Dictionary)   # tocó una pareja dominada: {id, a, b, fact, stage}
+signal opened(pair: Dictionary)   # tocó una pareja dominada: {id, a, b, fact, stage, subject}
+signal hint(text: String)         # tocó una pareja todavía no dominada
+signal sfx(name: String)
 
 const COLS := 6                  # fichas por fila (3 parejas)
 const PITCH := 0.9               # casilla de cada ficha en el mundo
+const PAIR_GAP := 0.26           # aire extra entre parejas: dentro de la pareja van juntas
 const TITLE_H := 1.0             # rótulo plano "Álbum" arriba de la mesa (no se toca)
 const HEAD_H := 1.2              # alto de la cabecera de cada materia
 const HEAD_GAP := 0.22           # aire entre la cabecera y sus fichas
@@ -37,7 +40,7 @@ func build(data: Array) -> void:
 	if data.is_empty():
 		return
 	_ensure_shared()
-	var w: float = float(COLS) * PITCH
+	var w: float = _width()
 	var rows_of: Array = []
 	var total: float = 0.0
 	for d in data:
@@ -56,7 +59,7 @@ func build(data: Array) -> void:
 	var order: int = 0
 	var fw: int = int(w * float(PX))
 	var fh: int = int(HEAD_H * float(PX))
-	var title := FlatLabel.make(self, Vector2(w, TITLE_H), {"name": "Álbum", "sub": "Las parejas que ya dominas.",
+	var title := FlatLabel.make(self, Vector2(w, TITLE_H), {"name": "Álbum", "sub": "Completa tu colección de parejas.",
 		"icon": "cuaderno", "color": Color("c9b8ff"), "ink": Color("4b3a9a")}, 0.0, PX)
 	title.position.z = z + TITLE_H * 0.5
 	views.append_array(title.views())
@@ -75,7 +78,7 @@ func build(data: Array) -> void:
 		head.position.z = z + HEAD_H * 0.5
 		add_child(head)
 		var face_d: Dictionary = d.duplicate()
-		face_d["sub"] = "De pago" if locked else "Dominadas %d de %d" % [dom, pairs.size()]
+		face_d["sub"] = "No disponible" if locked else "Dominadas %d de %d" % [dom, pairs.size()]
 		face_d["frac"] = -1.0 if (locked or pairs.is_empty()) else float(dom) / float(pairs.size())
 		head.bake(Cards.label(face_d, fw, fh), fw, fh)
 		head.pop_in(minf(0.02 * float(order), 0.8))
@@ -85,7 +88,9 @@ func build(data: Array) -> void:
 		if int(rows_of[s]) > 0:
 			z += HEAD_GAP
 			for k in pairs.size():
-				var pr: Dictionary = pairs[k]
+				# Copia con el nombre de la materia, para el aviso de una pareja no dominada
+				var pr: Dictionary = (pairs[k] as Dictionary).duplicate()
+				pr["subject"] = str(d.get("name", ""))
 				var up: bool = int(pr["stage"]) == 2
 				for side in 2:
 					var i: int = k * 2 + side
@@ -93,10 +98,10 @@ func build(data: Array) -> void:
 					t.setup(_shared, pr["a"] if side == 0 else pr["b"], up, PITCH, pr)
 					var col: int = i % COLS
 					var row: int = floori(float(i) / float(COLS))
-					t.position = Vector3(
-						(float(col) - float(COLS - 1) * 0.5) * PITCH,
-						AlbumTile.REST,
-						z + (float(row) + 0.5) * PITCH)
+					# Las dos fichas de una pareja quedan juntas y entre parejas hay más aire
+					var cx: float = -w * 0.5 + PITCH + float(col / 2) * (2.0 * PITCH + PAIR_GAP)
+					var x: float = cx + (float(col % 2) - 0.5) * PITCH
+					t.position = Vector3(x, AlbumTile.REST, z + (float(row) + 0.5) * PITCH)
 					add_child(t)
 					order += 1
 					t.pop_in(minf(0.012 * float(order), 0.8))
@@ -130,9 +135,13 @@ func _ensure_shared() -> void:
 		"back_mat": TileLook.face_material(TileLook.back_texture()),
 	}
 
+## Ancho de la mesa: las fichas de una fila más el aire extra entre parejas.
+func _width() -> float:
+	return float(COLS) * PITCH + float(COLS / 2 - 1) * PAIR_GAP
+
 ## Distancia de cámara para que quepa el ancho de la mesa.
 func fit_distance() -> float:
-	var need := Vector2(float(COLS) * PITCH + FIT_PAD_W, FIT_VIEW_H)
+	var need := Vector2(_width() + FIT_PAD_W, FIT_VIEW_H)
 	return CamView.distance_for(get_viewport(), need) * FIT_MARGIN
 
 ## Cuánto se puede desplazar la cámara sin perder de vista la mesa.
@@ -140,7 +149,7 @@ func pan_bounds(dist: float) -> Vector2:
 	if _height <= 0.0:
 		return Vector2.ZERO
 	var view: Vector2 = CamView.visible_size(get_viewport(), dist)
-	var w: float = float(COLS) * PITCH + 0.5
+	var w: float = _width() + 0.5
 	var h: float = _height + 0.5
 	var extra: float = view.y * PAN_PAD_Y
 	return Vector2(maxf((w - view.x) * 0.5 + PAN_PAD_X, 0.0), maxf((h - view.y) * 0.5 + extra, 0.0))
@@ -153,7 +162,7 @@ func initial_z(dist: float) -> float:
 func clear_rect() -> Rect2:
 	if _height <= 0.0:
 		return Rect2()
-	var w: float = float(COLS) * PITCH + 0.7
+	var w: float = _width() + 0.7
 	var h: float = _height + 0.7
 	return Rect2(global_position.x - w * 0.5, global_position.z - h * 0.5, w, h)
 
@@ -163,5 +172,13 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 		return
 	var t: AlbumTile = n as AlbumTile
 	t.press()
+	sfx.emit("tap")
 	if t.mastered:
 		opened.emit(t.pair)
+		return
+	# Las fichas boca abajo también se pueden tocar: sin este aviso parecía que el toque fallaba
+	var subject: String = str(t.pair.get("subject", ""))
+	if subject != "":
+		hint.emit("Aún no está dominada: juégala en %s." % subject)
+	else:
+		hint.emit("Aún no está dominada. Juega sus parejas para descubrirla.")

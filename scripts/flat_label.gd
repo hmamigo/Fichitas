@@ -44,6 +44,24 @@ func bake(content: Control, w: int, h: int) -> void:
 	_vp = FaceTex.render(self, content, w, h, true)
 	_mat.albedo_texture = _vp.get_texture()
 
+## Cambia el contenido sin parpadear: el rótulo sigue mostrando la textura vieja
+## hasta que la nueva ya se pintó una vez (contador de parejas, por ejemplo).
+func update(content: Control, w: int, h: int) -> void:
+	if not FaceTex.available():
+		return
+	var old: SubViewport = _vp
+	var fresh: SubViewport = FaceTex.render(self, content, w, h, true)
+	if fresh == null:
+		return
+	_vp = fresh
+	await RenderingServer.frame_post_draw
+	if not is_instance_valid(self) or _vp != fresh:
+		return
+	_mat.albedo_texture = fresh.get_texture()
+	if old != null and is_instance_valid(old):
+		old.queue_free()
+	FaceTex.settle([fresh])
+
 func views() -> Array:
 	return [_vp] if _vp != null else []
 

@@ -8,6 +8,7 @@ extends Node3D
 signal open_subjects
 signal play_general
 signal open_album
+signal sfx(name: String)
 
 const CARD_W := 3.5
 const CARD_H := 1.0
@@ -27,7 +28,7 @@ var _content_h: float = 0.0   # alto del contenido de la mesa: rótulo + losetas
 func build(level: int) -> void:
 	clear()
 	var defs: Array = [
-		{"key": "subjects", "title": "Jugar", "sub": "Elige materia y nivel", "icon": "juego",
+		{"key": "subjects", "title": "Jugar", "sub": "Elige qué practicar", "icon": "juego",
 			"bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
 		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "brujula",
 			"bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
@@ -95,13 +96,12 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 	var p: Plaque = Pick3D.plaque(tiles, cam, pos)
 	if p == null:
 		return
+	p.press()
+	sfx.emit("tap")
 	match p.key:
 		"subjects":
-			p.press()
 			open_subjects.emit()
 		"general":
-			p.press()
 			play_general.emit()
 		"album":
-			p.press()
 			open_album.emit()

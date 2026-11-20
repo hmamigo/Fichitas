@@ -6,6 +6,7 @@ extends Node3D
 
 signal chosen(id: String)      # "" = recorrido general, ":review" = repaso
 signal info(text: String)      # materia bloqueada: aviso para la interfaz
+signal sfx(name: String)
 
 const CARD_W := 3.5
 const CARD_H := 1.75
@@ -142,6 +143,7 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 	if p == null:
 		return
 	p.press()
+	sfx.emit("tap")
 	if p.info != "":
 		info.emit(p.info)
 		return

@@ -6,6 +6,7 @@ extends Node3D
 ## Así el menú queda solo para elegir qué jugar y no mezcla los modos.
 
 signal chosen(mode: String)
+signal sfx(name: String)
 
 const CARD_W := 3.5
 const CARD_H := 1.35
@@ -89,4 +90,5 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 	if p == null:
 		return
 	p.press()
+	sfx.emit("tap")
 	chosen.emit(p.key)

@@ -99,7 +99,7 @@ static func plate_texture(hx: float, hz: float) -> ImageTexture:
 	var n := 128
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
 	var base := Color("e9dab8")
-	var dot := Color("d8c395")
+	var dot := Color("e2d3b0")
 	var line := Color("a6c7ea")
 	for y in n:
 		var uy: float = (float(y) + 0.5) / n * 2.0 - 1.0

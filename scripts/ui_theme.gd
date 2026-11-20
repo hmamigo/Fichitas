@@ -206,7 +206,7 @@ static func icon_dot(size: int = 18, col: Color = INK) -> ImageTexture:
 static func icon_chevron(size: int = 30, col: Color = INK) -> ImageTexture:
 	return icon("arrow_left", size, col)
 
-## Candado para las materias de pago.
+## Candado para las materias no disponibles.
 static func icon_lock(size: int = 44, col: Color = INK) -> ImageTexture:
 	return icon("lock", size, col)
 
@@ -396,8 +396,8 @@ static func build() -> Theme:
 	var line := PILL_LINE
 	th.set_stylebox("normal", "Pill", box(soft, line, 5, 10, 10, 30))
 	th.set_stylebox("hover", "Pill", box(soft.lightened(0.35), line, 5, 10, 10, 30))
-	th.set_stylebox("pressed", "Pill", box(BLUE, BLUE_DARK, 4, 12, 10, 30))
-	th.set_stylebox("hover_pressed", "Pill", box(BLUE.lightened(0.08), BLUE_DARK, 4, 12, 10, 30))
+	th.set_stylebox("pressed", "Pill", box(BLUE_DARK, Color("173d78"), 4, 12, 10, 30))
+	th.set_stylebox("hover_pressed", "Pill", box(BLUE_DARK.lightened(0.08), Color("173d78"), 4, 12, 10, 30))
 	th.set_stylebox("focus", "Pill", StyleBoxEmpty.new())
 	_colors(th, "Pill", INK)
 	th.set_color("font_pressed_color", "Pill", Color.WHITE)

@@ -110,6 +110,8 @@ func _run() -> void:
 	check(main.board.tiles.size() == 6 and main.board.mode == "mem" and main.ui.hud_bar.visible, "nivel 1: 3 parejas")
 	check(str(main.board.game_title.get("sub", "")).ends_with("Memoria"), "el título de la mesa del tablero muestra el modo elegido")
 	await _solve(main, 0.8)
+	check(main.board.progress_matched == 3, "la franja del tablero cuenta las parejas emparejadas")
+	check(str(main.board._title_now().get("sub", "")).ends_with("3 de 3"), "el subtítulo muestra 3 de 3 parejas")
 	await create_timer(2.8).timeout
 	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 1 and main.board.win_station.labels.size() == 2, "nivel completado lleva la cámara a la estación de victoria (cabecera y miniaturas planas, solo el botón es loseta)")
 	check(main.board.win_station.title == "¡Nivel 1 completado!" and main.board.win_station.dom_count == 3, "la victoria muestra el título y las 3 parejas")
@@ -170,6 +172,8 @@ func _run() -> void:
 	main._on_back()
 	await process_frame
 	check(main.state == main.S.SUBJECTS and main.board.station == "subjects", "Atrás desde el modo vuelve a materias")
+	main.board.cam_z = 0.0
+	await process_frame
 	main._play("mat")
 	await process_frame
 	check(main.state == main.S.MODE, "la materia espera la elección del modo")
@@ -178,7 +182,11 @@ func _run() -> void:
 	check(main.state == main.S.GAME and main.cur_sid == "mat" and not main.board.tiles.is_empty() and main.board.mode == "assoc", "elegir Asociación inicia el nivel de la materia")
 	main._go_subjects()
 	await create_timer(1.1).timeout
+	check(is_zero_approx(main.board.cam_z), "al volver de la partida las materias quedan donde estaban")
 	stiles = main.board.subject_station.tiles
+	# El desplazamiento recordado puede dejar la primera loseta fuera de vista: volver arriba
+	main.board.cam_z = main.board.subject_station.initial_z(main.board.subject_station.fit_distance())
+	await process_frame
 	var spot: Vector2 = main.board.cam.unproject_position((stiles[0] as Plaque).global_position)
 	check(Pick3D.plaque(stiles, main.board.cam, spot) == stiles[0], "toque proyectado sobre una loseta de materia")
 	Progress.data["mode"] = "assoc"

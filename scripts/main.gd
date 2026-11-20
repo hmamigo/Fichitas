@@ -34,7 +34,9 @@ func _ready() -> void:
 	board.blockers = [ui.hud_bar]
 	board.won.connect(_on_won)
 	board.sfx.connect(_on_sfx)
-	board.pair_done.connect(func(id: String, clean: bool) -> void: Progress.record(id, clean))
+	board.pair_done.connect(func(id: String, clean: bool) -> void:
+		Progress.record(id, clean)
+		board.set_progress(board.matched_pairs()))
 	board.menu_station.play_general.connect(func() -> void: _play("", S.MENU))
 	board.menu_station.open_subjects.connect(_go_subjects)
 	board.menu_station.open_album.connect(_go_album)
@@ -42,7 +44,9 @@ func _ready() -> void:
 	board.subject_station.info.connect(ui.toast)
 	board.mode_station.chosen.connect(_on_mode_chosen)
 	board.album_station.opened.connect(_on_album_open)
+	board.album_station.hint.connect(ui.toast)
 	ui.back_pressed.connect(_on_back)
+	ui.sfx.connect(_on_sfx)
 	board.win_station.next.connect(_on_next)
 	ui.sound_toggled.connect(_on_sound)
 	ui.vib_toggled.connect(_on_vib)
@@ -80,7 +84,6 @@ func _pack(id: String) -> Dictionary:
 
 func _go_menu() -> void:
 	state = S.MENU
-	board.stop()
 	board.build_menu(Progress.level())
 	ui.show_menu({
 		"sound": bool(Progress.data["sound"]),
@@ -107,11 +110,12 @@ func _on_view_resized() -> void:
 	if state == S.MENU:
 		_center_menu_later()
 
-## Sonido y vibración: los efectos vienen de `board.sfx`.
+## Sonido y vibración: los efectos llegan del tablero y de la interfaz.
 func _on_sfx(name: String) -> void:
 	audio.play(name)
 	if bool(Progress.data["vib"]) and OS.has_feature("mobile"):
-		Input.vibrate_handheld(35 if name == "err" else (60 if name == "win" else 12))
+		var ms: int = 35 if name == "err" else (60 if name == "win" else (8 if name == "tap" else 12))
+		Input.vibrate_handheld(ms)
 
 func _on_sound(on: bool) -> void:
 	Progress.data["sound"] = on
@@ -128,7 +132,6 @@ func _on_vib(on: bool) -> void:
 
 func _go_subjects() -> void:
 	state = S.SUBJECTS
-	board.stop()
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
@@ -157,12 +160,12 @@ func _go_subjects() -> void:
 		var pdue: int = 0 if locked else Levels.due_count(p)
 		cards.append({
 			"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
-			"sub": "De pago" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
-			"sub2": "" if locked else "Dominadas %d/%d" % [dom, (p["pairs"] as Array).size()],
+			"sub": "No disponible" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
+			"sub2": "" if locked else "Dominadas %d de %d" % [dom, (p["pairs"] as Array).size()],
 			"sub3": ("%d por repasar" % pdue) if pdue > 0 else ("Paquete propio" if bool(p.get("external", false)) else ""),
 			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
 			"color": UiTheme.pack_color(p["id"]), "locked": locked,
-			"info": "«%s» es una materia de pago. La compra aún no está disponible." % p["name"] if locked else ""})
+			"info": "«%s» todavía no está disponible." % p["name"] if locked else ""})
 	cards.append({"id": "hdr:mas", "header": true, "name": "Más", "sub": "Tus paquetes y lo que viene",
 		"icon": "magia", "color": "b9c6d9", "ink": "3f526e", "frame": "6b82a3"})
 	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "paquete", "sub": "Una materia tuya (.zip)",
@@ -174,15 +177,15 @@ func _go_subjects() -> void:
 				exists = true
 		if not exists:
 			cards.append({"id": "coming:" + n, "name": n, "icon": "templo" if n == "Historia" else "magia", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
-				"info": "«%s» llegará pronto. Algunas materias nuevas serán de pago." % n})
+				"info": "«%s» llegará pronto." % n})
 	board.build_subjects(cards)
 	board.fly_to_station("subjects", 1.0)
 	ui.show_subjects()
+	_show_pan_hint()
 
 ## Álbum: mesa 3D con todas las parejas de cada materia; las dominadas, boca arriba.
 func _go_album() -> void:
 	state = S.ALBUM
-	board.stop()
 	var data: Array = []
 	for p in packs:
 		var locked: bool = not Levels.is_open(p)
@@ -196,6 +199,15 @@ func _go_album() -> void:
 	board.build_album(data)
 	board.fly_to_station("album", 0.9 if board.station != "album" else 0.0)
 	ui.show_album()
+	_show_pan_hint()
+
+## La primera vez que se abre una lista larga: cómo se recorre (se recuerda en el guardado).
+func _show_pan_hint() -> void:
+	if bool(Progress.data.get("hint", false)):
+		return
+	Progress.data["hint"] = true
+	Progress.save()
+	ui.toast("Deslizá para recorrer y usá dos dedos para acercar.")
 
 func _on_album_open(pr: Dictionary) -> void:
 	ui.show_fact(pr["a"], pr["b"], str(pr.get("fact", "")))
@@ -284,7 +296,6 @@ func _pending_detail() -> String:
 func _go_mode(origin: int) -> void:
 	_mode_from = origin
 	state = S.MODE
-	board.stop()
 	ui.show_mode()
 	board.build_mode(str(Progress.data["mode"]), _title_data("¿Cómo quieres jugar?", _pending_detail()))
 	board.fly_to_station("mode", 0.9 if board.station != "mode" else 0.0)
@@ -320,8 +331,9 @@ func _start(pairs: Array, label: String) -> void:
 	board.set_title(_title_data(tname, tsub))   # va en la franja de la mesa del tablero
 	ui.show_hud()
 	# Desde el paso de modo, la cámara baja hasta el tablero; desde la victoria, vuelve a la izquierda
-	board.fly_to_station("game", 1.1 if from_win else 0.95)
-	board.start(pairs, 0.6 if from_win else 0.78)
+	# (más corto: al repetir nivel el jugador ya conoce el camino)
+	board.fly_to_station("game", 0.85 if from_win else 0.95)
+	board.start(pairs, 0.4 if from_win else 0.78)
 
 func _on_won() -> void:
 	state = S.WIN
@@ -344,16 +356,34 @@ func _on_won() -> void:
 	var title: String = "¡Repaso completado!" if cur_review else "¡Nivel %d completado!" % cur_level
 	# La victoria es una estación del mundo: una mesa a la derecha del tablero
 	ui.hide_all()
-	board.build_win({"title": title, "msg": msg, "button": btn, "doms": _doms()})
-	board.fly_to_station("win", 1.1)
+	board.build_win({"title": title, "msg": msg, "button": btn, "doms": _doms(), "total": cur_pairs.size()})
+	board.fly_to_station("win", 0.9)
+
+## Cuántas miniaturas entran en la victoria sin volverse ilegibles (24 parejas no caben).
+const WIN_DOMS := 12
 
 ## Estado de dominio de las parejas de la sesión, para las miniaturas de la victoria.
+## Con muchas parejas se muestran primero las que subieron de dominio y el resto se
+## resume en una ficha "+N".
 func _doms() -> Array:
-	var out: Array = []
+	var all: Array = []
 	for pr in cur_pairs:
 		var st: int = Progress.pair_stage(pr["id"])
-		out.append({"tex": pr["a"], "stage": st, "up": st > int(stage_before.get(pr["id"], 0))})
-	return out
+		all.append({"tex": pr["a"], "stage": st, "up": st > int(stage_before.get(pr["id"], 0))})
+	if all.size() <= WIN_DOMS:
+		return all
+	var shown: Array = []
+	var rest: Array = []
+	for d in all:
+		if bool(d["up"]) and shown.size() < WIN_DOMS:
+			shown.append(d)
+		else:
+			rest.append(d)
+	for d in rest:
+		if shown.size() < WIN_DOMS:
+			shown.append(d)
+	shown.append({"more": all.size() - WIN_DOMS})
+	return shown
 
 func _on_next() -> void:
 	if cur_review:

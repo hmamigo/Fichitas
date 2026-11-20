@@ -6,6 +6,7 @@ extends Node3D
 ## ganar y vuelve al tablero al seguir.
 
 signal next
+signal sfx(name: String)
 
 const CARD_W := 3.5
 const GAP := 0.18
@@ -32,15 +33,17 @@ func build(data: Dictionary) -> void:
 	clear()
 	title = str(data.get("title", ""))
 	var doms: Array = data.get("doms", [])
-	dom_count = doms.size()
+	dom_count = int(data.get("total", doms.size()))
 	var w: int = int(CARD_W * PPU)
 	var k: int = Cards.WIN_K
 	var parts: Array = []   # {key, h (unidades), face (Control), px, flat}
 	var head_px: int = int(round(HEAD_H * PPU))
 	parts.append({"key": "head", "h": float(head_px) / PPU, "px": head_px, "flat": true,
 		"face": Cards.win_header(title, str(data.get("msg", "")), w, head_px)})
-	if dom_count > 0:
-		var dom_px: int = int(Cards.dom_layout(dom_count, w)["h"])
+	if not doms.is_empty():
+		# La cuadrícula puede traer menos fichas que parejas (`dom_count`) para no volverse
+		# ilegible; el alto se mide con las que se dibujan de verdad.
+		var dom_px: int = int(Cards.dom_layout(doms.size(), w)["h"])
 		parts.append({"key": "doms", "h": float(dom_px) / PPU, "px": dom_px, "flat": true, "face": Cards.win_doms(doms, w)})
 	var btn_px: int = int(round(BTN_H * PPU))
 	parts.append({"key": "next", "h": float(btn_px) / PPU, "px": btn_px, "flat": false,
@@ -119,4 +122,5 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 	var p: Plaque = Pick3D.plaque(tiles, cam, pos)
 	if p != null and p.key == "next":
 		p.press()
+		sfx.emit("tap")
 		next.emit()
