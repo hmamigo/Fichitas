@@ -41,6 +41,7 @@ const AMBIENT_ENERGY := 0.20  # luz ambiental
 const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
+const SHADOW_REACH := 10.0     # hasta dónde llegan las sombras, medido desde la mesa que mira la cámara
 const SPARK_AMOUNT := 22       # estrellas por ficha
 const SPARK_LIFE := 0.80       # segundos que viven
 const SPARK_SIZE := 0.24       # lado de cada estrella
@@ -642,6 +643,9 @@ func _update_cam() -> void:
 	# La niebla empieza detrás de la mesa: no la tiñe, pero difumina el fondo lejano
 	env.fog_depth_begin = d + 4.0
 	env.fog_depth_end = d + 22.0
+	# El alcance de las sombras sigue a la cámara: con un límite fijo desaparecían al alejarse
+	# (niveles grandes, menú, materias), justo cuando más se ve el suelo bajo las mesas.
+	sun.directional_shadow_max_distance = d + SHADOW_REACH
 	cam.look_at(target, Vector3.UP)
 
 ## Límites del paneo (semiejes en X y Z) de la estación activa.
