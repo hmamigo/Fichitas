@@ -95,7 +95,17 @@ godot --headless --path . --script res://tests/test_floor.gd
 
 `tests/_shot.gd` genera capturas en `/tmp/opencode/` para revisar el aspecto; necesita pantalla y no forma parte de las pruebas.
 
-En Android, exportar con el preset **Android**, instalar con `adb install -r <apk>` y revisar los errores con `adb logcat -s godot`.
+## Exportar a Android (pruebas)
+
+El preset **Android** genera un APK de depuración firmado con el keystore de debug de Godot (no sirve para Google Play). El nombre de aplicación es «Fichitas», el package id es `com.soft3s.fichitas` y la versión es `1.0` (`versionCode` 1).
+
+```bash
+godot --headless --path . --export-debug Android ../Fichitas.apk
+adb install -r ../Fichitas.apk
+adb logcat -s godot
+```
+
+El SDK y el JDK se configuran una vez por máquina en **Editor > Editor Settings > Export > Android** (no se versionan): `Android SDK Path` y `Java SDK Path`. Para subir a Play hace falta un keystore de release propio y exportar un AAB con Gradle; todavía no está configurado.
 
 ## Estado
 
