@@ -11,7 +11,7 @@ const SIDE := 0.9         # lado del cubo mediano: la rendija es el 10 % de la c
 const P_LARGE := 0.30     # probabilidad de que un bloque 2×2 sea un solo cubo grande
 # Distancia vertical entre las mesas y el suelo: los cubos apoyan SINK más abajo que las mesas,
 # así las mesas se ven flotando sobre el fondo.
-const SINK := 5 # 1.9
+const SINK := 4 # 1.9
 const GROUND_Y := -0.455 - SINK   # plano del suelo (Board dibuja ahí el plano lejano)
 const BASE_Y := -0.60 - SINK      # base de todos los cubos
 const TOP_MIN := -0.43 - SINK     # cima más baja: justo sobre el plano del suelo

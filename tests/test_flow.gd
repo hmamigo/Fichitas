@@ -147,7 +147,7 @@ func _run() -> void:
 	check(int(saved["level"]) == 2 and (saved["mp"] as Dictionary).size() >= 3 and (saved["sr"] as Dictionary).size() >= 3, "progreso, dominio y repaso guardados en JSON")
 	print("Materias (asociación)")
 	main._go_subjects()
-	check(main.state == main.S.SUBJECTS and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 15, "pantalla de materias con 15 losetas (los rótulos de grupo son planos y no cuentan)")
+	check(main.state == main.S.SUBJECTS and main.ui.subjects.visible and main.board.subject_station.tiles.size() == 16, "pantalla de materias con 16 losetas (los rótulos de grupo son planos y no cuentan)")
 	check(main.board.menu_station.visible and main.board.subject_station.visible, "las mesas de origen y destino se ven durante el vuelo")
 	await create_timer(1.1).timeout
 	check(not main.board.menu_station.visible and main.board.subject_station.visible, "al llegar solo queda visible la mesa activa")
@@ -210,14 +210,17 @@ func _run() -> void:
 	check(main.state == main.S.MODE, "el último nivel también pide el modo al empezar")
 	_choose_mode(main, "assoc")
 	await process_frame
-	check(main.board.tiles.size() == 16 and main.cur_last, "último nivel de la materia (8 parejas)")
+	check(main.board.tiles.size() == 8 and main.board.progress_total == 8 and main.cur_last, "último nivel de la materia (8 parejas en 2 rondas de 4)")
+	await _solve(main, 0.05)
+	await create_timer(2.5).timeout
+	check(main.board.tiles.size() == 8 and main.state == main.S.GAME and main.board.matched_pairs() == 4, "la segunda ronda empieza con 4 parejas ya hechas")
 	await _solve(main, 0.05)
 	await create_timer(3.5).timeout
 	check(main.state == main.S.WIN, "victoria del último nivel")
 	main._on_next()
 	check(main.state == main.S.SUBJECTS and Progress.subj_level("qui") == steps.size() + 1, "materia completada vuelve a materias")
 	main._go_subjects()
-	check(main.board.subject_station.tiles.size() == 15, "materias se redibuja")
+	check(main.board.subject_station.tiles.size() == 16, "materias se redibuja")
 	main._on_back()
 	check(main.state == main.S.MENU, "Atrás vuelve al menú")
 	var p0: Dictionary = main.packs[0]

@@ -9,11 +9,11 @@ Hecho con **Godot 4.7.2** (renderizador *Compatibility*) para **Android**, en ve
 Hay dos modos, que se eligen en un paso aparte justo antes de jugar (después de elegir la materia o el recorrido general):
 
 - **Memoria**: las fichas están boca abajo y hay que descubrir las parejas.
-- **Asociación**: las fichas están visibles y hay que unir cada una con su pareja, seleccionándola o arrastrándola.
+- **Asociación**: las fichas están visibles y hay que unir cada una con su pareja tocando una y luego la otra.
 
 Las parejas pueden ser de varios tipos: pregunta ↔ respuesta, imagen ↔ palabra, concepto ↔ definición, elemento ↔ símbolo.
 
-Los niveles son progresivos: cada uno suma más parejas. Al completar un nivel no hay cronómetro ni estrellas; solo se avanza al siguiente. El tablero es una cuadrícula adaptable, con filas y columnas calculadas según la cantidad de parejas.
+Los niveles son progresivos: cada uno suma más parejas. Al completar un nivel no hay cronómetro ni estrellas; solo se avanza al siguiente. El tablero tiene siempre 2 columnas y se recorre como las listas: deslizando en vertical y con zoom de dos dedos. Los niveles con muchas parejas se dividen en rondas de hasta 6 parejas; el contador sigue sumando entre rondas y la victoria llega al terminar la última.
 
 ### Cómo empieza una partida
 
@@ -57,7 +57,7 @@ La cámara no rota libremente: solo hace zoom y se desplaza.
 
 ## Contenido
 
-Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y, para los más pequeños, Animales (cada animal con su comida), Contar (cantidades y números) y Colores (un objeto con su color), que se juegan sin leer. Las materias se agrupan en tres categorías: Peques, Exploradores y Nerds. Los símbolos, fórmulas y gráficas se incluyen como imágenes. Las materias de Peques no entran en el recorrido general: solo se juegan desde su propia materia.
+Las materias son colecciones temáticas: matemáticas, química, física, inglés, biología, geografía, astronomía e informática, y, para los más pequeños, Animales (cada animal con su comida), Contar (cantidades y números), Colores (un objeto con su color) y Formas (una forma con un objeto que la tiene), que se juegan sin leer. Las materias se agrupan en tres categorías: Peques, Exploradores y Nerds. Los símbolos, fórmulas y gráficas se incluyen como imágenes. Las materias de Peques no entran en el recorrido general: solo se juegan desde su propia materia.
 
 Los paquetes de fichas son archivos JSON. Hay paquetes incluidos en el juego y también se pueden cargar paquetes externos desde el selector de archivos del celular ("Cargar paquete").
 
@@ -87,6 +87,7 @@ Pruebas automáticas sin ventana (terminan con código 0 si todo pasa e imprimen
 ```bash
 godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --script res://tests/test_game.gd
+godot --headless --path . --script res://tests/test_rounds.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
@@ -125,4 +126,4 @@ Los recursos de terceros conservan sus licencias:
 
 - Iconos de `assets/icons/`: @icons, licencia MIT (ver `assets/icons/LICENSE.txt`).
 - Fuentes Nunito y Baloo 2: SIL Open Font License 1.1 (ver `fonts/LICENSE-*.txt`).
-- Ilustraciones de `packs/ani/`, `packs/contar/` y `packs/colores/` e iconos a color de `assets/emoji/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt`, `assets/emoji/LICENSE.txt` y los `LICENSE-Apache-2.0.txt` de cada carpeta).
+- Ilustraciones de `packs/ani/`, `packs/contar/`, `packs/colores/` y `packs/formas/` e iconos a color de `assets/emoji/`: Noto Emoji (Google), Apache License 2.0 (ver `packs/ani/LICENSE.txt`, `assets/emoji/LICENSE.txt` y los `LICENSE-Apache-2.0.txt` de cada carpeta).

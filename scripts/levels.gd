@@ -6,6 +6,21 @@ extends RefCounted
 const PAIRS: Array[int] = [3, 4, 5, 6, 6, 8, 8, 10, 10, 12, 12, 14, 14, 16, 16, 18, 18, 20, 20, 24]
 const DUE_SHARE := 0.6   # máximo de parejas pendientes por nivel
 
+const ROUND_PAIRS := 6   # parejas máximas por ronda (12 fichas = 6 filas de 2)
+
+## Reparte `n` parejas en rondas de como mucho `max_per`, lo más parejas posible:
+## 14 -> [5, 5, 4]; 24 -> [6, 6, 6, 6]; 8 -> [4, 4].
+static func round_sizes(n: int, max_per: int = ROUND_PAIRS) -> Array[int]:
+	var out: Array[int] = []
+	if n <= 0:
+		return out
+	var k: int = ceili(float(n) / float(maxi(max_per, 1)))
+	var base: int = n / k
+	var extra: int = n % k
+	for i in k:
+		out.append(base + (1 if i < extra else 0))
+	return out
+
 static func max_level() -> int:
 	return PAIRS.size()
 

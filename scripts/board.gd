@@ -41,7 +41,10 @@ const AMBIENT_ENERGY := 0.20  # luz ambiental
 const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
+const MOBILE_SCALE_3D := 0.75   # en móvil el 3D se dibuja a esta fracción de la resolución; la interfaz (2D) sigue nítida
 const SHADOW_REACH := 10.0     # hasta dónde llegan las sombras, medido desde la mesa que mira la cámara
+const FIT_ROWS := 3.5          # filas de fichas que se ven a la vez al empezar una ronda (la cuarta asoma: invita a deslizar)
+const PAN_PAD_Y := 0.08        # aire arriba y abajo al recorrer el tablero (fracción del alto visible)
 const SPARK_AMOUNT := 22       # estrellas por ficha
 const SPARK_LIFE := 0.80       # segundos que viven
 const SPARK_SIZE := 0.24       # lado de cada estrella
@@ -103,8 +106,9 @@ var gen: int = 0
 var revealed: Array = []
 var err: Dictionary = {}
 var sel: Tile = null
-var dragging: bool = false
-var drag_tile: Tile = null
+var _rounds: Array = []       # parejas de cada ronda del nivel (Levels.round_sizes)
+var _round: int = 0            # ronda en curso
+var _done_pairs: int = 0       # parejas de las rondas ya terminadas
 var ptrs: Dictionary = {}
 var press_tile: Tile = null
 var press_start: Vector2 = Vector2.ZERO
@@ -177,19 +181,30 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 	# El vuelo lo pide `main` antes de llamar aquí; si nadie lo hizo (pruebas), se salta.
 	if station != "game" and _settled:
 		fly_to_station("game", 0.0)
-	_clear_tiles()
 	gen += 1
 	active = true
 	err.clear()
 	revealed.clear()
 	sel = null
-	dragging = false
-	drag_tile = null
 	lock = false
 	progress_matched = 0
 	progress_total = pairs.size()
+	_done_pairs = 0
+	_round = 0
+	_rounds.clear()
+	var at: int = 0
+	for n in Levels.round_sizes(pairs.size()):
+		_rounds.append(pairs.slice(at, at + n))
+		at += n
+	_build_round(pop_delay)
+
+## Dibuja la ronda en curso: fichas barajadas, vista desde arriba y cascada de entrada.
+func _build_round(pop_delay: float) -> void:
+	_clear_tiles()
+	if _rounds.is_empty():
+		return
 	var items: Array = []
-	for pr in pairs:
+	for pr in _rounds[_round]:
 		items.append({"id": pr["id"], "tex": pr["a"]})
 		items.append({"id": pr["id"], "tex": pr["b"]})
 	items.shuffle()
@@ -197,9 +212,9 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 		tiles.append(_make_tile(str(it["id"]), it["tex"]))
 	zoom = 1.0
 	cam_x = 0.0
-	cam_z = 0.0
 	_layout()
-	# Cascada de entrada: con 48 fichas un paso fijo de 0,03 s tardaría casi 1,5 s
+	cam_z = -_game_bounds(fit).y   # empieza por la primera fila, como las listas
+	# Cascada de entrada: con 12 fichas un paso fijo de 0,03 s es poco, pero se acota igual
 	var step: float = minf(0.03, 0.75 / float(maxi(tiles.size(), 1)))
 	for i in tiles.size():
 		var t: Tile = tiles[i]
@@ -207,6 +222,17 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 		var tw := t.node.create_tween()
 		tw.tween_interval(pop_delay + float(i) * step)
 		tw.tween_property(t.node, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Pasa a la ronda siguiente del mismo nivel (el contador sigue sumando parejas).
+func _next_round() -> void:
+	_done_pairs += tiles.size() / 2
+	_round += 1
+	gen += 1
+	err.clear()
+	revealed.clear()
+	sel = null
+	lock = false
+	_build_round(0.15)
 
 func stop() -> void:
 	gen += 1
@@ -221,6 +247,9 @@ func stop() -> void:
 	rows = 0
 	progress_matched = 0
 	progress_total = 0
+	_rounds.clear()
+	_round = 0
+	_done_pairs = 0
 	_refresh_floor()
 
 ## Construye las losetas de una estación y reajusta los huecos del suelo.
@@ -245,20 +274,28 @@ func set_progress(matched: int) -> void:
 	progress_matched = matched
 	_refresh_title()
 
-## Cantidad de parejas resueltas en el tablero actual.
+## Parejas resueltas en el nivel: las de las rondas ya terminadas más las de la ronda en curso.
 func matched_pairs() -> int:
 	var n: int = 0
 	for t in tiles:
 		if (t as Tile).matched:
 			n += 1
-	return n / 2
+	return _done_pairs + n / 2
 
 ## Texto del subtítulo con el contador, si la partida tiene parejas.
 func _title_now() -> Dictionary:
 	if progress_total <= 0 or game_title.is_empty():
 		return game_title
 	var d: Dictionary = game_title.duplicate()
-	d["sub"] = "%s · %d de %d" % [str(d.get("sub", "")), progress_matched, progress_total]
+	var base: String = str(d.get("sub", ""))
+	if _rounds.size() > 1:
+		# Con varias rondas la franja (2 columnas de ancho) no da para el modo: se quita el último
+		# tramo ("Nivel 3 · Memoria" -> "Nivel 3") y se añade la ronda.
+		var cut: int = base.rfind(" · ")
+		if cut >= 0:
+			base = base.substr(0, cut)
+		base = "%s · Ronda %d/%d" % [base, _round + 1, _rounds.size()]
+	d["sub"] = "%s · %d de %d" % [base, progress_matched, progress_total]
 	return d
 
 ## Vuelve a hornear la franja con el contador nuevo. Se hace una vez por pareja
@@ -369,7 +406,13 @@ func _make_sky() -> Sky:
 	sky.sky_material = sm
 	return sky
 
+## Resolución del 3D según la plataforma: en móvil baja (mucho menos trabajo por pantalla) y se
+## amplía con filtro bilineal; la capa 2D (interfaz y textos) no se ve afectada.
+func apply_render_scale(mobile: bool) -> void:
+	get_viewport().scaling_3d_scale = MOBILE_SCALE_3D if mobile else 1.0
+
 func _build_environment() -> void:
+	apply_render_scale(OS.has_feature("mobile"))
 	env = Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = FOG_COLOR
@@ -378,7 +421,7 @@ func _build_environment() -> void:
 	env.ambient_light_color = Color("cfe0f5")
 	env.ambient_light_energy = AMBIENT_ENERGY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-	env.glow_enabled = true
+	env.glow_enabled = not OS.has_feature("mobile")   # en móvil cuesta pasadas de pantalla completa y casi no se nota
 	env.glow_intensity = 0.40
 	env.glow_bloom = 0.05
 	env.glow_hdr_threshold = 1.35
@@ -475,17 +518,7 @@ func _layout() -> void:
 		return
 	var vp: Vector2 = get_viewport().get_visible_rect().size
 	var a: float = vp.x / maxf(vp.y, 1.0)
-	var best_c: int = 2
-	var best_s: float = -1.0
-	var best_cells: int = 1 << 30
-	for c in range(2, n + 1):
-		var r: int = ceili(float(n) / float(c))
-		var s: float = minf(a / float(c), 0.86 / (float(r) + _title_extra() / ST))
-		if s > best_s + 1e-6 or (absf(s - best_s) < 1e-6 and c * r < best_cells):
-			best_s = s
-			best_c = c
-			best_cells = c * r
-	cols = best_c
+	cols = mini(2, n)   # como mucho 2 columnas: fichas grandes y desplazamiento solo vertical
 	rows = ceili(float(n) / float(cols))
 	for i in n:
 		var row: int = floori(float(i) / float(cols))
@@ -493,12 +526,11 @@ func _layout() -> void:
 		var col: int = i % cols
 		var tl: Tile = tiles[i]
 		tl.home = Vector3((float(col) - float(in_row - 1) * 0.5) * ST, MATCH_Y if tl.matched else REST_Y, (float(row) - float(rows - 1) * 0.5) * ST)
-		if not (dragging and drag_tile == tl):
-			tl.node.position = tl.home
+		tl.node.position = tl.home
 	_build_board()
 	var tn: float = tan(deg_to_rad(FOV * 0.5))
 	var w: float = float(cols) * ST + 0.5
-	var h: float = float(rows) * ST + 0.5 + _title_extra()
+	var h: float = minf(float(rows), FIT_ROWS) * ST + 0.5 + _title_extra()
 	fit = maxf((h + 0.3) / (2.0 * tn), (w + 0.3) / (a * 2.0 * tn)) * 1.12
 	# El degradado del suelo se ajusta a lo que ve la cámara en este nivel
 	if ground_mesh != null:
@@ -531,9 +563,9 @@ func _process(delta: float) -> void:
 	_drift(delta)
 	_update_cam()
 
-## Inercia del arrastre en las estaciones: sigue un poco después de soltar.
+## Inercia del arrastre (estaciones y tablero): sigue un poco después de soltar.
 func _drift(delta: float) -> void:
-	if station == "game" or _pan_v.length() < 2.0 or not ptrs.is_empty():
+	if _pan_v.length() < 2.0 or not ptrs.is_empty():
 		return
 	_pan(_pan_v * delta)
 	_pan_v *= exp(-7.0 * delta)
@@ -658,7 +690,17 @@ func _pan_bounds(dist: float) -> Vector2:
 		return win_station.pan_bounds(dist)
 	if station == "menu" or station == "mode":
 		return Vector2.ZERO
-	return Vector2(float(cols) * ST * 0.5, float(rows) * ST * 0.5)
+	return _game_bounds(dist)
+
+## Cuánto se puede desplazar la cámara en el tablero sin perder de vista la mesa: como en las listas,
+## solo en vertical mientras el ancho quepa (en horizontal solo si se acerca con el zoom).
+func _game_bounds(dist: float) -> Vector2:
+	if cols <= 0 or rows <= 0:
+		return Vector2.ZERO
+	var view: Vector2 = CamView.visible_size(get_viewport(), dist)
+	var w: float = float(cols) * ST + 0.5
+	var h: float = float(rows) * ST + 0.5 + _title_extra()
+	return Vector2(maxf((w - view.x) * 0.5, 0.0), maxf((h - view.y) * 0.5 + view.y * PAN_PAD_Y, 0.0))
 
 ## Lleva la cámara de una estación a otra. `start_at` salta el principio del vuelo
 ## (entre niveles basta un acercamiento corto).
@@ -839,10 +881,6 @@ func _down(id: int, pos: Vector2) -> void:
 		moved = false
 		_pan_v = Vector2.ZERO
 	else:
-		if dragging and drag_tile != null:
-			_return_home(drag_tile)
-		dragging = false
-		drag_tile = null
 		moved = true
 		press_tile = null
 		pinch_d = _pinch_distance()
@@ -863,17 +901,10 @@ func _move(id: int, pos: Vector2) -> void:
 		return
 	if not moved and pos.distance_to(press_start) > 12.0:
 		moved = true
-		if station == "game" and mode == "assoc" and press_tile != null and not press_tile.matched and not lock:
-			_begin_drag(press_tile)
-	if dragging and drag_tile != null:
-		var g: Vector3 = _ground_point(pos)
-		drag_tile.node.position.x = g.x
-		drag_tile.node.position.z = g.z
-	elif moved:
+	if moved:
 		_pan(delta)
-		if station != "game":
-			var dt: float = maxf(get_process_delta_time(), 0.001)
-			_pan_v = _pan_v.lerp(delta / dt, 0.45)
+		var dt: float = maxf(get_process_delta_time(), 0.001)
+		_pan_v = _pan_v.lerp(delta / dt, 0.45)
 
 func _up(id: int) -> void:
 	if not ptrs.has(id):
@@ -881,17 +912,13 @@ func _up(id: int) -> void:
 	ptrs.erase(id)
 	if not ptrs.is_empty():
 		return
-	if dragging and drag_tile != null:
-		_drop(drag_tile, last_pos)
-		dragging = false
-		drag_tile = null
-	elif not moved and press_tile != null:
+	if not moved and press_tile != null:
 		_tap(press_tile)
 	elif not moved and station != "game":
 		_station_tap(last_pos)
 	press_tile = null
-	# La inercia sigue solo tras arrastrar en una estación; un toque la corta
-	if station == "game" or not moved:
+	# La inercia sigue tras arrastrar; un toque la corta
+	if not moved:
 		_pan_v = Vector2.ZERO
 
 ## Toque corto en las estaciones: la loseta que hay bajo el dedo.
@@ -979,36 +1006,10 @@ func _resolve_assoc(a: Tile, b: Tile) -> void:
 	if a.pair == b.pair:
 		_resolve_ok(a, b)
 	else:
-		err[a.pair] = true  # error de la ficha elegida o arrastrada primero
+		err[a.pair] = true  # error de la ficha elegida primero
 		sfx.emit("err")
 		_shake(a)
 		_shake(b)
-
-func _begin_drag(t: Tile) -> void:
-	if sel != null:
-		_unsel(sel)
-		sel = null
-	dragging = true
-	drag_tile = t
-	_lift(t, 0.35)
-
-func _drop(t: Tile, pos: Vector2) -> void:
-	var g: Vector3 = _ground_point(pos)
-	var other: Tile = null
-	var best: float = 0.55 * ST
-	for o in tiles:
-		if o != t and not o.matched:
-			var d: float = Vector2(g.x - o.home.x, g.z - o.home.z).length()
-			if d < best:
-				best = d
-				other = o
-	_return_home(t)
-	if other != null:
-		_resolve_assoc(t, other)
-
-func _return_home(t: Tile) -> void:
-	var tw := t.node.create_tween()
-	tw.tween_property(t.node, "position", t.home, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 func _resolve_ok(a: Tile, b: Tile) -> void:
 	_unglow(a)
@@ -1138,6 +1139,7 @@ func _check_win() -> void:
 			return
 	var g: int = gen
 	lock = true
+	var last: bool = _round >= _rounds.size() - 1
 	for i in tiles.size():
 		var t: Tile = tiles[i]
 		var tw := t.node.create_tween()
@@ -1146,9 +1148,13 @@ func _check_win() -> void:
 		tw.tween_callback(_sparks.bind(t))  # estallido de estrellas en lo alto del salto
 		tw.tween_property(t.node, "position:y", MATCH_Y, 0.22).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await get_tree().create_timer(1.1 + tiles.size() * 0.05).timeout
-	if g == gen and active:
+	if g != gen or not active:
+		return
+	if last:
 		sfx.emit("win")
 		won.emit()
+	else:
+		_next_round()
 
 # ---------- Animaciones ----------
 

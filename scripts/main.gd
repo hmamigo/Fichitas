@@ -347,7 +347,7 @@ func _on_won() -> void:
 			var steps: Array = Levels.steps_for(_pack(cur_sid))
 			(Progress.data["subj"] as Dictionary)[cur_sid] = steps.size() + 1
 			Progress.save()
-		msg = "Has emparejado %d parejas." % int(board.tiles.size() / 2.0)
+		msg = "Has emparejado %d parejas." % cur_pairs.size()
 		if cur_last:
 			msg = "Has completado todos los niveles de %s. ¡Gran trabajo!" % _pack(cur_sid)["name"] if cur_sid != "" else "Has recorrido todas las colecciones disponibles. ¡Gran trabajo!"
 		btn = "Siguiente nivel"

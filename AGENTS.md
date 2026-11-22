@@ -14,16 +14,16 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
 - **Godot 4.7.2**, GDScript.
 - Renderizador **Compatibility**. No usar funciones que ese renderizador no soporte ni efectos pesados (iluminación global, reflejos en pantalla, sombras costosas, etc.).
 - Plataforma: **Android**, orientación **vertical**. No se hace versión de escritorio.
-- Entrada **táctil primero**: tocar, arrastrar, zoom con dos dedos.
+- Entrada **táctil primero**: tocar, deslizar, zoom con dos dedos. **No se arrastran fichas**: en Asociación se toca una y luego su pareja.
 
 ## Concepto del juego
 
 - Dos modos, elegibles en un paso aparte, después de elegir la materia y antes de entrar al tablero:
   - **Memoria**: fichas boca abajo, descubrir parejas.
-  - **Asociación**: fichas visibles, seleccionar o arrastrar hasta su pareja.
+  - **Asociación**: fichas visibles; se toca una y luego su pareja (sin arrastrar).
 - Relaciones entre fichas: pregunta ↔ respuesta, imagen ↔ palabra, concepto ↔ definición, elemento ↔ símbolo.
 - Niveles progresivos: cada nivel suma más parejas.
-- Tablero: cuadrícula adaptable, con filas y columnas calculadas según la cantidad de parejas.
+- Tablero: **siempre 2 columnas** (fichas grandes), con el mismo desplazamiento y zoom que Materias: vertical (el horizontal solo aparece al acercar), con inercia, empezando por la primera fila. Al empezar se ven `Board.FIT_ROWS` filas y la siguiente asoma para invitar a deslizar. Los niveles se dividen en **rondas** de como mucho `Levels.ROUND_PAIRS` (6) parejas, repartidas parejo (`Levels.round_sizes`: 14 -> 5+5+4); al terminar una ronda salen fichas nuevas, el contador sigue sumando (`matched_pairs` incluye las rondas hechas), el subtítulo muestra "Ronda 1/3" (sin el modo, por falta de ancho) y `won` se emite solo al terminar la última. `main` cuenta las parejas del nivel con `cur_pairs`, no con las fichas en pantalla.
 - Al completar un nivel: solo avanzar. **Sin cronómetro ni estrellas.**
 - Sonido: efectos simples (giro de ficha, toque, acierto, error). **Sin música** por ahora.
 
@@ -40,6 +40,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - La cámara **no rota libremente**: solo zoom y desplazamiento.
 - El fondo de cubos va algo alejado, y el menú un poco más abajo, no pegado al logo.
 - Suelo: **cubos de colores de distinta profundidad**, de **dos tamaños** (grandes de 2×2 y medianos) repartidos por bloques sin solaparse, en un solo `MultiMesh` de cajas simples de 12 triángulos (~5 200 instancias: pensado para móviles antiguos; no subirlo sin medir en un móvil modesto, `test_floor` falla por encima de 6 500). No hay cubos chicos, edificios con ventanas ni modo alternativo: se probó y se descartó. La altura de cada cubo (`FloorCubes._height_for`) es el grosor mínimo más un relieve **cercano** (`NEAR_RISE`, ya pegado a la mesa, porque en la vista casi cenital del tablero solo se ve esa franja) y uno **lejano** (`FAR_RISE`) que crece con la distancia a la mesa desde `RISE_START`; los más profundos se aclaran (`TALL_LIGHT`) para que la profundidad también se lea desde arriba. **Distancia a las mesas**: los cubos apoyan `SINK` más abajo que las mesas (`FloorCubes.GROUND_Y` es también la altura del plano lejano de `Board`) y los cercanos nunca llegan a la parte baja del marco (y = −0,325; `test_floor` lo comprueba). Las mesas proyectan su sombra sobre el suelo: el alcance de las sombras del sol sigue a la cámara (`Board.SHADOW_REACH` sumado a su distancia); con un límite fijo desaparecían al alejarse (niveles grandes, menú, materias). La niebla de profundidad empieza detrás de la mesa (distancia de la cámara + 4), así que apenas se nota en pantalla; el tono azulado de los cubos viene de `FloorCubes.FADE`.
+- **Rendimiento en móvil** (solo con el tag `mobile`, el escritorio no cambia): sin MSAA, glow apagado, mapa de sombras de 2048, filtro de sombras suave muy bajo (`project.godot` y `Board`) y el 3D dibujado al 75 % de la resolución (`Board.MOBILE_SCALE_3D`, filtro bilineal; la interfaz 2D sigue nítida). Medido por software en el tablero (indicativo, no son fps de un móvil): MSAA 4× fue lo más caro por mucho (319 → 171 ms por cuadro al quitarlo), luego sombras y glow juntos, y el suelo de cubos pesó poco (~14 %). Antes de tocar el suelo por rendimiento, probar estos ajustes en el móvil.
 - No agregar pantallas 2D ni paneles de UI que rompan esta lógica. Si hace falta algo de interfaz (botones de volver, avisos), debe tener la misma estética que las fichas. **La capa 2D no lleva títulos**: la barra superior solo tiene el botón de volver y todo texto que informa (menú principal, "¿Cómo quieres jugar?", título y nivel de la partida, álbum, victoria) es un rótulo plano sobre su mesa.
 
 ## Estilo visual (no romper)
@@ -94,7 +95,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 `packs/index.json` es el índice de los paquetes oficiales y su orden:
 
 ```json
-{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores"]}
+{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores", "formas"]}
 ```
 
 Cada materia vive en `packs/<id>/pack.json`:
@@ -115,7 +116,7 @@ Cada materia vive en `packs/<id>/pack.json`:
 - `format`: si está, debe ser `1`.
 - `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
 - `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
-- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar, Colores); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
+- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar, Colores, Formas); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
 - `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
 - Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
 - Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
@@ -193,6 +194,7 @@ No se usa GUT: cada archivo de `tests/` es un `SceneTree` que corre sin ventana 
 ```bash
 godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --script res://tests/test_game.gd
+godot --headless --path . --script res://tests/test_rounds.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
@@ -201,8 +203,9 @@ godot --headless --path . --script res://tests/test_floor.gd
 
 | Prueba | Qué cubre |
 |---|---|
-| `run_tests` | Malla de ficha y carga de los 11 paquetes oficiales. |
-| `test_game` | Reglas del tablero: parejas, arrastre, victoria, chispas y nivel de 24 parejas. |
+| `run_tests` | Malla de ficha y carga de los 12 paquetes oficiales. |
+| `test_game` | Reglas del tablero: parejas (por toque), victoria, chispas y nivel de 24 parejas (4 rondas de 6). |
+| `test_rounds` | Reparto en rondas (`Levels.round_sizes`), 2 columnas, límites de desplazamiento vertical, paso entre rondas con el contador acumulado y `won` una sola vez. |
 | `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara, cobertura del suelo en los extremos de las listas, contador de parejas, memoria de la posición de las listas y guardado. |
 | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |
 | `test_packs` | Importación de paquetes externos: validación, imágenes, reemplazo y borrado. |

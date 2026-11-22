@@ -1,0 +1,4 @@
+Ilustraciones de los objetos (01a.png a 10a.png): Noto Emoji, © Google LLC,
+https://github.com/googlefonts/noto-emoji — Apache License 2.0 (ver LICENSE-Apache-2.0.txt).
+Las imágenes se escalaron a 330 px y se colocaron sobre un marco de color nuevo.
+Las formas (01b.png a 10b.png) están dibujadas para este juego.

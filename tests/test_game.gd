@@ -38,7 +38,7 @@ func _run() -> void:
 	b.start(_pairs(6))
 	for i in 3:
 		await process_frame
-	check(b.tiles.size() == 12 and b.cols * b.rows >= 12, "12 fichas en %dx%d" % [b.cols, b.rows])
+	check(b.tiles.size() == 12 and b.cols == 2 and b.rows == 6, "12 fichas en 2 columnas (%dx%d)" % [b.cols, b.rows])
 	var all_down: bool = true
 	for t in b.tiles:
 		if t.up:
@@ -106,14 +106,14 @@ func _run() -> void:
 	b._tap(A[0])
 	b._tap(A[1])
 	check(A[0].matched and A[1].matched and done.size() == 1 and done[0][1] == false, "pareja correcta (con error previo) se resuelve")
-	b._begin_drag(B[0])
-	b._drop(B[0], b.cam.unproject_position(B[1].home))
-	check(B[0].matched and B[1].matched and done.size() == 2 and done[1][1] == true, "arrastrar una ficha sobre su pareja")
+	b._tap(B[0])
+	b._tap(B[1])
+	check(B[0].matched and B[1].matched and done.size() == 2 and done[1][1] == true, "tocar dos fichas de la misma pareja")
 	var C: Array = _of(b, ids[2])
 	var D: Array = _of(b, ids[3])
-	b._begin_drag(C[0])
-	b._drop(C[0], b.cam.unproject_position(D[0].home))
-	check(not C[0].matched and not D[0].matched, "arrastrar sobre otra ficha no resuelve")
+	b._tap(C[0])
+	b._tap(D[0])
+	check(not C[0].matched and not D[0].matched, "tocar dos fichas de parejas distintas no resuelve")
 	b._tap(C[0])
 	b._tap(C[1])
 	for k in [3, 4, 5]:
@@ -134,7 +134,7 @@ func _run() -> void:
 	check(won.size() == 1, "emite 'won' una vez")
 	b.start(_pairs(24))
 	await process_frame
-	check(b.tiles.size() == 48, "nivel de 24 parejas = 48 fichas")
+	check(b.tiles.size() == 12 and b.progress_total == 24 and b._rounds.size() == 4, "nivel de 24 parejas = 4 rondas de 12 fichas")
 	print("Chispas")
 	b.start(_pairs(3))
 	for i in 3:

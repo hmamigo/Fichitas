@@ -1,0 +1,59 @@
+{
+ "format": 1,
+ "id": "formas",
+ "name": "Formas",
+ "unlock": 99,
+ "category": "peques",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Las ruedas son redondas porque un círculo rueda suave: todos sus puntos están a la misma distancia del centro."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Un cuadrado tiene cuatro lados iguales y cuatro esquinas rectas."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Un triángulo tiene tres lados y es una forma muy firme: por eso se usa en puentes y techos."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Un rectángulo tiene cuatro esquinas rectas y los lados de enfrente son iguales, como en una puerta."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Un óvalo parece un círculo estirado: los huevos tienen esa forma."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "El rombo tiene cuatro lados iguales, como un cuadrado inclinado; muchas cometas tienen esa forma."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Las estrellas de verdad son bolas de gas muy lejanas; en los dibujos les ponemos puntas."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "El corazón dibujado no se parece mucho al de verdad, que tiene más o menos el tamaño de un puño."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Un semicírculo es medio círculo, como una rodaja de sandía."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Un dado es un cubo: tiene seis caras cuadradas e iguales."
+  }
+ ]
+}

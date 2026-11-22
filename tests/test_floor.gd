@@ -79,5 +79,12 @@ func _run() -> void:
 			plane_ok = true
 	check(plane_ok, "el plano lejano está a la altura del suelo (GROUND_Y)")
 
+	print("Resolución del 3D")
+	check(is_equal_approx(root.scaling_3d_scale, 1.0), "en escritorio el 3D se dibuja a resolución completa")
+	b.apply_render_scale(true)
+	check(is_equal_approx(root.scaling_3d_scale, Board.MOBILE_SCALE_3D), "en móvil baja a %.2f" % Board.MOBILE_SCALE_3D)
+	b.apply_render_scale(false)
+	check(is_equal_approx(root.scaling_3d_scale, 1.0), "y vuelve a 1,0")
+
 	print("Resultado: " + ("TODO OK" if fails == 0 else "%d FALLAS" % fails))
 	quit(1 if fails > 0 else 0)
