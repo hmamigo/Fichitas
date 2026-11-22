@@ -92,6 +92,7 @@ godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
 godot --headless --path . --script res://tests/test_floor.gd
+godot --headless --path . --script res://tests/test_ui_menu.gd
 ```
 
 `tests/_shot.gd` genera capturas en `/tmp/opencode/` para revisar el aspecto; necesita pantalla y no forma parte de las pruebas.

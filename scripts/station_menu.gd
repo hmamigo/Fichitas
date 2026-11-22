@@ -28,9 +28,9 @@ var _content_h: float = 0.0   # alto del contenido de la mesa: rótulo + losetas
 func build(level: int) -> void:
 	clear()
 	var defs: Array = [
-		{"key": "subjects", "title": "Jugar", "sub": "Elige qué practicar", "icon": "juego",
+		{"key": "subjects", "title": "Materias", "sub": "Elige una asignatura", "icon": "juego",
 			"bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
-		{"key": "general", "title": "Recorrido general", "sub": "Nivel %d" % level, "icon": "brujula",
+		{"key": "general", "title": "Recorrido general", "sub": "Varias materias · Nivel %d" % level, "icon": "brujula",
 			"bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
 		{"key": "album", "title": "Álbum", "sub": "Tus parejas dominadas", "icon": "cuaderno",
 			"bg": Color("e3d7ff"), "ink": Color("4b3a9a")},

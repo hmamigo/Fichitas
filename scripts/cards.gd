@@ -254,7 +254,7 @@ static func action(title: String, sub: String, icon: String, dot: bool, bg: Colo
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	v.add_child(title_label)
 	if sub != "":
-		var subtitle := _label(sub, UiTheme.T_TINY, ink)
+		var subtitle := _label(sub, UiTheme.T_SMALL, ink)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		v.add_child(subtitle)
 	return root

@@ -199,6 +199,7 @@ godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
 godot --headless --path . --script res://tests/test_floor.gd
+godot --headless --path . --script res://tests/test_ui_menu.gd
 ```
 
 | Prueba | Qué cubre |
@@ -210,6 +211,7 @@ godot --headless --path . --script res://tests/test_floor.gd
 | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |
 | `test_packs` | Importación de paquetes externos: validación, imágenes, reemplazo y borrado. |
 | `test_floor` | Suelo de cubos: presupuesto de instancias, solo cubos medianos y grandes, relieve ya pegado a la mesa sin tocarla, cubos más profundos lejos, distancia vertical y plano lejano. En headless Godot no guarda las transformaciones del `MultiMesh`, así que la prueba lee los datos propios del suelo (`_cells`, `_heights`); el aspecto se revisa con capturas. |
+| `test_ui_menu` | Estado visible de sonido y vibración; sus etiquetas cambian al activarlos o desactivarlos. |
 
 - Al agregar un script con `class_name`, ejecutar una vez `godot --headless --path . --import` para actualizar la caché de clases (`.godot/global_script_class_cache.cfg`); si no, Godot falla con "Could not resolve external class member".
 - `tests/_shot.gd` guarda capturas en `/tmp/opencode/m_*.png` y necesita pantalla (`DISPLAY`), así que no corre en headless. No es una prueba.

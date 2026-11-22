@@ -166,12 +166,15 @@ func _toggle(text: String, icon_on: String, icon_off: String, parent: Control) -
 	b.add_theme_font_size_override("font_size", UiTheme.T_SMALL)
 	b.set_meta("icon_on", icon_on)
 	b.set_meta("icon_off", icon_off)
+	b.set_meta("label_on", text + ": sí")
+	b.set_meta("label_off", text + ": no")
 	b.toggled.connect(func(on: bool) -> void: _paint_toggle(b, on))
 	parent.add_child(b)
 	return b
 
 func _paint_toggle(b: Button, on: bool) -> void:
 	var icon_name: String = str(b.get_meta("icon_on" if on else "icon_off"))
+	b.text = str(b.get_meta("label_on" if on else "label_off"))
 	var tex: ImageTexture = UiTheme.icon(icon_name, 34, UiTheme.INK)
 	# Activa, la pastilla es azul: el icono a color va sobre un círculo claro para que se vea
 	b.icon = _chip(tex, 46) if on and tex != null else tex
@@ -476,7 +479,7 @@ func _build_menu() -> void:
 	veil.texture = UiTheme.radial_glow(256, Color("e8f3ff"))
 	veil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	veil.stretch_mode = TextureRect.STRETCH_SCALE
-	veil.modulate = Color(1, 1, 1, 0.34)
+	veil.modulate = Color(1, 1, 1, 0.46)
 	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu.add_child(veil)
@@ -515,7 +518,7 @@ func _build_menu() -> void:
 	title_wrap.add_child(_title_tiles("FICHITAS"))
 	# Lema bajo el logotipo: solo informa, así que va plano (con halo para leerse
 	# sobre los cubos), sin plato ni filo que lo haga parecer un botón.
-	_menu_subtitle = _halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_SMALL, false, UiTheme.INK))
+	_menu_subtitle = _halo(_label("Empareja fichas y practica a tu ritmo.", UiTheme.T_BODY, false, UiTheme.INK))
 	_menu_subtitle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_menu_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(_menu_subtitle)
