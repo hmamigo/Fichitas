@@ -65,8 +65,8 @@ func _init() -> void:
 		for pr in p["pairs"]:
 			if not (pr["a"] is Texture2D) or (pr["a"] as Texture2D).get_width() != 512:
 				tex_ok = false
-	check(packs.size() == 12, "12 paquetes (%d)" % packs.size())
-	check(total == 112, "112 parejas (%d)" % total)
+	check(packs.size() == 13, "13 paquetes (%d)" % packs.size())
+	check(total == 122, "122 parejas (%d)" % total)
 	check(tex_ok, "texturas 512x512 cargadas")
 	print("Resultado: %s" % ("TODO OK" if fails == 0 else "%d fallos" % fails))
 	quit(0 if fails == 0 else 1)

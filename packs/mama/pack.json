@@ -1,0 +1,59 @@
+{
+ "format": 1,
+ "id": "mama",
+ "name": "Mamá y cría",
+ "unlock": 99,
+ "category": "peques",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "La cría de la gallina es el pollito, que sale de un huevo."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "La cría de la vaca se llama ternero y toma la leche de su mamá."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "La cría de la oveja se llama cordero y se pone de pie a los pocos minutos de nacer."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "La cría de la cerda se llama lechón."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "La cría de la yegua se llama potro."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "La cría de la perra se llama cachorro y nace con los ojos cerrados."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "La cría de la gata se llama gatito, y también nace con los ojos cerrados."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "La cría de la cabra se llama cabrito."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "La cría de la coneja se llama gazapo."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "La cría de la pata se llama patito y sale de un huevo."
+  }
+ ]
+}

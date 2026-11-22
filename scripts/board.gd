@@ -45,6 +45,7 @@ const MOBILE_SCALE_3D := 0.75   # en móvil el 3D se dibuja a esta fracción de 
 const SHADOW_REACH := 10.0     # hasta dónde llegan las sombras, medido desde la mesa que mira la cámara
 const FIT_ROWS := 3.5          # filas de fichas que se ven a la vez al empezar una ronda (la cuarta asoma: invita a deslizar)
 const PAN_PAD_Y := 0.08        # aire arriba y abajo al recorrer el tablero (fracción del alto visible)
+const GLIDE_SECS := 0.45      # lo que tarda la cámara en volver a la primera fila al pasar de ronda
 const SPARK_AMOUNT := 22       # estrellas por ficha
 const SPARK_LIFE := 0.80       # segundos que viven
 const SPARK_SIZE := 0.24       # lado de cada estrella
@@ -109,6 +110,7 @@ var sel: Tile = null
 var _rounds: Array = []       # parejas de cada ronda del nivel (Levels.round_sizes)
 var _round: int = 0            # ronda en curso
 var _done_pairs: int = 0       # parejas de las rondas ya terminadas
+var _glide: Tween              # deslizamiento de la cámara hacia la ronda nueva
 var ptrs: Dictionary = {}
 var press_tile: Tile = null
 var press_start: Vector2 = Vector2.ZERO
@@ -199,7 +201,11 @@ func start(pairs: Array, pop_delay: float = 0.0) -> void:
 	_build_round(pop_delay)
 
 ## Dibuja la ronda en curso: fichas barajadas, vista desde arriba y cascada de entrada.
-func _build_round(pop_delay: float) -> void:
+func _build_round(pop_delay: float, glide: bool = false) -> void:
+	_stop_glide()
+	var from_x: float = cam_x
+	var from_z: float = cam_z
+	var from_zoom: float = zoom
 	_clear_tiles()
 	if _rounds.is_empty():
 		return
@@ -213,7 +219,17 @@ func _build_round(pop_delay: float) -> void:
 	zoom = 1.0
 	cam_x = 0.0
 	_layout()
-	cam_z = -_game_bounds(fit).y   # empieza por la primera fila, como las listas
+	var top: float = -_game_bounds(fit).y   # empieza por la primera fila, como las listas
+	cam_z = top
+	if glide:
+		# Entre rondas la cámara no salta: parte de donde estaba y se desliza a la primera fila
+		cam_x = from_x
+		cam_z = from_z
+		zoom = from_zoom
+		_glide = create_tween().set_parallel(true)
+		_glide.tween_property(self, "cam_x", 0.0, GLIDE_SECS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_glide.tween_property(self, "cam_z", top, GLIDE_SECS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_glide.tween_property(self, "zoom", 1.0, GLIDE_SECS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	# Cascada de entrada: con 12 fichas un paso fijo de 0,03 s es poco, pero se acota igual
 	var step: float = minf(0.03, 0.75 / float(maxi(tiles.size(), 1)))
 	for i in tiles.size():
@@ -224,6 +240,12 @@ func _build_round(pop_delay: float) -> void:
 		tw.tween_property(t.node, "scale", Vector3.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## Pasa a la ronda siguiente del mismo nivel (el contador sigue sumando parejas).
+## Corta el deslizamiento entre rondas (al tocar la pantalla manda el dedo, no la animación).
+func _stop_glide() -> void:
+	if _glide != null and _glide.is_valid():
+		_glide.kill()
+	_glide = null
+
 func _next_round() -> void:
 	_done_pairs += tiles.size() / 2
 	_round += 1
@@ -232,9 +254,10 @@ func _next_round() -> void:
 	revealed.clear()
 	sel = null
 	lock = false
-	_build_round(0.15)
+	_build_round(0.15, true)
 
 func stop() -> void:
+	_stop_glide()
 	gen += 1
 	active = false
 	ptrs.clear()
@@ -871,6 +894,7 @@ func _unhandled_input(e: InputEvent) -> void:
 			_move(-1, mm.position)
 
 func _down(id: int, pos: Vector2) -> void:
+	_stop_glide()
 	if _blocked(pos):
 		return
 	ptrs[id] = pos

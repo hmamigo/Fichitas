@@ -12,12 +12,12 @@ const EMOJI := "res://assets/emoji/"   # iconos a color (Noto Emoji): tienen pri
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
 	"bio": "d1b3ff", "geo": "7fd6d1", "ast": "a9b8ff", "inf": "ffc27a",
-	"ani": "ff9fcb", "contar": "c6e86a", "colores": "8fe0ff", "formas": "e3c9a8",
+	"ani": "ff9fcb", "contar": "c6e86a", "colores": "8fe0ff", "formas": "e3c9a8", "mama": "c9b7ff",
 }
 const PACK_ICONS := {
 	"mat": "abaco", "qui": "alembic", "fis": "atomo", "ing": "dialogo",
 	"bio": "adn", "geo": "tierra", "ast": "planeta", "inf": "laptop",
-	"ani": "patas", "contar": "numeros", "colores": "paleta", "formas": "figuras",
+	"ani": "patas", "contar": "numeros", "colores": "paleta", "formas": "figuras", "mama": "biberon",
 }
 static var _icon_cache: Dictionary = {}
 static var _glow_cache: Dictionary = {}

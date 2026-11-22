@@ -23,7 +23,7 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
   - **Asociación**: fichas visibles; se toca una y luego su pareja (sin arrastrar).
 - Relaciones entre fichas: pregunta ↔ respuesta, imagen ↔ palabra, concepto ↔ definición, elemento ↔ símbolo.
 - Niveles progresivos: cada nivel suma más parejas.
-- Tablero: **siempre 2 columnas** (fichas grandes), con el mismo desplazamiento y zoom que Materias: vertical (el horizontal solo aparece al acercar), con inercia, empezando por la primera fila. Al empezar se ven `Board.FIT_ROWS` filas y la siguiente asoma para invitar a deslizar. Los niveles se dividen en **rondas** de como mucho `Levels.ROUND_PAIRS` (6) parejas, repartidas parejo (`Levels.round_sizes`: 14 -> 5+5+4); al terminar una ronda salen fichas nuevas, el contador sigue sumando (`matched_pairs` incluye las rondas hechas), el subtítulo muestra "Ronda 1/3" (sin el modo, por falta de ancho) y `won` se emite solo al terminar la última. `main` cuenta las parejas del nivel con `cur_pairs`, no con las fichas en pantalla.
+- Tablero: **siempre 2 columnas** (fichas grandes), con el mismo desplazamiento y zoom que Materias: vertical (el horizontal solo aparece al acercar), con inercia, empezando por la primera fila. Al empezar se ven `Board.FIT_ROWS` filas y la siguiente asoma para invitar a deslizar. Los niveles se dividen en **rondas** de como mucho `Levels.ROUND_PAIRS` (6) parejas, repartidas parejo (`Levels.round_sizes`: 14 -> 5+5+4); al terminar una ronda salen fichas nuevas y la cámara se desliza (`Board.GLIDE_SECS`, 0,45 s; un toque del jugador la corta) desde donde estaba hasta la primera fila y el zoom 1×, el contador sigue sumando (`matched_pairs` incluye las rondas hechas), el subtítulo muestra "Ronda 1/3" (sin el modo, por falta de ancho) y `won` se emite solo al terminar la última. `main` cuenta las parejas del nivel con `cur_pairs`, no con las fichas en pantalla.
 - Al completar un nivel: solo avanzar. **Sin cronómetro ni estrellas.**
 - Sonido: efectos simples (giro de ficha, toque, acierto, error). **Sin música** por ahora.
 
@@ -95,7 +95,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 `packs/index.json` es el índice de los paquetes oficiales y su orden:
 
 ```json
-{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores", "formas"]}
+{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores", "formas", "mama"]}
 ```
 
 Cada materia vive en `packs/<id>/pack.json`:
@@ -116,7 +116,7 @@ Cada materia vive en `packs/<id>/pack.json`:
 - `format`: si está, debe ser `1`.
 - `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
 - `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
-- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar, Colores, Formas); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
+- `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar, Colores, Formas, Mamá y cría); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
 - `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
 - Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
 - Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
@@ -204,7 +204,7 @@ godot --headless --path . --script res://tests/test_ui_menu.gd
 
 | Prueba | Qué cubre |
 |---|---|
-| `run_tests` | Malla de ficha y carga de los 12 paquetes oficiales. |
+| `run_tests` | Malla de ficha y carga de los 13 paquetes oficiales. |
 | `test_game` | Reglas del tablero: parejas (por toque), victoria, chispas y nivel de 24 parejas (4 rondas de 6). |
 | `test_rounds` | Reparto en rondas (`Levels.round_sizes`), 2 columnas, límites de desplazamiento vertical, paso entre rondas con el contador acumulado y `won` una sola vez. |
 | `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara, cobertura del suelo en los extremos de las listas, contador de parejas, memoria de la posición de las listas y guardado. |

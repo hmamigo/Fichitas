@@ -104,5 +104,27 @@ func _run() -> void:
 		uniq[id] = true
 	check(pd.size() == 14 and uniq.size() == 14, "pair_done avisó de las 14 parejas, una vez cada una")
 
+	print("Paso entre rondas")
+	var g := Board.new()
+	root.add_child(g)
+	await process_frame
+	g.start(_pairs(14))
+	await process_frame
+	var bottom: float = g._game_bounds(g.fit).y
+	g.cam_z = bottom
+	g._next_round()
+	var top: float = -g._game_bounds(g.fit).y
+	check(g.cam_z > top + 0.3 and is_equal_approx(g.cam_z, bottom), "al pasar de ronda la cámara no salta: sigue donde estaba (%.2f)" % g.cam_z)
+	await create_timer(Board.GLIDE_SECS + 0.35).timeout
+	check(is_equal_approx(g.cam_z, top), "y llega a la primera fila de la ronda nueva (%.2f)" % g.cam_z)
+	g.cam_z = bottom
+	g._next_round()
+	g._down(1, Vector2(100, 100))
+	await process_frame   # la ronda 3 es más corta: la cámara se ajusta una vez a sus límites
+	await process_frame
+	var kept: float = g.cam_z
+	await create_timer(0.3).timeout
+	check(is_equal_approx(g.cam_z, kept), "si el jugador toca la pantalla, el deslizamiento se corta")
+
 	print("Resultado: " + ("TODO OK" if fails == 0 else "%d FALLAS" % fails))
 	quit(1 if fails > 0 else 0)
