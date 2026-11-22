@@ -9,6 +9,7 @@ signal vib_toggled(on: bool)
 signal sfx(name: String)
 
 var hud_bar: Control
+var hud_back_button: Button   # el botón, no la franja entera: solo él bloquea toques del tablero
 var menu: Control
 var sound_btn: Button
 var vib_btn: Button
@@ -24,6 +25,7 @@ var _fact_a: TextureRect
 var _fact_b: TextureRect
 var _fact_text: Label
 var _bgs: Array = []   # materiales de los fondos, para reajustar el lienzo
+var _safe_margins: Array = []   # [MarginContainer, margen base], para el área segura
 var _toast_tween: Tween
 # Piezas animadas del menú: halos, fichas decorativas y destellos.
 var _menu_logo: TextureRect
@@ -108,6 +110,38 @@ func _pass_through(c: Node) -> void:
 			k.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for ch in c.get_children():
 		_pass_through(ch)
+
+## Márgenes del área segura (notch, barra de estado y barra de gestos) en píxeles del
+## lienzo. `get_screen_transform()` pasa de lienzo a ventana; su inversa trae el rectángulo
+## seguro al espacio donde viven los controles, sea cual sea el estiramiento de la pantalla.
+func _safe_insets() -> Rect2:
+	var safe: Rect2i = DisplayServer.get_display_safe_area()
+	if safe.size.x <= 0 or safe.size.y <= 0:
+		return Rect2()
+	var vp: Viewport = get_viewport()
+	var inv: Transform2D = vp.get_screen_transform().affine_inverse()
+	var origin: Vector2 = vp.get_visible_rect().position
+	var visible: Vector2 = vp.get_visible_rect().size
+	var tl: Vector2 = inv * Vector2(safe.position) - origin
+	var br: Vector2 = inv * Vector2(safe.end) - origin
+	return Rect2(maxf(0.0, tl.x), maxf(0.0, tl.y),
+		maxf(0.0, visible.x - br.x), maxf(0.0, visible.y - br.y))
+
+func _register_margin(m: MarginContainer, base: int) -> void:
+	_safe_margins.append([m, base])
+	_apply_safe_area()
+
+func _apply_safe_area() -> void:
+	if _safe_margins.is_empty():
+		return
+	var s: Rect2 = _safe_insets()
+	for item in _safe_margins:
+		var m: MarginContainer = item[0]
+		var base: int = item[1]
+		m.add_theme_constant_override("margin_left", maxi(base, int(ceil(s.position.x))))
+		m.add_theme_constant_override("margin_right", maxi(base, int(ceil(s.size.x))))
+		m.add_theme_constant_override("margin_top", maxi(base, int(ceil(s.position.y))))
+		m.add_theme_constant_override("margin_bottom", maxi(base, int(ceil(s.size.y))))
 
 ## Tarjeta clara con sombra; devuelve la caja vertical donde poner el contenido.
 func _panel(parent: Control, width: int, pad: int = 30, style: StyleBoxFlat = null) -> VBoxContainer:
@@ -252,7 +286,7 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: in
 	return rim
 
 ## Botón de volver: ficha esmaltada con un botón transparente encima que cubre toda la ficha.
-func _back_tile(text: String) -> Control:
+func _back_tile(text: String, out_button: Array) -> Control:
 	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
 	var bface := back_tile.get_child(0) as Control
 	var brow := HBoxContainer.new()
@@ -272,7 +306,7 @@ func _back_tile(text: String) -> Control:
 	bface.add_child(brow)
 	var back := Button.new()
 	back.flat = true
-	back.focus_mode = Control.FOCUS_NONE
+	back.focus_mode = Control.FOCUS_ALL  # estilo vacío: navegable sin recuadro visible
 	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
 		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
@@ -284,6 +318,7 @@ func _back_tile(text: String) -> Control:
 	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
 	back.button_up.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.14))
 	back_tile.add_child(back)  # sobre toda la ficha, no solo sobre el texto
+	out_button.append(back)
 	return back_tile
 
 ## Rótulo hecho con fichas: una ficha esmaltada por letra, con el filo dorado y el
@@ -463,14 +498,15 @@ func _build_hud() -> void:
 	var m := MarginContainer.new()
 	m.theme = _th
 	m.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 14)
+	_register_margin(m, 14)
 	add_child(m)
 	hud_bar = m
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	m.add_child(h)
-	h.add_child(_back_tile("Atrás"))
+	var back_button: Array = []
+	h.add_child(_back_tile("Atrás", back_button))
+	hud_back_button = back_button[0] as Button
 
 func _build_menu() -> void:
 	menu = _screen("none")  # sin fondo: detrás se ve el suelo de cubos 3D
@@ -486,8 +522,7 @@ func _build_menu() -> void:
 
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 30)
+	_register_margin(m, 30)
 	menu.add_child(m)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
@@ -541,6 +576,7 @@ func _build_menu() -> void:
 	sound_btn = _toggle("Sonido", "speaker", "speaker_mute", opts)
 	sound_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sound_btn.toggled.connect(func(on: bool) -> void: sound_toggled.emit(on))
+	sound_btn.pressed.connect(func() -> void: sfx.emit("tap"))
 	_juice(sound_btn)
 	vib_btn = _toggle("Vibración", "rumble_phone", "mobile_phone", opts)
 	vib_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -554,8 +590,7 @@ func _build_subjects() -> void:
 	subjects = _screen("none")  # sin fondo: las losetas 3D son la lista
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 26)
+	_register_margin(m, 26)
 	subjects.add_child(m)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 18)
@@ -563,7 +598,7 @@ func _build_subjects() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
-	head.add_child(_back_tile("Menú"))
+	head.add_child(_back_tile("Menú", []))
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
@@ -576,8 +611,7 @@ func _build_mode() -> void:
 	mode_screen = _screen("none")  # sin fondo: las losetas de modo son 3D
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 26)
+	_register_margin(m, 26)
 	mode_screen.add_child(m)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 18)
@@ -585,7 +619,7 @@ func _build_mode() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
-	head.add_child(_back_tile("Atrás"))
+	head.add_child(_back_tile("Atrás", []))
 	# La capa no debe tragarse los toques: las losetas viven en la escena 3D
 	_pass_through(mode_screen)
 
@@ -594,8 +628,7 @@ func _build_album() -> void:
 	album = _screen("none")  # sin fondo: el álbum es una mesa de la escena 3D
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for s in ["left", "right", "top", "bottom"]:
-		m.add_theme_constant_override("margin_" + s, 26)
+	_register_margin(m, 26)
 	album.add_child(m)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 18)
@@ -603,7 +636,7 @@ func _build_album() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
-	head.add_child(_back_tile("Menú"))
+	head.add_child(_back_tile("Menú", []))
 	# La capa no debe tragarse los toques: las fichas viven en la escena 3D
 	_pass_through(album)
 
@@ -652,9 +685,7 @@ func _build_toast() -> void:
 	var layer := MarginContainer.new()
 	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_theme_constant_override("margin_left", 26)
-	layer.add_theme_constant_override("margin_right", 26)
-	layer.add_theme_constant_override("margin_bottom", 26)
+	_register_margin(layer, 26)
 	add_child(layer)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_END
@@ -686,7 +717,12 @@ func _fact_face(parent: Control) -> TextureRect:
 	return img
 
 func _on_fact_dim_input(e: InputEvent) -> void:
-	if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+	var pressed: bool = false
+	if e is InputEventMouseButton:
+		pressed = (e as InputEventMouseButton).pressed
+	elif e is InputEventScreenTouch:
+		pressed = (e as InputEventScreenTouch).pressed
+	if pressed:
 		sfx.emit("tap")
 		fact.visible = false
 
@@ -780,6 +816,7 @@ func _hide_toast() -> void:
 		toast_panel.visible = false
 
 func _update_columns() -> void:
+	_apply_safe_area()
 	var vp: Vector2 = get_viewport().get_visible_rect().size
 	UiTheme.bg_resize(vp)
 	for m in _bgs:

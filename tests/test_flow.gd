@@ -172,14 +172,27 @@ func _run() -> void:
 	main._on_back()
 	await process_frame
 	check(main.state == main.S.SUBJECTS and main.board.station == "subjects", "Atrás desde el modo vuelve a materias")
+	# Regresión: el recorrido general entrado desde materias tiene `cur_sid == ""`,
+	# pero debe volver a materias, no al menú principal.
+	main._on_subject("")
+	await process_frame
+	check(main.state == main.S.MODE and main._mode_from == main.S.SUBJECTS,
+		"el recorrido general desde materias recuerda su origen")
+	main._on_back()
+	await process_frame
+	check(main.state == main.S.SUBJECTS and main.board.station == "subjects",
+		"Atrás desde el modo vuelve a materias en el recorrido general")
 	main.board.cam_z = 0.0
 	await process_frame
 	main._play("mat")
 	await process_frame
 	check(main.state == main.S.MODE, "la materia espera la elección del modo")
+	var gen0: int = main.board.gen
 	_choose_mode(main, "assoc")
+	_choose_mode(main, "mem")   # un rebote no debe cambiar el modo ni reiniciar
 	await process_frame
 	check(main.state == main.S.GAME and main.cur_sid == "mat" and not main.board.tiles.is_empty() and main.board.mode == "assoc", "elegir Asociación inicia el nivel de la materia")
+	check(main.board.gen == gen0 + 1, "un doble toque en el paso de modo no reinicia la partida")
 	main._go_subjects()
 	await create_timer(1.1).timeout
 	check(is_zero_approx(main.board.cam_z), "al volver de la partida las materias quedan donde estaban")

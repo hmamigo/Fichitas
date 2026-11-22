@@ -106,8 +106,14 @@ static func subject(d: Dictionary, w: int, h: int) -> Control:
 	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(v)
-	var title := _label(str(d["name"]), UiTheme.T_NAME - 6, ink, true)
+	var name_txt: String = str(d["name"])
+	# El icono y sus márgenes dejan este ancho; el nombre se encoge y, si aun así no
+	# cabe (paquetes externos largos), se corta con elipsis en vez de a media palabra.
+	var avail: float = float(w) - 130.0
+	var tsize: int = UiTheme.fit_font_size(name_txt, UiTheme.title_font(), UiTheme.T_NAME - 6, 22, avail)
+	var title := _label(name_txt, tsize, ink, true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(title)
 	var subtitle := _label(str(d.get("sub", "")), UiTheme.T_SMALL, ink)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -250,12 +256,15 @@ static func action(title: String, sub: String, icon: String, dot: bool, bg: Colo
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(v)
-	var title_label := _label(title, 36, ink, true)
+	var avail: float = float(w) - 104.0   # márgenes, icono y separación (peor caso)
+	var title_label := _label(title, UiTheme.fit_font_size(title, UiTheme.title_font(), 36, 26, avail), ink, true)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(title_label)
 	if sub != "":
-		var subtitle := _label(sub, UiTheme.T_SMALL, ink)
+		var subtitle := _label(sub, UiTheme.fit_font_size(sub, UiTheme.body_font(), UiTheme.T_SMALL, 24, avail), ink)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		subtitle.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(subtitle)
 	return root
 # ---------- Estación de "Nivel completado" ----------

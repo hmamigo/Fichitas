@@ -728,6 +728,7 @@ func _game_bounds(dist: float) -> Vector2:
 ## Lleva la cámara de una estación a otra. `start_at` salta el principio del vuelo
 ## (entre niveles basta un acercamiento corto).
 func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
+	_stop_glide()  # si venimos de cambiar de ronda, su deslizamiento no debe pelear con el vuelo
 	if _fly != null:
 		_fly.kill()
 	_remember_view()
@@ -894,9 +895,9 @@ func _unhandled_input(e: InputEvent) -> void:
 			_move(-1, mm.position)
 
 func _down(id: int, pos: Vector2) -> void:
-	_stop_glide()
 	if _blocked(pos):
-		return
+		return  # tocar "Atrás" no debe cortar el deslizamiento de la ronda
+	_stop_glide()
 	ptrs[id] = pos
 	last_pos = pos
 	if ptrs.size() == 1:
@@ -934,6 +935,8 @@ func _up(id: int) -> void:
 	if not ptrs.has(id):
 		return
 	ptrs.erase(id)
+	if ptrs.size() == 2:
+		pinch_d = _pinch_distance()  # al levantar el tercer dedo, la pareja que pellizca cambia
 	if not ptrs.is_empty():
 		return
 	if not moved and press_tile != null:

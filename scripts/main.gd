@@ -31,7 +31,7 @@ func _ready() -> void:
 	add_child(board)
 	ui = GameUI.new()
 	add_child(ui)
-	board.blockers = [ui.hud_bar]
+	board.blockers = [ui.hud_back_button]
 	board.won.connect(_on_won)
 	board.sfx.connect(_on_sfx)
 	board.pair_done.connect(func(id: String, clean: bool) -> void:
@@ -179,7 +179,7 @@ func _go_subjects() -> void:
 			cards.append({"id": "coming:" + n, "name": n, "icon": "templo" if n == "Historia" else "magia", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
 				"info": "«%s» llegará pronto." % n})
 	board.build_subjects(cards)
-	board.fly_to_station("subjects", 1.0)
+	board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
 	ui.show_subjects()
 	_show_pan_hint()
 
@@ -301,6 +301,9 @@ func _go_mode(origin: int) -> void:
 	board.fly_to_station("mode", 0.9 if board.station != "mode" else 0.0)
 
 func _on_mode_chosen(m: String) -> void:
+	if state != S.MODE:
+		return  # un segundo toque no debe reiniciar la partida que acaba de arrancar
+	state = S.GAME
 	_remember_mode(m)
 	_start(_pending_pairs, _pending_label)
 
@@ -390,7 +393,9 @@ func _on_next() -> void:
 		_go_subjects()
 		return
 	if cur_last:
-		if cur_sid != "":
+		# El recorrido general entra desde materias con `cur_sid == ""`: manda el origen,
+		# no el id de la sesión (si no, volvería al menú principal).
+		if _mode_from == S.SUBJECTS:
 			_go_subjects()
 		else:
 			_go_menu()
@@ -417,7 +422,7 @@ func _on_back() -> void:
 			else:
 				_go_subjects()
 		S.GAME, S.WIN:
-			if cur_review or cur_sid != "":
+			if _mode_from == S.SUBJECTS:
 				_go_subjects()
 			else:
 				_go_menu()
