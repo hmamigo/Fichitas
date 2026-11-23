@@ -1,7 +1,7 @@
 extends Node
 ## Orquestador: menús, niveles y guardado. El tablero y la interfaz solo emiten señales.
 
-enum S { MENU, SUBJECTS, MODE, GAME, WIN, ALBUM }
+enum S { MENU, SUBJECTS, MODE, GAME, WIN, ALBUM, HELP }
 const COMING := ["Historia", "Más materias"]
 
 var board: Board
@@ -39,6 +39,7 @@ func _ready() -> void:
 		board.set_progress(board.matched_pairs()))
 	board.menu_station.play_general.connect(func() -> void: _play("", S.MENU))
 	board.menu_station.open_subjects.connect(_go_subjects)
+	board.menu_station.open_help.connect(_go_help)
 	board.menu_station.open_album.connect(_go_album)
 	board.subject_station.chosen.connect(_on_subject)
 	board.subject_station.info.connect(ui.toast)
@@ -182,6 +183,13 @@ func _go_subjects() -> void:
 	board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
 	ui.show_subjects()
 	_show_pan_hint()
+
+## Ayuda: mesa 3D a la izquierda del álbum con los pasos para jugar. Solo informa.
+func _go_help() -> void:
+	state = S.HELP
+	board.build_help()
+	ui.show_help()
+	board.fly_to_station("help", 0.9 if board.station != "help" else 0.0)
 
 ## Álbum: mesa 3D con todas las parejas de cada materia; las dominadas, boca arriba.
 func _go_album() -> void:
@@ -362,17 +370,19 @@ func _on_won() -> void:
 	board.build_win({"title": title, "msg": msg, "button": btn, "doms": _doms(), "total": cur_pairs.size()})
 	board.fly_to_station("win", 0.9)
 
-## Cuántas miniaturas entran en la victoria sin volverse ilegibles (24 parejas no caben).
-const WIN_DOMS := 12
+## Cuántas parejas entran en la victoria sin volverse ilegibles: seis, en tres filas de
+## dos parejas (12 fichas). Con más, la mesa se estira y pierde el encuadre, así que el
+## resto se resume en la ficha "+N".
+const WIN_DOMS := 6
 
-## Estado de dominio de las parejas de la sesión, para las miniaturas de la victoria.
+## Estado de dominio de las parejas de la sesión, para las fichas de la victoria.
 ## Con muchas parejas se muestran primero las que subieron de dominio y el resto se
 ## resume en una ficha "+N".
 func _doms() -> Array:
 	var all: Array = []
 	for pr in cur_pairs:
 		var st: int = Progress.pair_stage(pr["id"])
-		all.append({"tex": pr["a"], "stage": st, "up": st > int(stage_before.get(pr["id"], 0))})
+		all.append({"a": pr["a"], "b": pr["b"], "stage": st, "up": st > int(stage_before.get(pr["id"], 0))})
 	if all.size() <= WIN_DOMS:
 		return all
 	var shown: Array = []
@@ -427,6 +437,8 @@ func _on_back() -> void:
 			else:
 				_go_menu()
 		S.SUBJECTS:
+			_go_menu()
+		S.HELP:
 			_go_menu()
 		S.ALBUM:
 			if not ui.close_fact():

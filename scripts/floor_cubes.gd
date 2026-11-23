@@ -25,8 +25,9 @@ const DEPTH_POW := 1.6
 const RISE_START := 1.2   # distancia a la mesa desde la que empieza a crecer FAR_RISE
 const RISE_END := 7.0     # a partir de esta distancia ya no cambia ni la altura ni el color
 const CLEAR_MARGIN := 0.4 # margen de las mesas (el hueco real de cada una más este margen)
-# Cobertura en UNIDADES DEL MUNDO. Debe cubrir lo que ve la cámara en las seis estaciones (Board:
-# álbum en x = -35, menú en -25, materias en -15, modo en -9, tablero en 0, victoria en +10) también
+# Cobertura en UNIDADES DEL MUNDO. Debe cubrir lo que ve la cámara en las siete estaciones
+# (Board: ayuda en -45, álbum en -35, menú en -25, materias en -15, modo en -9, tablero en 0,
+# victoria en +10) también
 # en sus extremos de paneo: la mesa de materias mide ~±20 en Z y la del álbum ~±26, y la vista
 # llega unos 6 más allá; en pantalla apaisada o ultra ancha asoma más a los lados. Hay margen de sobra.
 const X_MIN := -54        # borde izquierdo (más allá del álbum)

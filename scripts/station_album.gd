@@ -18,8 +18,6 @@ const HEAD_GAP := 0.22           # aire entre la cabecera y sus fichas
 const SEC_GAP := 0.5             # aire entre secciones
 const PX := 133                  # píxeles de la cara horneada por unidad del mundo
 const TILT := 0.17               # igual que la cámara del tablero
-const HY := 0.065                # grosor y cara de la ficha: los mismos que en Board
-const FACE := 0.425
 
 # Encuadre de la cámara en esta mesa
 const FIT_PAD_W := 0.4           # aire a los lados de la mesa al encuadrar el ancho
@@ -39,7 +37,7 @@ func build(data: Array) -> void:
 	clear()
 	if data.is_empty():
 		return
-	_ensure_shared()
+	_shared = AlbumTile.shared()
 	var w: float = _width()
 	var rows_of: Array = []
 	var total: float = 0.0
@@ -122,18 +120,6 @@ func clear() -> void:
 		_table.queue_free()
 		_table = null
 	_height = 0.0
-
-## Mallas y materiales de la ficha, iguales a los de Board (se crean una sola vez).
-func _ensure_shared() -> void:
-	if not _shared.is_empty():
-		return
-	_shared = {
-		"body": TileMesh.slab(0.49, 0.49, 0.16, HY * 2.0, 0.03, 5, 8),
-		"face": TileMesh.face(FACE, HY + 0.003, true),
-		"back": TileMesh.face(FACE, -HY - 0.003, false),
-		"gold": TileLook.gold_material(TileLook.bezel_texture()),
-		"back_mat": TileLook.face_material(TileLook.back_texture()),
-	}
 
 ## Ancho de la mesa: las fichas de una fila más el aire extra entre parejas.
 func _width() -> float:

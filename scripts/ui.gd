@@ -775,6 +775,11 @@ func show_album() -> void:
 	hide_all()
 	album.visible = true
 
+## La ayuda es una mesa de la escena 3D: la capa 2D solo lleva el botón de volver.
+func show_help() -> void:
+	hide_all()
+	hud_bar.visible = true
+
 ## Dato curioso de una pareja dominada, con sus dos fichas.
 func show_fact(a: Texture2D, b: Texture2D, text: String) -> void:
 	_fact_a.texture = a

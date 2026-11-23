@@ -269,32 +269,9 @@ static func action(title: String, sub: String, icon: String, dot: bool, bg: Colo
 	return root
 # ---------- Estación de "Nivel completado" ----------
 # Las caras de la victoria se dibujan al doble de resolución (WIN_K): llevan
-# miniaturas de imágenes y texto pequeño. Las medidas de diseño (`w`, `h`, `side`...)
+# icono y texto. Las medidas de diseño (`w`, `h`...)
 # van en píxeles base (128 por unidad del mundo); la textura mide WIN_K veces más.
 const WIN_K := 2
-const DOM_PAD := 14       # margen de la cuadrícula de miniaturas
-const DOM_SEP := 8        # separación entre miniaturas
-const DOM_MAX := 124      # lado máximo de la imagen de una miniatura
-const DOM_ROW := 46       # alto de lo que va bajo la imagen (planta + márgenes)
-
-## Cuadrícula de miniaturas para `n` parejas en una cara de ancho `w`: columnas (3-5),
-## filas, lado de la imagen y alto total de la cara. Minimiza filas y huecos.
-static func dom_layout(n: int, w: int) -> Dictionary:
-	if n <= 0:
-		return {"cols": 0, "rows": 0, "side": 0, "h": 0}
-	var content: int = w - 2 * DOM_PAD
-	var best: Dictionary = {}
-	var best_score: float = 1e9
-	for cols in range(3, 6):
-		var rows: int = ceili(float(n) / float(cols))
-		var side: int = clampi(mini(DOM_MAX, int((content - (cols - 1) * DOM_SEP) / cols) - 10), 40, DOM_MAX)
-		# Pocas filas importan más que miniaturas grandes: la pila de losetas debe caber en pantalla
-		var score: float = float((rows * cols - n) * 10 + rows * 50) - float(side) * 0.5
-		if score < best_score:
-			best_score = score
-			best = {"cols": cols, "rows": rows, "side": side,
-				"h": 2 * DOM_PAD + rows * (side + DOM_ROW) + (rows - 1) * DOM_SEP}
-	return best
 
 static func _wrap(l: Label, width: int) -> Label:
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -324,82 +301,108 @@ static func win_header(title: String, msg: String, w: int, h: int) -> Control:
 	v.add_child(_wrap(_label(msg, 26 * k, UiTheme.INK), inner))
 	return root
 
-## Una miniatura de pareja: imagen y, debajo, la planta del dominio (brote, hojas o árbol).
-## `up` = mejoró en esta partida (contorno verde).
-static func _dom_tile(d: Dictionary, side: int) -> Control:
-	var k: int = WIN_K
-	var stage: int = int(d.get("stage", 0))
-	var up: bool = bool(d.get("up", false))
-	var pc := PanelContainer.new()
-	pc.custom_minimum_size = Vector2((side + 10) * k, (side + DOM_ROW) * k)
-	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if d.has("more"):
-		# Resumen de las parejas que no entran: una ficha más en la cuadrícula
-		var chip := StyleBoxFlat.new()
-		chip.bg_color = Color("fff7e3")
-		chip.set_corner_radius_all(14 * k)
-		chip.set_content_margin_all(5 * k)
-		chip.set_border_width_all(3 * k)
-		chip.border_color = Color("e3d4ad")
-		pc.add_theme_stylebox_override("panel", chip)
-		var more := _label("+%d" % int(d["more"]), int(float(side) * 0.46), UiTheme.INK, true)
-		more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pc.add_child(more)
-		return pc
+## Cara de la ficha resumen "+N": las parejas que no entran en la victoria. Va sobre una
+## ficha más del álbum (cuerpo dorado y bisel), así que solo pinta la crema y el número.
+static func more_face(n: int, px: int) -> Control:
+	var root := _root(px, px)
+	_bg(root, Color("fff7e3"))
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = UiTheme.CREAM
-	sb.set_corner_radius_all(14 * k)
-	sb.set_content_margin_all(5 * k)
-	sb.set_border_width_all(3 * k)
-	sb.border_color = Color("e3d4ad")      # borde suave: no se toca, así que sin filo dorado
-	if up:
-		sb.set_border_width_all(4 * k)
-		sb.border_color = Color("42cd84")
+	sb.bg_color = Color("fff7e3")
+	sb.set_corner_radius_all(maxi(int(float(px) * 0.08), 8))
+	sb.set_content_margin_all(maxi(int(float(px) * 0.04), 4))
+	sb.set_border_width_all(maxi(int(float(px) * 0.02), 3))
+	sb.border_color = Color("e3d4ad")
+	var pc := PanelContainer.new()
+	pc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pc.add_theme_stylebox_override("panel", sb)
+	root.add_child(pc)
+	var more := _label("+%d" % n, int(float(px) * 0.40), UiTheme.INK, true)
+	more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pc.add_child(more)
+	return root
+
+# ---------- Estación "¿Cómo jugar?" ----------
+# Las caras de la ayuda llevan texto chico: se dibujan al doble (HELP_K), como la victoria.
+const HELP_K := 2
+
+## Cabecera plana de la ayuda (no se toca): icono, título y una línea de resumen.
+static func help_header(title: String, sub: String, w: int, h: int) -> Control:
+	var k: int = HELP_K
+	var root := _root(w * k, h * k)
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left", "right", "top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 10 * k)
+	root.add_child(m)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 2 * k)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", 4 * k)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pc.add_child(v)
-	var img := TextureRect.new()
-	img.texture = d.get("tex", null)
-	img.custom_minimum_size = Vector2(side * k, side * k)
-	img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	img.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(img)
-	var row := CenterContainer.new()
-	row.custom_minimum_size = Vector2(0, 34 * k)
+	m.add_child(v)
+	var ic := _icon("dialogo", 72 * k, Color.WHITE)
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(ic)
+	var inner: int = (w - 24) * k
+	v.add_child(_label(title, 40 * k, UiTheme.BLUE_DARK, true))
+	var sub_l := _label(sub, 27 * k, UiTheme.INK)
+	sub_l.custom_minimum_size.x = inner
+	v.add_child(sub_l)
+	return root
+
+## Paso de la ayuda: icono, título, explicación de hasta dos líneas y una barra del
+## color del paso. Es plano: la ayuda solo informa, no se toca.
+static func help_row(title: String, text: String, icon: String, col: Color, w: int, h: int) -> Control:
+	var k: int = HELP_K
+	var sc: float = float(h * k) / 128.0
+	var root := _root(w * k, h * k)
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.add_theme_constant_override("margin_left", int(12 * sc))
+	m.add_theme_constant_override("margin_right", int(12 * sc))
+	m.add_theme_constant_override("margin_top", int(5 * sc))
+	m.add_theme_constant_override("margin_bottom", int(6 * sc))
+	root.add_child(m)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", int(6 * sc))
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(v)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(12 * sc))
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(row)
-	var icon: int = clampi(int(round(float(side) * 0.25)), 26, 34)
-	var pi := TextureRect.new()
-	pi.texture = UiTheme.icon_plant(stage, icon * k, UiTheme.PLANT)
-	pi.custom_minimum_size = Vector2(icon * k, icon * k)
-	pi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	pi.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(pi)
-	return pc
-
-## Cara con las miniaturas de las parejas del nivel. `doms[i]` = {tex, stage, up}.
-## Alto de la cara: `dom_layout(doms.size(), w)["h"]`.
-static func win_doms(doms: Array, w: int) -> Control:
-	var k: int = WIN_K
-	var lay: Dictionary = dom_layout(doms.size(), w)
-	var h: int = int(lay["h"])
-	var root := _root(w * k, h * k)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(center)
-	var grid := GridContainer.new()
-	grid.columns = int(lay["cols"])
-	grid.add_theme_constant_override("h_separation", DOM_SEP * k)
-	grid.add_theme_constant_override("v_separation", DOM_SEP * k)
-	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center.add_child(grid)
-	for d in doms:
-		grid.add_child(_dom_tile(d, int(lay["side"])))
+	var ic := _icon(icon, int(60 * sc), Color.WHITE)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(ic)
+	var tv := VBoxContainer.new()
+	tv.add_theme_constant_override("separation", int(2 * sc))
+	tv.alignment = BoxContainer.ALIGNMENT_CENTER
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tv)
+	var avail: float = float(w * k) - float(int(24 * sc) + int(60 * sc) + int(12 * sc))
+	var tsize: int = UiTheme.fit_font_size(title, UiTheme.title_font(), int(36 * sc), int(22 * sc), avail)
+	var t := _label(title, tsize, UiTheme.INK, true)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	tv.add_child(t)
+	var s := _label(text, int(25 * sc), UiTheme.INK)
+	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	s.custom_minimum_size.x = avail
+	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(s)
+	var bar := Control.new()
+	bar.custom_minimum_size = Vector2(0, int(7 * sc))
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(bar)
+	var track := Panel.new()
+	track.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var tb := StyleBoxFlat.new()
+	tb.bg_color = Color(col.r, col.g, col.b, 0.95)
+	tb.set_corner_radius_all(int(8 * sc))
+	track.add_theme_stylebox_override("panel", tb)
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.add_child(track)
 	return root
 
 ## Botón de la victoria: la acción principal dorada del menú.

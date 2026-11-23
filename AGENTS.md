@@ -31,11 +31,11 @@ Guía para agentes (y personas) que trabajan en **Fichitas**: un juego 3D educat
 
 Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantalla 2D: la **cámara viaja** entre estaciones. El suelo (`FloorCubes`) se define en unidades del mundo (`X_MIN`/`X_MAX`/`Z_FAR`/`Z_NEAR`) y debe cubrir todo lo que ve la cámara, también en los extremos de paneo de las listas largas (materias y álbum), en pantallas muy altas y en ventanas apaisadas de escritorio (solo para desarrollo); `test_flow` lo comprueba. Si una mesa crece, hay que ampliar el suelo.
 
-- Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado** y **álbum de datos curiosos**.
-- Las estaciones están en **fila horizontal** (álbum −35, menú −25, materias −15, modo −9, tablero 0, victoria +10) y la cámara se mueve en horizontal entre ellas. El tablero ancho (hasta ±5,5) no debe tocar la mesa del modo: si se mueve una estación, revisar el vuelo en pantalla ancha.
+- Estaciones: **menú**, **materias**, **modo**, **tablero**, **nivel completado**, **álbum de datos curiosos** y **cómo jugar**.
+- Las estaciones están en **fila horizontal** (ayuda −45, álbum −35, menú −25, materias −15, modo −9, tablero 0, victoria +10) y la cámara se mueve en horizontal entre ellas. El tablero ancho (hasta ±5,5) no debe tocar la mesa del modo: si se mueve una estación, revisar el vuelo en pantalla ancha.
 - El paso **modo** ("¿Cómo quieres jugar?") va entre materias y tablero: el jugador elige Memoria o Asociación recién cuando ya eligió qué practicar. El menú principal no cambia modos.
 - El álbum de datos curiosos es una estación 3D como Materias, con fichas iguales a las del juego y la cámara moviéndose en vertical. La cámara debe estar algo más alejada que en otras estaciones.
-- "Nivel completado" es una **estación 3D** a la derecha del tablero (una mesa con cabecera, miniaturas y un botón), a la que se llega solo moviendo la cámara.
+- "Nivel completado" es una **estación 3D** a la derecha del tablero (una mesa con cabecera, las fichas de las parejas como las del álbum y un botón), a la que se llega solo moviendo la cámara.
 - Materias son **varias mesas** (una por grupo), no una columna única; el usuario hace zoom y recorre la lista a mano, igual que en el tablero.
 - La cámara **no rota libremente**: solo zoom y desplazamiento.
 - El fondo de cubos va algo alejado, y el menú un poco más abajo, no pegado al logo.
@@ -49,8 +49,8 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Fichas cuadradas de esquinas redondeadas, como pines esmaltados, con bisel metálico fino en ambas caras.
 - Filo dorado, placas color crema, marco azul del tablero.
 - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
-- Todo elemento nuevo (menú, botón de volver, modo, materias, nivel completado, álbum) debe parecer parte del mismo juego.
-- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón.
+- Todo elemento nuevo (menú, botón de volver, modo, materias, nivel completado, álbum, ayuda) debe parecer parte del mismo juego.
+- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón. **Excepción**: las fichas de las parejas en "Nivel completado" son las del álbum (`AlbumTile`) aunque no se tocan; la única acción de esa mesa es el botón de seguir.
 - Los iconos de menús y materias son PNG a color de `assets/emoji/` (Noto Emoji); `UiTheme.icon()` los prefiere a los SVG de línea del mismo nombre.
 - El fondo de cubos se mezcla con la niebla del tablero (`FloorCubes.FADE`) y se aclara cerca de cada mesa: la mesa, las fichas y el texto mandan. Si un color de fondo compite con una loseta, bajar el fondo, no subir la loseta.
 
@@ -62,7 +62,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - **El tablero se limpia al llegar**: `Board._arrive()` retira las fichas recién al terminar el vuelo (si la estación destino no es la partida), así el mundo no se vacía antes de que la cámara se vaya. No hay que llamar `board.stop()` al salir de una estación.
 - **Contador de parejas**: la franja del título del tablero muestra "Nivel 2 · Memoria · 1 de 3". Se actualiza una vez por pareja (`Board.set_progress` + `FlatLabel.update`), no en cada frame.
 - **Álbum legible**: las dos fichas de una pareja van juntas y entre parejas hay más aire (`PAIR_GAP`). Tocar una pareja no dominada avisa en qué materia jugarla.
-- **Victoria con muchas parejas**: entran hasta 12 miniaturas (`main.WIN_DOMS`) y el resto se resume en una ficha "+N". El alto de la cuadrícula se mide con las fichas dibujadas, no con el total.
+- **Victoria con muchas parejas**: las parejas se muestran como en el álbum (las dos fichas juntas, boca arriba si están dominadas y boca abajo si no), de dos parejas por fila. Entran hasta 6 parejas (`main.WIN_DOMS`, 12 fichas) y el resto se resume en una ficha "+N"; así la mesa se mantiene dentro del encuadre. Son las mismas fichas 3D del álbum (`AlbumTile`) y el alto de la cuadrícula se mide con las fichas dibujadas, no con el total. La cabecera se ajusta al largo del mensaje (`HEAD_H`/`HEAD_H_LONG`) y el botón es más bajo que una loseta (`BTN_H`) para no competir con las fichas.
 - **Menú sin ruido**: el lema va plano con halo (nunca en una pastilla, que parecería un botón) y no hay pie 2D. La capa 2D del menú solo lleva el logo, el título y la pastilla de Sonido/Vibración.
 
 ## Flujo de pantallas y estados
@@ -71,16 +71,17 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 
 | Estado | Estación / capa | Qué se ve | Se llega desde |
 |---|---|---|---|
-| `MENU` | `StationMenu` (x = -25) | Logo, lema plano y pastilla con Sonido/Vibración (2D) y, en la mesa, el rótulo "Menú principal" y tres losetas (Jugar, Recorrido general, Álbum). | Arranque, "Atrás". |
+| `MENU` | `StationMenu` (x = -25) | Logo, lema plano y pastilla con Sonido/Vibración (2D) y, en la mesa, el rótulo "Menú principal" y cuatro losetas (Materias, Recorrido general, Cómo jugar, Álbum). | Arranque, "Atrás". |
 | `SUBJECTS` | `StationSubjects` (x = -15) | Una mesa por grupo (Para todos, Peques, Exploradores, Nerds, Más), cada una con su rótulo plano arriba y el marco de su color; las losetas son las materias, Recorrido general y Repaso. Recuerda desplazamiento y zoom. | Jugar, "Atrás" desde modo/juego. |
 | `MODE` | `StationMode` (x = -9) | Rótulo "¿Cómo quieres jugar?" (con la sesión) y las losetas Memoria y Asociación. | Tocar materia, recorrido general o repaso. |
 | `GAME` | Tablero (x = 0) | Fichas sobre su mesa, con el título de la partida (materia, nivel y modo) y el avance "N de M" en una franja plana arriba; la capa 2D solo tiene "Atrás". | Tocar una loseta de modo o "Siguiente nivel". |
-| `WIN` | `StationWin` (x = +10) | Cabecera con trofeo y miniaturas de las parejas (planas; hasta 12 y "+N") y la loseta "Siguiente nivel". | Al emparejar todo. |
+| `WIN` | `StationWin` (x = +10) | Cabecera con trofeo y fichas de las parejas (las mismas del álbum; hasta 12 y "+N") y la loseta "Siguiente nivel". | Al emparejar todo. |
 | `ALBUM` | `StationAlbum` (x = -35) | Rótulo "Álbum" y una sección por materia con sus parejas (las dos fichas juntas) y dato curioso. Recuerda desplazamiento y zoom. | Loseta Álbum. |
+| `HELP` | `StationHelp` (x = -45) | Mesa "¿Cómo se juega?" con cuatro pasos en rótulos planos (elegir, modo, tocar parejas, desplazar/acercar). Solo informa. | Loseta Cómo jugar. |
 
 - Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
 - "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.
-- "Atrás" (`_on_back()`) desde `MODE` vuelve a `SUBJECTS` o `MENU` según `_mode_from`; desde `GAME`/`WIN` vuelve a materias o al menú según el origen; desde `ALBUM` cierra primero el dato curioso.
+- "Atrás" (`_on_back()`) desde `MODE` vuelve a `SUBJECTS` o `MENU` según `_mode_from`; desde `GAME`/`WIN` vuelve a materias o al menú según el origen; desde `ALBUM` cierra primero el dato curioso; desde `HELP` vuelve al menú.
 - Los modos nunca se eligen desde el menú principal.
 
 ## Paquetes de contenido
@@ -168,15 +169,16 @@ Fichitas/
 | `station_subjects.gd` | Mesas de materias por grupo, con recorrido general y repaso. |
 | `flat_label.gd` | Rótulo plano 3D (no se toca) pintado sobre la mesa; su contenido lo dibuja `Cards.label`. `FlatLabel.make()` lo crea ya horneado y `update()` cambia el contenido sin parpadeo (doble búfer). |
 | `station_mode.gd` | Paso "¿Cómo quieres jugar?": rótulo con la sesión y las losetas Memoria y Asociación. |
-| `station_win.gd` | Mesa de nivel completado: cabecera y miniaturas planas y la loseta de seguir. |
+| `station_win.gd` | Mesa de nivel completado: cabecera plana, fichas del álbum y la loseta de seguir. |
 | `station_album.gd` | Mesa del álbum: rótulo, secciones por materia (cabeceras planas) y parejas en fichas. |
+| `station_help.gd` | Mesa "¿Cómo se juega?": cuatro pasos en rótulos planos; no se toca nada. |
 | `album_tile.gd` | Ficha del álbum (boca arriba si la pareja está dominada). |
 | `plaque.gd` | Loseta genérica del mundo: cara horneada, pulsación y animación de entrada. |
 | `tile_look.gd` | Piezas visuales compartidas: metal dorado, dorso con emblema y mesas con marco. |
 | `tile_mesh.gd` | Mallas procedurales: losa redondeada con bisel y caras planas. |
 | `pick3d.gd` | Toques sobre piezas planas: rayo desde la cámara contra el plano de la mesa. |
 | `face_tex.gd` | Hornea controles 2D a textura para usarlos como cara de una loseta. |
-| `cards.gd` | Caras 2D que se hornean a textura: losetas (`subject`, `action`, `win_button`) y rótulos planos (`label`, `win_header`, `win_doms`, incluida la ficha "+N" de la victoria). |
+| `cards.gd` | Caras 2D que se hornean a textura: losetas (`subject`, `action`, `win_button`), rótulos planos (`label`, `win_header`) y la cara "+N" de la victoria (`more_face`). |
 | `ui.gd` | Capas 2D: botones de volver y dato curioso, sin títulos. Solo dibuja y emite señales. |
 | `ui_theme.gd` | Tema de interfaz: relieve, fuentes, iconos (a color de `assets/emoji/` o SVG de línea) y logo. |
 | `audio.gd` | Efectos de sonido sintetizados en memoria. |

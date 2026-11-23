@@ -81,7 +81,7 @@ func _run() -> void:
 	main._on_won()
 	check(main.state == main.S.WIN and main.board.station == "win", "estación de repaso completado")
 	check(main.board.win_station.title == "¡Repaso completado!", "título de repaso")
-	check(main.board.win_station.dom_count == 4, "miniaturas de dominio del repaso")
+	check(main.board.win_station.dom_count == 4, "fichas de la victoria del repaso")
 	main._on_next()
 	check(main.state == main.S.SUBJECTS, "el repaso vuelve a materias")
 

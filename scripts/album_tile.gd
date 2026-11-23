@@ -7,6 +7,23 @@ extends Node3D
 const REST := 0.06        # altura de reposo: igual que las fichas pendientes del tablero
 const PRESS_Y := 0.16     # altura al pulsar
 const BOARD_ST := 1.12    # casilla del tablero (Board.ST): la ficha se escala desde ahí
+const HY := 0.065         # grosor y cara de la ficha: los mismos que en Board
+const FACE := 0.425
+
+static var _shared: Dictionary = {}
+
+## Mallas y materiales de la ficha, iguales a los de Board. Se crean una sola vez y los
+## comparten el álbum y la victoria, para que las fichas de las dos mesas sean idénticas.
+static func shared() -> Dictionary:
+	if _shared.is_empty():
+		_shared = {
+			"body": TileMesh.slab(0.49, 0.49, 0.16, HY * 2.0, 0.03, 5, 8),
+			"face": TileMesh.face(FACE, HY + 0.003, true),
+			"back": TileMesh.face(FACE, -HY - 0.003, false),
+			"gold": TileLook.gold_material(TileLook.bezel_texture()),
+			"back_mat": TileLook.face_material(TileLook.back_texture()),
+		}
+	return _shared
 
 var size := Vector2.ONE   # casilla en el mundo (para Pick3D)
 var pair: Dictionary = {}

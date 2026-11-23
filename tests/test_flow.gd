@@ -77,13 +77,14 @@ func _run() -> void:
 			menu_stack_ok = menu_stack_ok and tile.position.z > (mtiles[i - 1] as Plaque).position.z
 	check(menu_stack_ok, "las acciones del menú son rectangulares y forman una sola columna vertical")
 	var menu_keys: Array = mtiles.map(func(t: Plaque) -> String: return t.key)
-	check(menu_keys == ["subjects", "general", "album"], "el menú solo tiene destinos: jugar, recorrido general y álbum (%s)" % str(menu_keys))
+	check(menu_keys == ["subjects", "general", "help", "album"], "el menú ofrece materias, recorrido general, cómo jugar y álbum (%s)" % str(menu_keys))
 	var mx: float = main.board.menu_station.position.x
 	var sx: float = main.board.subject_station.position.x
 	var dx: float = main.board.mode_station.position.x
 	var same_z: bool = is_zero_approx(main.board.menu_station.position.z) and is_zero_approx(main.board.subject_station.position.z) and is_zero_approx(main.board.mode_station.position.z)
 	var ax: float = main.board.album_station.position.x
-	check(ax < mx and mx < sx and sx < dx and dx < 0.0 and same_z and is_zero_approx(main.board.album_station.position.z), "las estaciones están en fila en X: álbum, menú, materias, modo y tablero")
+	var hx: float = main.board.help_station.position.x
+	check(hx < ax and ax < mx and mx < sx and sx < dx and dx < 0.0 and same_z and is_zero_approx(main.board.album_station.position.z) and is_zero_approx(main.board.help_station.position.z), "las estaciones están en fila en X: ayuda, álbum, menú, materias, modo y tablero")
 	var vps: Vector2 = main.get_viewport().get_visible_rect().size
 	var floor_ok: bool = true
 	for corner in [Vector2.ZERO, Vector2(vps.x, 0.0), Vector2(0.0, vps.y), vps]:
@@ -101,6 +102,23 @@ func _run() -> void:
 	main._on_back()
 	await process_frame
 	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde el modo vuelve al menú")
+	# La ayuda es una estación más: se abre desde el menú y "Atrás" vuelve.
+	var help_tile: Plaque = mtiles[2]
+	var hspot: Vector2 = main.board.cam.unproject_position(help_tile.global_position)
+	main.board.menu_station.tap(hspot, main.board.cam)
+	await process_frame
+	check(main.state == main.S.HELP and main.board.station == "help" and main.ui.hud_bar.visible, "la loseta Cómo jugar abre la estación de ayuda")
+	check(main.board.help_station.labels.size() == 5, "la ayuda muestra la cabecera y los cuatro pasos en rótulos planos")
+	await create_timer(1.2).timeout
+	var hvps: Vector2 = main.get_viewport().get_visible_rect().size
+	var hfloor_ok: bool = true
+	for hcorner in [Vector2.ZERO, Vector2(hvps.x, 0.0), Vector2(0.0, hvps.y), hvps]:
+		var hg: Vector3 = main.board._ground_point(hcorner)
+		hfloor_ok = hfloor_ok and hg.x >= FloorCubes.X_MIN and hg.x <= FloorCubes.X_MAX and hg.z >= -FloorCubes.Z_FAR and hg.z <= FloorCubes.Z_NEAR
+	check(hfloor_ok, "las cuatro esquinas de la vista de la ayuda caen sobre el suelo de cubos")
+	main._on_back()
+	await process_frame
+	check(main.state == main.S.MENU and main.board.station == "menu", "Atrás desde la ayuda vuelve al menú")
 	print("Recorrido general (memoria)")
 	main._play("")
 	await process_frame
@@ -113,7 +131,7 @@ func _run() -> void:
 	check(main.board.progress_matched == 3, "la franja del tablero cuenta las parejas emparejadas")
 	check(str(main.board._title_now().get("sub", "")).ends_with("3 de 3"), "el subtítulo muestra 3 de 3 parejas")
 	await create_timer(2.8).timeout
-	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 1 and main.board.win_station.labels.size() == 2, "nivel completado lleva la cámara a la estación de victoria (cabecera y miniaturas planas, solo el botón es loseta)")
+	check(main.state == main.S.WIN and main.board.station == "win" and main.board.win_station.tiles.size() == 1 and main.board.win_station.labels.size() == 1 and main.board.win_station.pairs.size() == 6, "nivel completado lleva la cámara a la estación de victoria (cabecera plana, las 3 parejas con sus dos fichas y solo el botón es loseta)")
 	check(main.board.win_station.title == "¡Nivel 1 completado!" and main.board.win_station.dom_count == 3, "la victoria muestra el título y las 3 parejas")
 	await create_timer(1.3).timeout
 	check(main.board.win_station.visible and not main.board.menu_station.visible, "al llegar solo se ve la mesa de victoria")

@@ -13,7 +13,8 @@ const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
-# Las estaciones van en fila a lo largo de X: álbum, menú, materias, modo, tablero (en el origen) y victoria.
+# Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, modo, tablero
+# (en el origen) y victoria.
 # El tablero apaisado de PC puede medir ~11 de ancho (±5,5): la mesa del modo queda a −9 para no
 # tocarlo durante el vuelo, y de ahí hacia la izquierda las estaciones van de 10 en 10.
 const STATION_GAP := 10.0
@@ -21,6 +22,7 @@ const MODE_X := -0.9 * STATION_GAP    # modo: a la izquierda del tablero
 const SUBJ_X := -1.5 * STATION_GAP    # materias: a la izquierda del modo
 const MENU_X := -2.5 * STATION_GAP    # menú: a la izquierda de las materias
 const ALBUM_X := -3.5 * STATION_GAP   # álbum: a la izquierda del menú
+const HELP_X := -4.5 * STATION_GAP    # cómo jugar: a la izquierda del álbum
 const WIN_X := STATION_GAP            # nivel completado: a la derecha del tablero
 const MENU_LOOK_Y := -0.2             # altura del punto de mira del menú
 const MENU_LOOK_DZ := -0.2            # z de partida; `center_menu` la ajusta al hueco 2D
@@ -69,12 +71,13 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
-var station: String = "menu"  # "menu", "subjects", "mode", "album", "game" o "win"
+var station: String = "menu"  # "menu", "subjects", "mode", "album", "help", "game" o "win"
 var menu_look_z: float = MENU_LOOK_DZ  # lo ajusta `center_menu` según la franja 2D
 var menu_station: StationMenu
 var subject_station: StationSubjects
 var mode_station: StationMode
 var album_station: StationAlbum
+var help_station: StationHelp
 var win_station: StationWin
 var game_title: Dictionary = {}   # {name, sub, icon, color}: rótulo sobre la mesa del tablero ({} = sin franja)
 var progress_matched: int = 0     # parejas ya emparejadas en la partida actual
@@ -165,6 +168,9 @@ func _ready() -> void:
 	album_station = StationAlbum.new()
 	album_station.position = Vector3(ALBUM_X, 0.0, 0.0)
 	add_child(album_station)
+	help_station = StationHelp.new()
+	help_station.position = Vector3(HELP_X, 0.0, 0.0)
+	add_child(help_station)
 	win_station = StationWin.new()
 	win_station.position = Vector3(WIN_X, 0.0, 0.0)
 	add_child(win_station)
@@ -341,6 +347,11 @@ func build_mode(mode_now: String, title: Dictionary = {}) -> void:
 
 func build_album(data: Array) -> void:
 	album_station.build(data)
+	_refresh_floor()
+
+## Ayuda "¿Cómo se juega?": la mesa solo tiene rótulos planos, así que no hay datos.
+func build_help() -> void:
+	help_station.build()
 	_refresh_floor()
 
 ## Nivel completado: construye las losetas de la estación de victoria.
@@ -659,10 +670,18 @@ func _pose() -> Dictionary:
 			"tilt": album_station.TILT,
 			"yaw": 0.0,
 		}
+	if station == "help" and help_station != null:
+		var h: Vector3 = help_station.position
+		return {
+			"target": Vector3(h.x + cam_x, h.y + help_station.LOOK_Y, h.z + cam_z),
+			"dist": help_station.fit_distance() / zoom,
+			"tilt": help_station.TILT,
+			"yaw": 0.0,
+		}
 	if station == "win" and win_station != null:
 		var w: Vector3 = win_station.position
 		return {
-			"target": Vector3(w.x + cam_x, w.y, w.z + cam_z),
+			"target": Vector3(w.x + cam_x, w.y + win_station.LOOK_Y, w.z + cam_z),
 			"dist": win_station.fit_distance() / zoom,
 			"tilt": win_station.TILT,
 			"yaw": 0.0,
@@ -717,7 +736,7 @@ func _pan_bounds(dist: float) -> Vector2:
 		return album_station.pan_bounds(dist)
 	if station == "win" and win_station != null:
 		return win_station.pan_bounds(dist)
-	if station == "menu" or station == "mode":
+	if station == "menu" or station == "mode" or station == "help":
 		return Vector2.ZERO
 	return _game_bounds(dist)
 
@@ -798,6 +817,8 @@ func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 		mode_station.visible = keep_stations_visible or station == "mode"
 	if album_station != null:
 		album_station.visible = keep_stations_visible or station == "album"
+	if help_station != null:
+		help_station.visible = keep_stations_visible or station == "help"
 	if win_station != null:
 		win_station.visible = keep_stations_visible or station == "win"
 	# El tablero resuelto se esconde al llegar a otra estación (en pantallas anchas asomaría)
@@ -827,7 +848,7 @@ func _refresh_floor() -> void:
 		var h: float = float(rows) * ST + 0.5
 		var ex: float = _title_extra()
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - ex - 0.22, w + 0.44, h + ex + 0.44))
-	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
+	for st in [menu_station, subject_station, mode_station, album_station, help_station, win_station]:
 		if st != null and (st as Node3D).visible:
 			if st.has_method("clear_rects"):
 				clears.append_array(st.clear_rects())

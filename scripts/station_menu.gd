@@ -1,12 +1,13 @@
 class_name StationMenu
 extends Node3D
-## Mesa del menú: las tres acciones principales (jugar, recorrido general y álbum)
-## como losetas 3D. Los modos de juego ya no viven acá: se eligen en la estación
-## `StationMode`, justo antes de empezar la partida.
+## Mesa del menú: las cuatro acciones principales (materias, recorrido general, cómo
+## jugar y álbum) como losetas 3D. Los modos de juego ya no viven acá: se eligen en la
+## estación `StationMode`, justo antes de empezar la partida.
 ## El resto del menú (logotipo, título y ajustes) sigue siendo una capa 2D encima.
 
 signal open_subjects
 signal play_general
+signal open_help
 signal open_album
 signal sfx(name: String)
 
@@ -32,6 +33,8 @@ func build(level: int) -> void:
 			"bg": Color("dcecff"), "ink": UiTheme.BLUE_DARK},
 		{"key": "general", "title": "Recorrido general", "sub": "Varias materias · Nivel %d" % level, "icon": "brujula",
 			"bg": Color("ffe1a0"), "ink": UiTheme.GOLD_INK},
+		{"key": "help", "title": "Cómo jugar", "sub": "Dos modos y gestos", "icon": "dialogo",
+			"bg": Color("d6f3e0"), "ink": Color("1d6b45")},
 		{"key": "album", "title": "Álbum", "sub": "Tus parejas dominadas", "icon": "cuaderno",
 			"bg": Color("e3d7ff"), "ink": Color("4b3a9a")},
 	]
@@ -103,5 +106,7 @@ func tap(pos: Vector2, cam: Camera3D) -> void:
 			open_subjects.emit()
 		"general":
 			play_general.emit()
+		"help":
+			open_help.emit()
 		"album":
 			open_album.emit()
