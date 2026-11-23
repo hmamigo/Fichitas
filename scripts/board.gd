@@ -42,7 +42,7 @@ const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
 const MOBILE_SCALE_3D := 0.75   # en móvil el 3D se dibuja a esta fracción de la resolución; la interfaz (2D) sigue nítida
-const SHADOW_REACH := 10.0     # hasta dónde llegan las sombras, medido desde la mesa que mira la cámara
+const SHADOW_REACH := 7.0      # hasta dónde llegan las sombras desde la mesa que mira la cámara: menos alcance, texeles más finos
 const FIT_ROWS := 3.5          # filas de fichas que se ven a la vez al empezar una ronda (la cuarta asoma: invita a deslizar)
 const PAN_PAD_Y := 0.08        # aire arriba y abajo al recorrer el tablero (fracción del alto visible)
 const GLIDE_SECS := 0.45      # lo que tarda la cámara en volver a la primera fila al pasar de ronda
@@ -465,10 +465,16 @@ func _build_environment() -> void:
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
 	sun.shadow_normal_bias = 1.5
-	sun.shadow_blur = 1.0
+	# Un poco de blur y menos opacidad disimulan el escalón del borde en el mapa de sombras
+	# de baja resolución del móvil, sin pagar más muestras ni resolución.
+	sun.shadow_blur = 1.25
+	sun.shadow_opacity = 0.7
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_blend_splits = true
 	sun.directional_shadow_max_distance = 12.0
+	# El valor por defecto (0,8) empieza a apagar la sombra demasiado pronto: con 0,95
+	# se mantiene hasta cerca del borde, sin dejar de difuminarse del todo.
+	sun.directional_shadow_fade_start = 0.95
 	add_child(sun)
 	# Luz de relleno: quita dureza a las sombras sin coste (sin sombras propias)
 	fill = DirectionalLight3D.new()
