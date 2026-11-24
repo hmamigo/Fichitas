@@ -32,8 +32,8 @@ const CLEAR_MARGIN := 0.4 # margen de las mesas (el hueco real de cada una más 
 # llega unos 6 más allá; en pantalla apaisada o ultra ancha asoma más a los lados. Hay margen de sobra.
 const X_MIN := -54        # borde izquierdo (más allá del álbum)
 const X_MAX := 30         # borde derecho (más allá de la estación de victoria)
-const Z_FAR := 38         # hacia el fondo (−Z)
-const Z_NEAR := 38        # hacia la cámara (+Z)
+const Z_FAR := 44         # hacia el fondo (−Z)
+const Z_NEAR := 44        # hacia la cámara (+Z)
 # Perspectiva atmosférica: todos los cubos se mezclan con el color de la niebla del tablero
 # (Board.FOG_COLOR), así el fondo no compite con los colores de las fichas. 0 = sin mezcla.
 const FADE_COLOR := Color("b9d2ee")

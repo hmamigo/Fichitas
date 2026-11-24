@@ -96,7 +96,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 `packs/index.json` es el índice de los paquetes oficiales y su orden:
 
 ```json
-{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores", "formas", "mama"]}
+{"packs": ["mat", "qui", "fis", "ing", "bio", "geo", "ast", "inf", "ani", "contar", "colores", "formas", "mama", "mus_inst", "mus_notas"]}
 ```
 
 Cada materia vive en `packs/<id>/pack.json`:
@@ -118,6 +118,8 @@ Cada materia vive en `packs/<id>/pack.json`:
 - `id`: minúsculas, números, `-` y `_`, hasta 32 caracteres; no puede repetir un id oficial.
 - `unlock`: número de 1 a 99; indica desde qué nivel del recorrido general entra la materia. Un paquete externo sin `unlock` queda en 99 y solo se juega desde su propia materia.
 - `category`: `peques`, `exploradores` o `nerds` (opcional; sin ella, o con otra, cae en `exploradores`). Agrupa las materias en la pantalla de materias (una cabecera por categoría) y en el álbum. Las categorías, su orden, nombre, icono y colores (`color` del rótulo, `ink` del texto y `frame` del marco de su mesa) están en `Packs.CATEGORIES`: para renombrar una basta cambiar su `name`. Peques = sin leer, solo imágenes (Animales, Contar, Colores, Formas, Mamá y cría); Exploradores = lo básico (Matemáticas, Inglés, Geografía, Astronomía); Nerds = a fondo (Química, Física, Biología, Informática). Las materias de Peques llevan `unlock` 99, así que no entran en el recorrido general (sí en el Repaso).
+- `group` (opcional): id de una **materia con temas** definida en `packs/groups.json`; el paquete pasa a ser un tema de esa materia y toma su categoría. Sin él, o con un id desconocido, se ve suelto como siempre. Los paquetes propios (.zip) también pueden declararlo.
+- `packs/groups.json`: `{"groups": [{"id", "name", "icon", "category", "color"}]}` (`icon`: nombre de `assets/emoji/` o `assets/icons/`; si no existe cae a `book`; `color` opcional, en hex). **Materias con temas**: en la lista de materias aparece una sola tarjeta ("N temas", con lo dominado de todos sus temas); al tocarla, la misma lista pasa a mostrar sus temas (cada uno es un paquete normal, con sus niveles y progreso) y el botón de volver dice "Materias". Atrás cierra la materia y deja la lista general donde estaba (`Board.set_subjects_view`/`view_snapshot`/`restore_view`); salir al menú también la cierra. Recorrido general, Repaso y Álbum no cambian (ven los paquetes sueltos). Una materia está disponible si alguno de sus temas lo está. La primera materia con temas es **Música** (Exploradores): Instrumentos (`mus_inst`: emoji ↔ nombre, 10 parejas) y Notas y figuras (`mus_notas`: notas en el pentagrama de clave de sol y figuras ↔ nombre, 12 parejas; imágenes hechas con las fuentes Noto Music y Baloo 2).
 - `pairs`: entre 3 y 60 parejas. `a` y `b` son rutas relativas a imágenes PNG, JPG o WebP dentro del paquete. `id` de pareja es opcional (por omisión, el índice) y único dentro del paquete; `fact` es el dato curioso, opcional, hasta 300 caracteres.
 - Imágenes: lado entre 32 y 4096 px. Al importar un paquete externo se decodifican y se guardan recodificadas como PNG de hasta 1024 px.
 - Un `.zip` externo lleva `pack.json` en la raíz o dentro de una única carpeta de primer nivel. Límites: 50 MB y 600 archivos. Si el id ya existe, el paquete se reemplaza entero.
@@ -197,6 +199,7 @@ No se usa GUT: cada archivo de `tests/` es un `SceneTree` que corre sin ventana 
 godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --script res://tests/test_game.gd
 godot --headless --path . --script res://tests/test_rounds.gd
+godot --headless --path . --script res://tests/test_groups.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd
@@ -206,8 +209,9 @@ godot --headless --path . --script res://tests/test_ui_menu.gd
 
 | Prueba | Qué cubre |
 |---|---|
-| `run_tests` | Malla de ficha y carga de los 13 paquetes oficiales. |
+| `run_tests` | Malla de ficha y carga de los 15 paquetes oficiales. |
 | `test_game` | Reglas del tablero: parejas (por toque), victoria, chispas y nivel de 24 parejas (4 rondas de 6). |
+| `test_groups` | Materias con temas: datos (`apply_groups`, `top_level`), lista general vs. lista de temas, botón de volver, Atrás paso a paso y recuperación del desplazamiento. |
 | `test_rounds` | Reparto en rondas (`Levels.round_sizes`), 2 columnas, límites de desplazamiento vertical, paso entre rondas con el contador acumulado y `won` una sola vez. |
 | `test_flow` | Flujo completo: menú → materias → modo → tablero → victoria → álbum, encuadre de cámara, cobertura del suelo en los extremos de las listas, contador de parejas, memoria de la posición de las listas y guardado. |
 | `test_review` | Repaso espaciado, calendario, sesión de repaso y sonidos. |

@@ -1,0 +1,60 @@
+{
+ "format": 1,
+ "id": "mus_inst",
+ "name": "Instrumentos",
+ "unlock": 9,
+ "category": "exploradores",
+ "group": "musica",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Una guitarra clásica tiene seis cuerdas."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Un piano tiene 88 teclas, entre blancas y negras."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "El tambor se toca golpeando su parche con las manos o con baquetas."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "La trompeta suena cuando soplas haciendo vibrar los labios dentro de la boquilla."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "El saxofón es de metal, pero suena gracias a una caña, como los clarinetes."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "El violín se toca con un arco, frotando sus cuatro cuerdas."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "El banjo tiene la caja redonda cubierta con un parche, como un pequeño tambor."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "El acordeón suena al abrir y cerrar el fuelle mientras se aprietan teclas o botones."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Una flauta suena cuando el aire que soplas vibra dentro de un tubo con agujeros."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Las maracas suenan al agitarlas: por dentro llevan semillas o piedritas."
+  }
+ ]
+}

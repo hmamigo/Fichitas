@@ -1,1 +1,11 @@
-{"groups": []}
+{
+ "groups": [
+  {
+   "id": "musica",
+   "name": "Música",
+   "icon": "musica",
+   "category": "exploradores",
+   "color": "f2a0d0"
+  }
+ ]
+}

@@ -89,6 +89,7 @@ Pruebas automáticas sin ventana (terminan con código 0 si todo pasa e imprimen
 godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --script res://tests/test_game.gd
 godot --headless --path . --script res://tests/test_rounds.gd
+godot --headless --path . --script res://tests/test_groups.gd
 godot --headless --path . --script res://tests/test_flow.gd
 godot --headless --path . --script res://tests/test_review.gd
 godot --headless --path . --script res://tests/test_packs.gd

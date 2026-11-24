@@ -8,6 +8,9 @@ var board: Board
 var ui: GameUI
 var audio: GameAudio
 var packs: Array = []
+var groups: Array = []              # materias que agrupan temas (Packs.load_groups)
+var _group_open: String = ""        # materia abierta en la lista ("" = la lista general)
+var _top_view: Dictionary = {}      # desplazamiento de la lista general mientras se mira una materia
 var state: int = S.MENU
 var cur_sid: String = ""
 var cur_level: int = 1
@@ -23,6 +26,7 @@ var _mode_from: int = S.SUBJECTS   # estación a la que vuelve "Atrás" desde el
 
 func _ready() -> void:
 	Progress.load_data()
+	groups = Packs.load_groups()
 	packs = Packs.load_all()
 	audio = GameAudio.new()
 	add_child(audio)
@@ -67,6 +71,8 @@ func _on_subject(id: String) -> void:
 		_pick_pack()
 	elif id == "":
 		_play("")
+	elif id.begins_with("grp:"):
+		_open_group(id.substr(4))
 	else:
 		_play(id)
 
@@ -93,6 +99,9 @@ func _go_menu() -> void:
 	})
 	_center_menu()
 	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
+	if _group_open != "":   # al volver a Materias se ve la lista general donde estaba
+		_group_open = ""
+		board.restore_view("subjects", _top_view)
 	_center_menu_later()  # el primer layout del arranque puede llegar un frame tarde
 
 ## La mesa 3D del menú se encuadra en el hueco que dejan la cabecera y los ajustes 2D.
@@ -133,6 +142,31 @@ func _on_vib(on: bool) -> void:
 
 func _go_subjects() -> void:
 	state = S.SUBJECTS
+	var g: Dictionary = Packs.group_by_id(groups, _group_open)
+	if g.is_empty():
+		_group_open = ""   # esa materia ya no existe (p. ej. tras recargar los paquetes)
+	board.build_subjects(_group_cards(g) if not g.is_empty() else _top_cards())
+	board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
+	ui.show_subjects()
+	ui.set_subjects_back("Materias" if not g.is_empty() else "Menú")
+	_show_pan_hint()
+
+## Abre una materia con temas: la misma lista pasa a mostrar sus paquetes.
+func _open_group(gid: String) -> void:
+	if Packs.group_by_id(groups, gid).is_empty():
+		return
+	_top_view = board.view_snapshot("subjects")
+	_group_open = gid
+	board.set_subjects_view({})   # la lista de temas empieza por arriba
+	_go_subjects()
+
+## Vuelve de una materia a la lista general, en el mismo punto donde se había dejado.
+func _close_group() -> void:
+	_group_open = ""
+	board.set_subjects_view(_top_view)
+	_go_subjects()
+
+func _top_cards() -> Array:
 	var cards: Array = []
 	var due: Array = Levels.due_pairs(packs)
 	var due_txt: String = ("%d por repasar" % due.size()) if not due.is_empty() else ""
@@ -144,29 +178,12 @@ func _go_subjects() -> void:
 		cards.append({"id": ":review", "name": "Repaso", "icon": "cerebro", "sub": "%d parejas esperando" % due.size(),
 			"sub2": "De todas las materias", "color": Color("ffce6b")})
 	var last_cat: String = ""
-	for p in packs:
-		if p.get("category", Packs.DEFAULT_CATEGORY) != last_cat:   # `packs` viene agrupado por categoría: una cabecera por grupo
-			last_cat = p.get("category", Packs.DEFAULT_CATEGORY)
-			for c in Packs.CATEGORIES:
-				if c["id"] == last_cat:
-					cards.append({"id": "hdr:" + last_cat, "header": true, "name": c["name"], "sub": c["sub"],
-						"icon": c["icon"], "color": c["color"], "ink": c["ink"], "frame": c["frame"]})
-		var steps: Array = Levels.steps_for(p)
-		var v: int = Progress.subj_level(p["id"])
-		var dom: int = 0
-		for pr in p["pairs"]:
-			if Progress.pair_stage(pr["id"]) == 2:
-				dom += 1
-		var locked: bool = not Levels.is_open(p)
-		var pdue: int = 0 if locked else Levels.due_count(p)
-		cards.append({
-			"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
-			"sub": "No disponible" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
-			"sub2": "" if locked else "Dominadas %d de %d" % [dom, (p["pairs"] as Array).size()],
-			"sub3": ("%d por repasar" % pdue) if pdue > 0 else ("Paquete propio" if bool(p.get("external", false)) else ""),
-			"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
-			"color": UiTheme.pack_color(p["id"]), "locked": locked,
-			"info": "«%s» todavía no está disponible." % p["name"] if locked else ""})
+	for e in Packs.top_level(packs, groups):   # `packs` viene agrupado por categoría: una cabecera por grupo
+		var cat: String = str(((e["group"] if e.has("group") else e["pack"]) as Dictionary).get("category", Packs.DEFAULT_CATEGORY))
+		if cat != last_cat:
+			last_cat = cat
+			cards.append(_category_header(cat))
+		cards.append(_group_card(e["group"], e["packs"]) if e.has("group") else _pack_card(e["pack"]))
 	cards.append({"id": "hdr:mas", "header": true, "name": "Más", "sub": "Tus paquetes y lo que viene",
 		"icon": "magia", "color": "b9c6d9", "ink": "3f526e", "frame": "6b82a3"})
 	cards.append({"id": ":import", "name": "Cargar paquete", "icon": "paquete", "sub": "Una materia tuya (.zip)",
@@ -179,10 +196,79 @@ func _go_subjects() -> void:
 		if not exists:
 			cards.append({"id": "coming:" + n, "name": n, "icon": "templo" if n == "Historia" else "magia", "sub": "Próximamente", "sub2": "", "color": Color("c9cfdb"), "locked": true,
 				"info": "«%s» llegará pronto." % n})
-	board.build_subjects(cards)
-	board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
-	ui.show_subjects()
-	_show_pan_hint()
+	return cards
+
+## La lista de una materia con temas: su cabecera y un paquete por cada tema.
+func _group_cards(g: Dictionary) -> Array:
+	var kids: Array = []
+	for p in packs:
+		if str(p.get("group", "")) == g["id"]:
+			kids.append(p)
+	var head: Dictionary = _category_header(str(g["category"]))
+	head["id"] = "hdr:grp"
+	head["name"] = g["name"]
+	head["sub"] = _themes_text(kids.size())
+	head["icon"] = g["icon"]
+	var cards: Array = [head]
+	for p in kids:
+		cards.append(_pack_card(p))
+	return cards
+
+func _themes_text(n: int) -> String:
+	return "1 tema" if n == 1 else "%d temas" % n
+
+func _category_header(cat: String) -> Dictionary:
+	for c in Packs.CATEGORIES:
+		if c["id"] == cat:
+			return {"id": "hdr:" + cat, "header": true, "name": c["name"], "sub": c["sub"],
+				"icon": c["icon"], "color": c["color"], "ink": c["ink"], "frame": c["frame"]}
+	return {}
+
+## Tarjeta de una materia con temas: suma lo de todos sus temas.
+func _group_card(g: Dictionary, kids: Array) -> Dictionary:
+	var dom: int = 0
+	var total: int = 0
+	var due: int = 0
+	var done_lv: int = 0
+	var all_lv: int = 0
+	var open_n: int = 0
+	for p in kids:
+		var steps: int = Levels.steps_for(p).size()
+		done_lv += mini(Progress.subj_level(p["id"]) - 1, steps)
+		all_lv += steps
+		for pr in p["pairs"]:
+			total += 1
+			if Progress.pair_stage(pr["id"]) == 2:
+				dom += 1
+		if Levels.is_open(p):
+			open_n += 1
+			due += Levels.due_count(p)
+	var locked: bool = open_n == 0
+	return {"id": "grp:" + str(g["id"]), "name": g["name"], "icon": g["icon"], "sub": _themes_text(kids.size()),
+		"sub2": "" if locked else "Dominadas %d de %d" % [dom, total],
+		"sub3": ("%d por repasar" % due) if due > 0 else "",
+		"frac": float(done_lv) / float(maxi(all_lv, 1)),
+		"color": Color(str(g["color"])) if str(g["color"]) != "" else UiTheme.pack_color(str(kids[0]["id"])),
+		"locked": locked, "info": "«%s» todavía no está disponible." % g["name"] if locked else ""}
+
+## Tarjeta de un paquete (materia suelta o tema).
+func _pack_card(p: Dictionary) -> Dictionary:
+	var steps: Array = Levels.steps_for(p)
+	var v: int = Progress.subj_level(p["id"])
+	var dom: int = 0
+	for pr in p["pairs"]:
+		if Progress.pair_stage(pr["id"]) == 2:
+			dom += 1
+	var locked: bool = not Levels.is_open(p)
+	var pdue: int = 0 if locked else Levels.due_count(p)
+	return {
+		"id": p["id"], "name": p["name"], "icon": UiTheme.pack_icon(p["id"]),
+		"sub": "No disponible" if locked else ("Completada" if v > steps.size() else "Nivel %d de %d" % [v, steps.size()]),
+		"sub2": "" if locked else "Dominadas %d de %d" % [dom, (p["pairs"] as Array).size()],
+		"sub3": ("%d por repasar" % pdue) if pdue > 0 else ("Paquete propio" if bool(p.get("external", false)) else ""),
+		"frac": 1.0 if v > steps.size() else float(v - 1) / float(maxi(steps.size(), 1)),
+		"color": UiTheme.pack_color(p["id"]), "locked": locked,
+		"info": "«%s» todavía no está disponible." % p["name"] if locked else ""}
 
 ## Ayuda: mesa 3D a la izquierda del álbum con los pasos para jugar. Solo informa.
 func _go_help() -> void:
@@ -437,7 +523,10 @@ func _on_back() -> void:
 			else:
 				_go_menu()
 		S.SUBJECTS:
-			_go_menu()
+			if _group_open != "":
+				_close_group()
+			else:
+				_go_menu()
 		S.HELP:
 			_go_menu()
 		S.ALBUM:

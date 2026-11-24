@@ -113,6 +113,7 @@ var sel: Tile = null
 var _rounds: Array = []       # parejas de cada ronda del nivel (Levels.round_sizes)
 var _round: int = 0            # ronda en curso
 var _done_pairs: int = 0       # parejas de las rondas ya terminadas
+var _view_override = null      # ver set_subjects_view
 var _glide: Tween              # deslizamiento de la cámara hacia la ronda nueva
 var ptrs: Dictionary = {}
 var press_tile: Tile = null
@@ -752,11 +753,31 @@ func _game_bounds(dist: float) -> Vector2:
 
 ## Lleva la cámara de una estación a otra. `start_at` salta el principio del vuelo
 ## (entre niveles basta un acercamiento corto).
+## Vista con la que se abrirá la lista de materias la próxima vez ({} = empezar por arriba); sirve
+## para cambiar entre la lista y la de una materia sin arrastrar el desplazamiento de una a la otra.
+func set_subjects_view(d: Dictionary) -> void:
+	_view_override = d
+
+## Vista guardada de una lista (incluida la actual si estamos en ella).
+func view_snapshot(name: String) -> Dictionary:
+	_remember_view()
+	return (_view_mem.get(name, {}) as Dictionary).duplicate()
+
+## Deja guardada la vista de una lista para la próxima visita ({} = que empiece por arriba).
+func restore_view(name: String, d: Dictionary) -> void:
+	if d.is_empty():
+		_view_mem.erase(name)
+	else:
+		_view_mem[name] = d.duplicate()
+
 func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	_stop_glide()  # si venimos de cambiar de ronda, su deslizamiento no debe pelear con el vuelo
 	if _fly != null:
 		_fly.kill()
-	_remember_view()
+	var override = _view_override
+	_view_override = null
+	if override == null or name != "subjects":
+		_remember_view()
 	_from = _pose_now()
 	station = name
 	_apply_station_visibility(true)
@@ -767,6 +788,8 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	# Las listas largas vuelven donde el jugador las dejó (el desplazamiento se
 	# recorta solo con los límites de la mesa en `_update_cam`).
 	var mem: Dictionary = _view_mem.get(name, {})
+	if override != null and name == "subjects":
+		mem = override as Dictionary
 	if not mem.is_empty():
 		cam_x = float(mem["x"])
 		cam_z = float(mem["z"])

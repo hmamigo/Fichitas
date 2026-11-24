@@ -1,0 +1,70 @@
+{
+ "format": 1,
+ "id": "mus_notas",
+ "name": "Notas y figuras",
+ "unlock": 10,
+ "category": "exploradores",
+ "group": "musica",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Do es la primera nota de la escala; aquí se escribe debajo del pentagrama, sobre una línea corta."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Re se escribe justo debajo de la primera línea del pentagrama."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Mi se escribe sobre la primera línea del pentagrama, la de abajo."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Fa se escribe en el primer espacio, entre la primera y la segunda línea."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "Sol se escribe en la segunda línea; la clave de sol rodea justo esa línea."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "La se escribe en el segundo espacio; el La con el que se afinan los instrumentos suena a 440 vibraciones por segundo."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Si se escribe en la tercera línea, la del medio, y es la última nota antes de volver a empezar con Do."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "La redonda dura 4 tiempos: es la figura más larga de las que usamos aquí."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "La blanca dura 2 tiempos, o sea, la mitad de una redonda."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "La negra dura 1 tiempo; suele marcar el pulso, como los pasos al caminar."
+  },
+  {
+   "a": "11a.png",
+   "b": "11b.png",
+   "fact": "La corchea dura medio tiempo: caben dos en una negra."
+  },
+  {
+   "a": "12a.png",
+   "b": "12b.png",
+   "fact": "La semicorchea dura un cuarto de tiempo: caben cuatro en una negra."
+  }
+ ]
+}

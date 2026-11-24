@@ -16,6 +16,7 @@ var vib_btn: Button
 var subjects: Control
 var mode_screen: Control
 var toast_label: Label
+var subjects_back_label: Label   # texto del botón de volver de la lista de materias
 var toast_panel: Control
 var album: Control
 var fact: Control
@@ -598,7 +599,10 @@ func _build_subjects() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 20)
 	v.add_child(head)
-	head.add_child(_back_tile("Menú", []))
+	var back_tile: Control = _back_tile("Menú", [])
+	head.add_child(back_tile)
+	for l in back_tile.find_children("*", "Label", true, false):
+		subjects_back_label = l as Label
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(gap)
@@ -761,6 +765,11 @@ func show_hud() -> void:
 	hud_bar.visible = true
 
 ## Las tarjetas de materia son losetas 3D: aquí solo queda la cabecera y el aviso.
+## Texto del botón de volver de la lista: "Menú", o "Materias" dentro de una materia con temas.
+func set_subjects_back(text: String) -> void:
+	if subjects_back_label != null:
+		subjects_back_label.text = text
+
 func show_subjects() -> void:
 	hide_all()
 	_update_columns()

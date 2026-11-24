@@ -1,0 +1,4 @@
+Pentagramas y figuras (01a.png a 07a.png y 08a.png a 12a.png): el pentagrama está dibujado para este juego;
+la clave de sol y las figuras musicales son glifos de la fuente Noto Music, © The Noto Project Authors,
+SIL Open Font License 1.1 (ver LICENSE-NotoMusic-OFL.txt).
+Los nombres (01b.png a 12b.png) están dibujados con Baloo 2 (SIL Open Font License 1.1).

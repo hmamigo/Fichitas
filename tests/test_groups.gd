@@ -58,7 +58,7 @@ func _run() -> void:
 	var keys0: Array = _keys(main)
 	check(keys0.has("ing") and keys0.has("geo"), "sin materias, 'ing' y 'geo' son tarjetas sueltas")
 	# Se agrupan dos materias oficiales de Exploradores en una materia de prueba
-	main.groups = [{"id": "gt", "name": "Prueba", "icon": "paquete", "category": "exploradores", "color": ""}]
+	main.groups.append({"id": "gt", "name": "Prueba", "icon": "paquete", "category": "exploradores", "color": ""})   # además de las oficiales
 	for p in main.packs:
 		if p["id"] == "ing" or p["id"] == "geo":
 			p["group"] = "gt"
@@ -72,7 +72,7 @@ func _run() -> void:
 	for p in main.packs:
 		if p["group"] == "gt":
 			kids.append(p)
-	var card: Dictionary = main._group_card(main.groups[0], kids)
+	var card: Dictionary = main._group_card(Packs.group_by_id(main.groups, "gt"), kids)
 	check(card["id"] == "grp:gt" and card["sub"] == "2 temas" and not bool(card["locked"]) and str(card["sub2"]).begins_with("Dominadas 0 de"), "la tarjeta de la materia suma sus temas: %s · %s" % [card["sub"], card["sub2"]])
 
 	main.board.cam_z = 1.5
