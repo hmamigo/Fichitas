@@ -3,21 +3,19 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://vxpirmdgdxic"
-path.s3tc="res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.s3tc.ctex"
-path.etc2="res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.etc2.ctex"
+path="res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
 }
 
 [deps]
 
 source_file="res://assets/emoji/guitarra.png"
-dest_files=["res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.s3tc.ctex", "res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.etc2.ctex"]
+dest_files=["res://.godot/imported/guitarra.png-cd06f3298dfd416cce93a52213bb00db.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

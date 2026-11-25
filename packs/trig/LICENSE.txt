@@ -1,0 +1,3 @@
+Las imágenes están dibujadas para este juego. Los textos y números usan Baloo 2 (SIL Open Font License 1.1).
+Las fórmulas se compusieron con matplotlib; sus símbolos (π, ∫, √, ±...) vienen de las fuentes STIX,
+SIL Open Font License 1.1 (ver LICENSE-STIX-OFL.txt).

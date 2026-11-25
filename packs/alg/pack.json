@@ -1,0 +1,60 @@
+{
+ "format": 1,
+ "id": "alg",
+ "name": "Álgebra",
+ "unlock": 11,
+ "category": "exploradores",
+ "group": "matematicas",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "Para despejar x se hace la operación contraria a los dos lados: aquí, restar 7."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Si x está multiplicada, se despeja dividiendo los dos lados entre el mismo número."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Primero se suma 4 a los dos lados y luego se divide entre 2."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Un binomio al cuadrado no es la suma de los cuadrados: aparece el doble producto 2x."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "La diferencia de cuadrados siempre se factoriza como suma por diferencia."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Cualquier número distinto de cero elevado a 0 vale 1."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Al multiplicar potencias de la misma base, se suman los exponentes."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Una ecuación como x² = 16 tiene dos soluciones: la raíz positiva y la negativa."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "La raíz de un cuadrado devuelve el valor absoluto: la raíz de (−3)² es 3, no −3."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Un logaritmo pregunta a qué exponente hay que elevar la base: 2³ = 8."
+  }
+ ]
+}

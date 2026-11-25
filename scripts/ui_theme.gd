@@ -12,12 +12,12 @@ const EMOJI := "res://assets/emoji/"   # iconos a color (Noto Emoji): tienen pri
 const PACK_COLORS := {
 	"mat": "ffd966", "qui": "8ee3b0", "fis": "9cc8ff", "ing": "ffb199",
 	"bio": "d1b3ff", "geo": "7fd6d1", "ast": "a9b8ff", "inf": "ffc27a",
-	"ani": "ff9fcb", "contar": "c6e86a", "colores": "8fe0ff", "formas": "e3c9a8", "mama": "c9b7ff", "mus_inst": "ff9ec7", "mus_notas": "b9a3ff",
+	"ani": "ff9fcb", "contar": "c6e86a", "colores": "8fe0ff", "formas": "e3c9a8", "mama": "c9b7ff", "mus_inst": "ff9ec7", "mus_notas": "b9a3ff", "alg": "ffb878", "geom": "8cdeaa", "trig": "96c6ff", "calc": "e2a0ff",
 }
 const PACK_ICONS := {
 	"mat": "abaco", "qui": "alembic", "fis": "atomo", "ing": "dialogo",
 	"bio": "adn", "geo": "tierra", "ast": "planeta", "inf": "laptop",
-	"ani": "patas", "contar": "numeros", "colores": "paleta", "formas": "figuras", "mama": "biberon", "mus_inst": "guitarra", "mus_notas": "partitura",
+	"ani": "patas", "contar": "numeros", "colores": "paleta", "formas": "figuras", "mama": "biberon", "mus_inst": "guitarra", "mus_notas": "partitura", "alg": "dividir", "geom": "escuadra", "trig": "regla", "calc": "grafico",
 }
 static var _icon_cache: Dictionary = {}
 static var _glow_cache: Dictionary = {}
@@ -161,6 +161,10 @@ static func icon(name: String, size: int = 32, col: Color = INK) -> ImageTexture
 		return null
 	var img: Image = tex.get_image()
 	if img == null:
+		return null
+	# Un PNG importado con compresión VRAM devuelve una imagen comprimida:
+	# hay que descomprimirla antes de convertirla o reducirla.
+	if img.is_compressed() and img.decompress() != OK:
 		return null
 	img.convert(Image.FORMAT_RGBA8)
 	if img.get_width() != size or img.get_height() != size:

@@ -78,22 +78,28 @@ func _run() -> void:
 	main.board.cam_z = 1.5
 	await process_frame
 	main._open_group("gt")
-	await create_timer(0.3).timeout
-	var inside: Array = _keys(main)
-	check(inside.size() == 2 and inside.has("ing") and inside.has("geo"), "al abrir la materia se ven solo sus temas %s" % str(inside))
+	await create_timer(1.2).timeout   # el vuelo a la derecha dura 0,9 s
+	check(main.board.station == "themes" and main.board.theme_station.visible and not main.board.subject_station.visible, "la cámara pasa a la mesa de los temas y la de materias se oculta al llegar")
+	check(main.board.theme_station.position.x > main.board.subject_station.position.x and main.board.theme_station.position.x < main.board.mode_station.position.x, "los temas quedan a la derecha de las materias y a la izquierda del modo")
+	check(main.board.cam.global_position.x > main.board.subject_station.position.x + 3.0, "la cámara se movió hacia la derecha")
+	var tiles_in: Array = []
+	for tl in main.board.theme_station.tiles:
+		tiles_in.append((tl as Plaque).key)
+	check(tiles_in.size() == 2 and tiles_in.has("ing") and tiles_in.has("geo"), "la mesa de temas muestra solo sus temas %s" % str(tiles_in))
 	check(main.state == main.S.SUBJECTS and main.ui.subjects_back_label.text == "Materias", "el botón de volver dice Materias")
 	check(main.board.cam_z < 1.5, "la lista de temas empieza por arriba")
+	main.board.cam_z = 0.9   # se desplaza un poco la lista de temas...
 
 	main._play("ing")
 	await create_timer(1.3).timeout
 	check(main.state == main.S.MODE, "un tema se juega como cualquier materia (paso de modo)")
 	main._on_back()
 	await create_timer(0.8).timeout
-	check(main.state == main.S.SUBJECTS and main._group_open == "gt" and _keys(main).size() == 2, "volver del modo deja la lista de temas")
+	check(main.state == main.S.SUBJECTS and main._group_open == "gt" and main.board.station == "themes" and main.board.theme_station.tiles.size() == 2, "volver del modo deja la mesa de temas")
 
 	main._on_back()
-	await create_timer(0.3).timeout
-	check(main._group_open == "" and _keys(main).size() == keys1.size(), "Atrás en los temas vuelve a la lista general")
+	await create_timer(1.1).timeout   # el vuelo de regreso a la izquierda
+	check(main._group_open == "" and main.board.station == "subjects" and _keys(main).size() == keys1.size(), "Atrás en los temas vuelve a la lista general, a la izquierda")
 	check(is_equal_approx(main.board.cam_z, 1.5) and main.ui.subjects_back_label.text == "Menú", "y la lista general queda donde estaba (z=%.2f)" % main.board.cam_z)
 	main._on_back()
 	await create_timer(1.0).timeout

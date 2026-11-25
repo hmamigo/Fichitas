@@ -1,7 +1,7 @@
 {
  "format": 1,
  "id": "mat",
- "name": "Matemáticas",
+ "name": "Aritmética",
  "unlock": 1,
  "category": "exploradores",
  "pairs": [
@@ -45,5 +45,6 @@
    "b": "08b.png",
    "fact": "Para sumar fracciones se busca un denominador común: 2/4 + 1/4 = 3/4."
   }
- ]
+ ],
+ "group": "matematicas"
 }

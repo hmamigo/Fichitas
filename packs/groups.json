@@ -1,6 +1,13 @@
 {
  "groups": [
   {
+   "id": "matematicas",
+   "name": "Matemáticas",
+   "icon": "abaco",
+   "category": "exploradores",
+   "color": "ffd966"
+  },
+  {
    "id": "musica",
    "name": "Música",
    "icon": "musica",

@@ -28,7 +28,7 @@ func _run() -> void:
 
 	print("Presupuesto")
 	var n: int = fc.instance_count()
-	check(n >= 3000 and n <= 6500, "%d cubos (cajas de 12 triángulos; antes ~9 000 con 96 triángulos)" % n)
+	check(n >= 3000 and n <= 7500, "%d cubos (cajas de 12 triángulos; antes ~9 000 con 96 triángulos)" % n)
 	check(fc.mmi.multimesh.mesh is BoxMesh, "cajas simples")
 	var sizes: Dictionary = {}
 	for c in fc._cells:
@@ -64,6 +64,20 @@ func _run() -> void:
 		if _dist(fc, fc._cells[k]) < FloorCubes.RISE_START:
 			distinct[snappedf(fc._heights[k], 0.1)] = true
 	check(distinct.size() >= 6, "pegados a la mesa hay variedad de alturas (%d niveles)" % distinct.size())
+
+	print("Profundidad ajustable")
+	var n_min: int = fc.instance_count()
+	fc.set_depth(60)
+	check(fc.z_far == 60 and fc.z_near == 60 and fc.instance_count() > n_min, "set_depth(60) amplía el suelo (%d -> %d cubos)" % [n_min, fc.instance_count()])
+	var reach_ok: bool = true
+	for c0 in fc._cells:
+		reach_ok = reach_ok and float((c0 as Dictionary)["z"]) <= 62.0 and float((c0 as Dictionary)["z"]) >= -62.0
+	check(reach_ok and fc._heights.size() == fc.instance_count(), "los cubos nuevos llegan hasta la nueva profundidad y quedan dibujados")
+	fc.set_depth(7)
+	check(fc.z_far == FloorCubes.Z_FAR and fc.instance_count() == n_min, "por debajo del mínimo vuelve al mínimo (%d)" % FloorCubes.Z_FAR)
+	fc.set_depth(39)
+	check(fc.z_far == 40, "la profundidad es par (39 -> 40)")
+	fc.set_depth(FloorCubes.Z_FAR)
 
 	print("Distancia a las mesas")
 	check(FloorCubes.TOP_MIN <= -1.0, "el suelo queda al menos 1 unidad bajo la mesa (cima más baja %.2f)" % FloorCubes.TOP_MIN)

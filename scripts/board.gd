@@ -13,16 +13,17 @@ const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del
 const TILT := 0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
-# Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, modo, tablero
-# (en el origen) y victoria.
+# Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, temas, modo, tablero
+# (en el origen) y victoria. Materias -> temas -> modo avanzan siempre hacia la derecha.
 # El tablero apaisado de PC puede medir ~11 de ancho (±5,5): la mesa del modo queda a −9 para no
 # tocarlo durante el vuelo, y de ahí hacia la izquierda las estaciones van de 10 en 10.
 const STATION_GAP := 10.0
 const MODE_X := -0.9 * STATION_GAP    # modo: a la izquierda del tablero
-const SUBJ_X := -1.5 * STATION_GAP    # materias: a la izquierda del modo
-const MENU_X := -2.5 * STATION_GAP    # menú: a la izquierda de las materias
-const ALBUM_X := -3.5 * STATION_GAP   # álbum: a la izquierda del menú
-const HELP_X := -4.5 * STATION_GAP    # cómo jugar: a la izquierda del álbum
+const THEMES_X := -1.5 * STATION_GAP  # temas de una materia: a la izquierda del modo
+const SUBJ_X := -2.1 * STATION_GAP    # materias: a la izquierda de los temas (mismos 6 que modo y temas)
+const MENU_X := -3.1 * STATION_GAP    # menú: a la izquierda de las materias
+const ALBUM_X := -4.1 * STATION_GAP   # álbum: a la izquierda del menú
+const HELP_X := -5.1 * STATION_GAP    # cómo jugar: a la izquierda del álbum
 const WIN_X := STATION_GAP            # nivel completado: a la derecha del tablero
 const MENU_LOOK_Y := -0.2             # altura del punto de mira del menú
 const MENU_LOOK_DZ := -0.2            # z de partida; `center_menu` la ajusta al hueco 2D
@@ -71,10 +72,11 @@ class Tile:
 var mode: String = "mem"
 var active: bool = false
 var blockers: Array = []   # controles de interfaz que no deben dejar pasar toques al tablero
-var station: String = "menu"  # "menu", "subjects", "mode", "album", "help", "game" o "win"
+var station: String = "menu"  # "menu", "subjects", "themes", "mode", "album", "help", "game" o "win"
 var menu_look_z: float = MENU_LOOK_DZ  # lo ajusta `center_menu` según la franja 2D
 var menu_station: StationMenu
 var subject_station: StationSubjects
+var theme_station: StationSubjects   # los temas de una materia con temas: su propia mesa, a la derecha de las materias
 var mode_station: StationMode
 var album_station: StationAlbum
 var help_station: StationHelp
@@ -98,7 +100,7 @@ var floor_cubes: FloorCubes
 var _fly: Tween
 var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
 var _title_label: FlatLabel    # franja del título, para actualizar el contador sin rehornear la mesa
-var _view_mem: Dictionary = {} # "subjects"/"album" -> {x, z, zoom}: dónde quedó cada lista
+var _view_mem: Dictionary = {} # "subjects"/"themes"/"album" -> {x, z, zoom}: dónde quedó cada lista
 var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
 var _arc: float = 0.0          # alejamiento extra de la cámara a mitad del vuelo actual
 var _settled: bool = true      # la cámara ya llegó: se puede tocar
@@ -113,7 +115,6 @@ var sel: Tile = null
 var _rounds: Array = []       # parejas de cada ronda del nivel (Levels.round_sizes)
 var _round: int = 0            # ronda en curso
 var _done_pairs: int = 0       # parejas de las rondas ya terminadas
-var _view_override = null      # ver set_subjects_view
 var _glide: Tween              # deslizamiento de la cámara hacia la ronda nueva
 var ptrs: Dictionary = {}
 var press_tile: Tile = null
@@ -163,6 +164,9 @@ func _ready() -> void:
 	subject_station = StationSubjects.new()
 	subject_station.position = Vector3(SUBJ_X, 0.0, 0.0)
 	add_child(subject_station)
+	theme_station = StationSubjects.new()
+	theme_station.position = Vector3(THEMES_X, 0.0, 0.0)
+	add_child(theme_station)
 	mode_station = StationMode.new()
 	mode_station.position = Vector3(MODE_X, 0.0, 0.0)
 	add_child(mode_station)
@@ -176,7 +180,7 @@ func _ready() -> void:
 	win_station.position = Vector3(WIN_X, 0.0, 0.0)
 	add_child(win_station)
 	# Los toques en las estaciones también suenan (y vibran) como los del tablero
-	for st in [menu_station, subject_station, mode_station, album_station, win_station]:
+	for st in [menu_station, subject_station, theme_station, mode_station, album_station, win_station]:
 		(st as Node).connect("sfx", Callable(self, "_relay_sfx"))
 	get_viewport().size_changed.connect(_layout)
 
@@ -290,6 +294,19 @@ func build_menu(level: int) -> void:
 func build_subjects(cards: Array) -> void:
 	subject_station.build(cards)
 	_refresh_floor()
+
+## Los temas de la materia abierta (la mesa que queda a la derecha de las materias).
+func build_themes(cards: Array) -> void:
+	theme_station.build(cards)
+	_refresh_floor()
+
+## La mesa de lista (materias o temas) de la estación activa, o null si no es una lista de esas.
+func _list_station() -> StationSubjects:
+	if station == "subjects":
+		return subject_station
+	if station == "themes":
+		return theme_station
+	return null
 
 ## Título de la partida (materia, nivel y modo): va en una franja de la mesa del tablero.
 ## Hay que fijarlo antes de `start`, para que la primera distribución ya cuente con la franja.
@@ -647,12 +664,13 @@ func _menu_frame_frac(corners: Array, look_z: float) -> float:
 
 ## Pose de la estación activa: a dónde mira la cámara, a qué distancia y con cuánto balanceo.
 func _pose() -> Dictionary:
-	if station == "subjects" and subject_station != null:
-		var s: Vector3 = subject_station.position
+	var lst: StationSubjects = _list_station()
+	if lst != null:
+		var s: Vector3 = lst.position
 		return {
 			"target": Vector3(s.x + cam_x, s.y, s.z + cam_z),
-			"dist": subject_station.fit_distance() / zoom,
-			"tilt": subject_station.TILT,
+			"dist": lst.fit_distance() / zoom,
+			"tilt": lst.TILT,
 			"yaw": 0.0,
 		}
 	if station == "mode" and mode_station != null:
@@ -731,8 +749,9 @@ func _update_cam() -> void:
 
 ## Límites del paneo (semiejes en X y Z) de la estación activa.
 func _pan_bounds(dist: float) -> Vector2:
-	if station == "subjects" and subject_station != null:
-		return subject_station.pan_bounds(dist)
+	var lst: StationSubjects = _list_station()
+	if lst != null:
+		return lst.pan_bounds(dist)
 	if station == "album" and album_station != null:
 		return album_station.pan_bounds(dist)
 	if station == "win" and win_station != null:
@@ -753,31 +772,16 @@ func _game_bounds(dist: float) -> Vector2:
 
 ## Lleva la cámara de una estación a otra. `start_at` salta el principio del vuelo
 ## (entre niveles basta un acercamiento corto).
-## Vista con la que se abrirá la lista de materias la próxima vez ({} = empezar por arriba); sirve
-## para cambiar entre la lista y la de una materia sin arrastrar el desplazamiento de una a la otra.
-func set_subjects_view(d: Dictionary) -> void:
-	_view_override = d
-
-## Vista guardada de una lista (incluida la actual si estamos en ella).
-func view_snapshot(name: String) -> Dictionary:
-	_remember_view()
-	return (_view_mem.get(name, {}) as Dictionary).duplicate()
-
-## Deja guardada la vista de una lista para la próxima visita ({} = que empiece por arriba).
-func restore_view(name: String, d: Dictionary) -> void:
-	if d.is_empty():
-		_view_mem.erase(name)
-	else:
-		_view_mem[name] = d.duplicate()
+## Olvida el desplazamiento guardado de una lista: la próxima vez empieza por arriba
+## (al abrir otra materia con temas, la lista de temas no hereda el de la anterior).
+func forget_view(name: String) -> void:
+	_view_mem.erase(name)
 
 func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	_stop_glide()  # si venimos de cambiar de ronda, su deslizamiento no debe pelear con el vuelo
 	if _fly != null:
 		_fly.kill()
-	var override = _view_override
-	_view_override = null
-	if override == null or name != "subjects":
-		_remember_view()
+	_remember_view()
 	_from = _pose_now()
 	station = name
 	_apply_station_visibility(true)
@@ -788,8 +792,6 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	# Las listas largas vuelven donde el jugador las dejó (el desplazamiento se
 	# recorta solo con los límites de la mesa en `_update_cam`).
 	var mem: Dictionary = _view_mem.get(name, {})
-	if override != null and name == "subjects":
-		mem = override as Dictionary
 	if not mem.is_empty():
 		cam_x = float(mem["x"])
 		cam_z = float(mem["z"])
@@ -797,6 +799,8 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	elif name == "subjects" and subject_station != null:
 		# Primera visita: empieza por la primera fila (la lista es más alta que la pantalla)
 		cam_z = subject_station.initial_z(subject_station.fit_distance())
+	elif name == "themes" and theme_station != null:
+		cam_z = theme_station.initial_z(theme_station.fit_distance())
 	elif name == "album" and album_station != null:
 		# El álbum también empieza por arriba: la primera materia
 		cam_z = album_station.initial_z(album_station.fit_distance())
@@ -817,7 +821,7 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 
 ## Guarda el desplazamiento de las listas largas antes de cambiar de estación.
 func _remember_view() -> void:
-	if station != "subjects" and station != "album":
+	if station != "subjects" and station != "themes" and station != "album":
 		return
 	_view_mem[station] = {"x": cam_x, "z": cam_z, "zoom": zoom}
 
@@ -836,6 +840,8 @@ func _apply_station_visibility(keep_stations_visible: bool = false) -> void:
 		menu_station.visible = keep_stations_visible or station == "menu"
 	if subject_station != null:
 		subject_station.visible = keep_stations_visible or station == "subjects"
+	if theme_station != null:
+		theme_station.visible = keep_stations_visible or station == "themes"
 	if mode_station != null:
 		mode_station.visible = keep_stations_visible or station == "mode"
 	if album_station != null:
@@ -862,16 +868,30 @@ func _zoom_by(f: float) -> void:
 	zoom = clampf(zoom * f, 0.5, 3.0)
 
 ## Huecos del suelo: una mesa por estación (menú, materias y tablero).
+## Hasta dónde debe llegar el suelo: las listas largas (materias y álbum) crecen con cada paquete
+## y la cámara ve más a lo largo en un móvil vertical, así que se mide con el viewport real.
+func _fit_floor_depth() -> void:
+	var need: float = 0.0
+	for st in [subject_station, theme_station, album_station]:
+		if st == null:
+			continue
+		var d: float = st.fit_distance()
+		var b: Vector2 = st.pan_bounds(d)
+		var view: Vector2 = CamView.visible_size(get_viewport(), d)
+		need = maxf(need, b.y + view.y * 0.9 + 4.0)   # el 0,9 cubre lo que añade la perspectiva en el borde lejano
+	floor_cubes.set_depth(ceili(need))
+
 func _refresh_floor() -> void:
 	if floor_cubes == null:
 		return
+	_fit_floor_depth()
 	var clears: Array = []
 	if cols > 0 and rows > 0:
 		var w: float = float(cols) * ST + 0.5
 		var h: float = float(rows) * ST + 0.5
 		var ex: float = _title_extra()
 		clears.append(Rect2(-w * 0.5 - 0.22, -h * 0.5 - ex - 0.22, w + 0.44, h + ex + 0.44))
-	for st in [menu_station, subject_station, mode_station, album_station, help_station, win_station]:
+	for st in [menu_station, subject_station, theme_station, mode_station, album_station, help_station, win_station]:
 		if st != null and (st as Node3D).visible:
 			if st.has_method("clear_rects"):
 				clears.append_array(st.clear_rects())
@@ -1004,6 +1024,8 @@ func _station_tap(pos: Vector2) -> void:
 		menu_station.tap(pos, cam)
 	elif station == "subjects" and subject_station != null:
 		subject_station.tap(pos, cam)
+	elif station == "themes" and theme_station != null:
+		theme_station.tap(pos, cam)
 	elif station == "mode" and mode_station != null:
 		mode_station.tap(pos, cam)
 	elif station == "album" and album_station != null:

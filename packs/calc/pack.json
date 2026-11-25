@@ -1,0 +1,60 @@
+{
+ "format": 1,
+ "id": "calc",
+ "name": "Cálculo",
+ "unlock": 14,
+ "category": "exploradores",
+ "group": "matematicas",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "La derivada mide qué tan rápido cambia una función: la de x² es 2x."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Regla de la potencia: se baja el exponente y se resta uno."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "La derivada del seno es el coseno: son la misma onda, una desplazada respecto a la otra."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "La función eˣ vale en cada punto lo mismo que su derivada."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "La derivada del logaritmo natural es 1/x: la función crece cada vez más despacio."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Integrar es el camino inverso de derivar, y por eso aparece la constante C."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Como la derivada del seno es el coseno, la integral del coseno es el seno más C."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Con 1/x no sirve la regla de la potencia: su integral es el logaritmo natural."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Este límite famoso vale 1, y es la razón por la que la derivada de sen x es cos x."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Fíjate en el signo: la derivada del coseno es el seno con signo cambiado."
+  }
+ ]
+}

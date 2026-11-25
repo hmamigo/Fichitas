@@ -1,0 +1,60 @@
+{
+ "format": 1,
+ "id": "trig",
+ "name": "Trigonometría",
+ "unlock": 13,
+ "category": "exploradores",
+ "group": "matematicas",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "En un triángulo rectángulo con un ángulo de 30°, el cateto opuesto mide la mitad de la hipotenusa."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Con 45° los dos catetos son iguales, y por eso seno y coseno valen lo mismo: √2/2, casi 0,71."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Los valores de 30°, 45° y 60° son los que más se usan; sen 60° es √3/2, casi 0,87."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Esta identidad sale de Pitágoras: en un círculo de radio 1, seno y coseno son los catetos."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "El seno de 0° vale 0 porque el cateto opuesto desaparece."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "La tangente es el seno dividido entre el coseno: tan 60° es √3, casi 1,73."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Medio giro son π radianes, o sea 180°; una vuelta entera son 2π."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "A 180° el punto del círculo de radio 1 queda a la izquierda del centro, y su coseno es −1."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "La tangente es el seno entre el coseno, y no existe donde el coseno vale 0."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Es la fórmula del ángulo doble: sirve, por ejemplo, para sacar sen 60° a partir de sen 30°."
+  }
+ ]
+}

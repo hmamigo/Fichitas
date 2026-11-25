@@ -1,0 +1,60 @@
+{
+ "format": 1,
+ "id": "geom",
+ "name": "Geometría",
+ "unlock": 12,
+ "category": "exploradores",
+ "group": "matematicas",
+ "pairs": [
+  {
+   "a": "01a.png",
+   "b": "01b.png",
+   "fact": "π es la razón entre el perímetro de un círculo y su diámetro, y vale unos 3,14."
+  },
+  {
+   "a": "02a.png",
+   "b": "02b.png",
+   "fact": "Como el diámetro es 2r, el perímetro es π por el diámetro: 2πr."
+  },
+  {
+   "a": "03a.png",
+   "b": "03b.png",
+   "fact": "Un triángulo es la mitad de un rectángulo con la misma base y la misma altura."
+  },
+  {
+   "a": "04a.png",
+   "b": "04b.png",
+   "fact": "Pitágoras solo vale en triángulos rectángulos, y c es el lado más largo: la hipotenusa."
+  },
+  {
+   "a": "05a.png",
+   "b": "05b.png",
+   "fact": "El área cuenta cuántos cuadraditos de lado 1 caben dentro: base por altura."
+  },
+  {
+   "a": "06a.png",
+   "b": "06b.png",
+   "fact": "Un cubo de lado 3 tiene 3 · 3 · 3 = 27 cubitos de lado 1."
+  },
+  {
+   "a": "07a.png",
+   "b": "07b.png",
+   "fact": "Una esfera ocupa dos tercios del volumen del cilindro que la rodea."
+  },
+  {
+   "a": "08a.png",
+   "b": "08b.png",
+   "fact": "Si cortas las esquinas de un triángulo y las juntas, forman una línea recta: 180°."
+  },
+  {
+   "a": "09a.png",
+   "b": "09b.png",
+   "fact": "Un cuadrilátero se parte en dos triángulos, por eso sus ángulos suman 2 × 180° = 360°."
+  },
+  {
+   "a": "10a.png",
+   "b": "10b.png",
+   "fact": "Un ángulo recto mide 90° y es la esquina de un cuadrado o de una hoja de papel."
+  }
+ ]
+}

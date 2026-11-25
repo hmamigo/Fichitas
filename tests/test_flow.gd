@@ -89,7 +89,7 @@ func _run() -> void:
 	var floor_ok: bool = true
 	for corner in [Vector2.ZERO, Vector2(vps.x, 0.0), Vector2(0.0, vps.y), vps]:
 		var g: Vector3 = main.board._ground_point(corner)
-		floor_ok = floor_ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
+		floor_ok = floor_ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -main.board.floor_cubes.z_far and g.z <= main.board.floor_cubes.z_near
 	check(floor_ok, "las cuatro esquinas de la vista del menú caen sobre el suelo de cubos")
 	# El menú ya no cambia el modo: el recorrido general pasa por el paso de modo.
 	var general_tile: Plaque = mtiles[1]
@@ -114,7 +114,7 @@ func _run() -> void:
 	var hfloor_ok: bool = true
 	for hcorner in [Vector2.ZERO, Vector2(hvps.x, 0.0), Vector2(0.0, hvps.y), hvps]:
 		var hg: Vector3 = main.board._ground_point(hcorner)
-		hfloor_ok = hfloor_ok and hg.x >= FloorCubes.X_MIN and hg.x <= FloorCubes.X_MAX and hg.z >= -FloorCubes.Z_FAR and hg.z <= FloorCubes.Z_NEAR
+		hfloor_ok = hfloor_ok and hg.x >= FloorCubes.X_MIN and hg.x <= FloorCubes.X_MAX and hg.z >= -main.board.floor_cubes.z_far and hg.z <= main.board.floor_cubes.z_near
 	check(hfloor_ok, "las cuatro esquinas de la vista de la ayuda caen sobre el suelo de cubos")
 	main._on_back()
 	await process_frame
@@ -139,7 +139,7 @@ func _run() -> void:
 	var wfloor_ok: bool = true
 	for wcorner in [Vector2.ZERO, Vector2(wvps.x, 0.0), Vector2(0.0, wvps.y), wvps]:
 		var wg: Vector3 = main.board._ground_point(wcorner)
-		wfloor_ok = wfloor_ok and wg.x >= FloorCubes.X_MIN and wg.x <= FloorCubes.X_MAX and wg.z >= -FloorCubes.Z_FAR and wg.z <= FloorCubes.Z_NEAR
+		wfloor_ok = wfloor_ok and wg.x >= FloorCubes.X_MIN and wg.x <= FloorCubes.X_MAX and wg.z >= -main.board.floor_cubes.z_far and wg.z <= main.board.floor_cubes.z_near
 	check(wfloor_ok, "las cuatro esquinas de la vista de la victoria caen sobre el suelo de cubos")
 	# Las listas largas (materias y álbum) también deben tener suelo en sus dos extremos de paneo
 	main._go_subjects()
@@ -177,19 +177,24 @@ func _run() -> void:
 		if i > 0:
 			subject_stack_ok = subject_stack_ok and tile.position.z > (stiles[i - 1] as Plaque).position.z
 	check(subject_stack_ok, "recorrido, repaso y materias son rectangulares y forman una sola columna")
+	main._open_group("matematicas")   # Aritmética (mat) es un tema de la materia Matemáticas
+	await create_timer(1.3).timeout   # vuelo a la mesa de temas (0,9 s)
 	var mat_tile: Plaque = null
-	for t in stiles:
+	for t in main.board.theme_station.tiles:
 		if (t as Plaque).key == "mat":
 			mat_tile = t
 			break
 	check(mat_tile != null and mat_tile.info.is_empty(), "la materia gratuita no muestra aviso de pago")
 	if mat_tile != null:
 		var mat_spot: Vector2 = main.board.cam.unproject_position(mat_tile.global_position)
-		main.board.subject_station.tap(mat_spot, main.board.cam)
+		main.board.theme_station.tap(mat_spot, main.board.cam)
 	check(main.state == main.S.MODE and main.cur_sid == "mat" and main.board.tiles.is_empty(), "tocar una materia gratuita abre el paso de modo")
 	main._on_back()
 	await process_frame
-	check(main.state == main.S.SUBJECTS and main.board.station == "subjects", "Atrás desde el modo vuelve a materias")
+	check(main.state == main.S.SUBJECTS and main.board.station == "themes", "Atrás desde el modo vuelve a la mesa de temas de la materia")
+	main._on_back()   # cierra la materia Matemáticas y deja la lista general
+	await create_timer(1.3).timeout
+	check(main.board.station == "subjects", "Atrás en los temas vuelve a la mesa de materias")
 	# Regresión: el recorrido general entrado desde materias tiene `cur_sid == ""`,
 	# pero debe volver a materias, no al menú principal.
 	main._on_subject("")
@@ -284,5 +289,5 @@ func _view_on_floor(main: Node) -> bool:
 	var ok: bool = true
 	for corner in [Vector2.ZERO, Vector2(vp.x, 0.0), Vector2(0.0, vp.y), vp, Vector2(vp.x * 0.5, 0.0)]:
 		var g: Vector3 = main.board._ground_point(corner)
-		ok = ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -FloorCubes.Z_FAR and g.z <= FloorCubes.Z_NEAR
+		ok = ok and g.x >= FloorCubes.X_MIN and g.x <= FloorCubes.X_MAX and g.z >= -main.board.floor_cubes.z_far and g.z <= main.board.floor_cubes.z_near
 	return ok

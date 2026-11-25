@@ -30,10 +30,13 @@ const CLEAR_MARGIN := 0.4 # margen de las mesas (el hueco real de cada una más 
 # victoria en +10) también
 # en sus extremos de paneo: la mesa de materias mide ~±20 en Z y la del álbum ~±26, y la vista
 # llega unos 6 más allá; en pantalla apaisada o ultra ancha asoma más a los lados. Hay margen de sobra.
-const X_MIN := -54        # borde izquierdo (más allá del álbum)
+const X_MIN := -60        # borde izquierdo (más allá de la ayuda, la estación más a la izquierda)
 const X_MAX := 30         # borde derecho (más allá de la estación de victoria)
-const Z_FAR := 44         # hacia el fondo (−Z)
-const Z_NEAR := 44        # hacia la cámara (+Z)
+# Profundidad MÍNIMA hacia el fondo (−Z) y hacia la cámara (+Z). Las listas largas (materias y álbum)
+# crecen con cada paquete nuevo, así que `Board` mide hasta dónde ve la cámara en sus extremos y
+# amplía el suelo con `set_depth()`; estos valores son el piso, no un tope.
+const Z_FAR := 38
+const Z_NEAR := 38
 # Perspectiva atmosférica: todos los cubos se mezclan con el color de la niebla del tablero
 # (Board.FOG_COLOR), así el fondo no compite con los colores de las fichas. 0 = sin mezcla.
 const FADE_COLOR := Color("b9d2ee")
@@ -47,6 +50,8 @@ const PALETTE: Array[Color] = [
 ]
 
 var mmi: MultiMeshInstance3D
+var z_far: int = Z_FAR         # profundidad actual del suelo (ver set_depth)
+var z_near: int = Z_NEAR
 var _cells: Array = []    # {x, z, s, col: Color, n: float}
 var _clears: Array = [Rect2(-2.0, -3.0, 4.0, 6.0)]  # huecos en XZ (uno por mesa)
 var _grown: Array = []                # los mismos huecos con el margen ya aplicado
@@ -60,8 +65,6 @@ func _ready() -> void:
 	var box := BoxMesh.new()
 	box.size = Vector3(SIDE, 1.0, SIDE)
 	mm.mesh = box
-	_generate()
-	mm.instance_count = _cells.size()
 	mmi = MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	var mat := StandardMaterial3D.new()
@@ -70,15 +73,32 @@ func _ready() -> void:
 	mat.metallic = 0.0
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# Cubit de la cobertura entera, para que nunca se recorte por visibilidad
-	mmi.custom_aabb = AABB(Vector3(X_MIN - 1, BASE_Y - 1.0, -Z_FAR - 1), Vector3(X_MAX - X_MIN + 2, 10, Z_FAR + Z_NEAR + 2))
 	add_child(mmi)
+	_grow_clears()
+	_regen()
+
+## Genera los cubos para la profundidad actual y deja el MultiMesh listo.
+func _regen() -> void:
+	_generate()
+	mmi.multimesh.instance_count = _cells.size()
+	# Cubit de la cobertura entera, para que nunca se recorte por visibilidad
+	mmi.custom_aabb = AABB(Vector3(X_MIN - 1, BASE_Y - 1.0, -z_far - 1), Vector3(X_MAX - X_MIN + 2, 10, z_far + z_near + 2))
 	_last.resize(_cells.size())
 	_last.fill(-1.0)
 	_heights.resize(_cells.size())
 	_heights.fill(0.0)
-	_grow_clears()
 	_rebuild()
+
+## Amplía (o encoge, hasta el mínimo) el suelo hacia el fondo y hacia la cámara. Cuesta unos
+## milisegundos, así que solo regenera si la profundidad cambia.
+func set_depth(z: int) -> void:
+	var depth: int = maxi(Z_FAR, z + z % 2)   # par, porque los bloques son de 2×2
+	if depth == z_far and depth == z_near:
+		return
+	z_far = depth
+	z_near = depth
+	if mmi != null:
+		_regen()
 
 ## Cuántos cubos se dibujan.
 func instance_count() -> int:
@@ -88,11 +108,11 @@ func _generate() -> void:
 	_cells.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = SEED
-	var j0: int = ceili(-float(Z_FAR) / STEP)
+	var j0: int = ceili(-float(z_far) / STEP)
 	var i0: int = ceili(float(X_MIN) / STEP)
 	j0 -= posmod(j0, 2)   # los bloques de 2×2 empiezan en índices pares
 	i0 -= posmod(i0, 2)
-	for j in range(j0, floori(float(Z_NEAR) / STEP) + 1, 2):
+	for j in range(j0, floori(float(z_near) / STEP) + 1, 2):
 		for i in range(i0, floori(float(X_MAX) / STEP) + 1, 2):
 			if rng.randf() < P_LARGE:
 				_add_cube(rng, float(i) + 0.5, float(j) + 0.5, 2.0)    # un cubo grande ocupa el bloque

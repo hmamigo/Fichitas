@@ -10,7 +10,6 @@ var audio: GameAudio
 var packs: Array = []
 var groups: Array = []              # materias que agrupan temas (Packs.load_groups)
 var _group_open: String = ""        # materia abierta en la lista ("" = la lista general)
-var _top_view: Dictionary = {}      # desplazamiento de la lista general mientras se mira una materia
 var state: int = S.MENU
 var cur_sid: String = ""
 var cur_level: int = 1
@@ -47,6 +46,8 @@ func _ready() -> void:
 	board.menu_station.open_album.connect(_go_album)
 	board.subject_station.chosen.connect(_on_subject)
 	board.subject_station.info.connect(ui.toast)
+	board.theme_station.chosen.connect(_on_subject)
+	board.theme_station.info.connect(ui.toast)
 	board.mode_station.chosen.connect(_on_mode_chosen)
 	board.album_station.opened.connect(_on_album_open)
 	board.album_station.hint.connect(ui.toast)
@@ -99,9 +100,7 @@ func _go_menu() -> void:
 	})
 	_center_menu()
 	board.fly_to_station("menu", 0.9 if board.station != "menu" else 0.0)
-	if _group_open != "":   # al volver a Materias se ve la lista general donde estaba
-		_group_open = ""
-		board.restore_view("subjects", _top_view)
+	_group_open = ""   # salir al menú cierra la materia abierta
 	_center_menu_later()  # el primer layout del arranque puede llegar un frame tarde
 
 ## La mesa 3D del menú se encuadra en el hueco que dejan la cabecera y los ajustes 2D.
@@ -145,25 +144,29 @@ func _go_subjects() -> void:
 	var g: Dictionary = Packs.group_by_id(groups, _group_open)
 	if g.is_empty():
 		_group_open = ""   # esa materia ya no existe (p. ej. tras recargar los paquetes)
-	board.build_subjects(_group_cards(g) if not g.is_empty() else _top_cards())
-	board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
+	if g.is_empty():
+		board.build_subjects(_top_cards())
+		board.fly_to_station("subjects", 0.9 if board.station != "subjects" else 0.0)
+	else:
+		# Los temas son su propia mesa, a la derecha de las materias: la cámara avanza hacia allí
+		board.build_themes(_group_cards(g))
+		board.fly_to_station("themes", 0.9 if board.station != "themes" else 0.0)
 	ui.show_subjects()
 	ui.set_subjects_back("Materias" if not g.is_empty() else "Menú")
 	_show_pan_hint()
 
-## Abre una materia con temas: la misma lista pasa a mostrar sus paquetes.
+## Abre una materia con temas: la cámara se desliza a la derecha, a la mesa de sus temas.
 func _open_group(gid: String) -> void:
 	if Packs.group_by_id(groups, gid).is_empty():
 		return
-	_top_view = board.view_snapshot("subjects")
 	_group_open = gid
-	board.set_subjects_view({})   # la lista de temas empieza por arriba
+	board.forget_view("themes")   # la lista de temas empieza por arriba, no donde se dejó otra materia
 	_go_subjects()
 
-## Vuelve de una materia a la lista general, en el mismo punto donde se había dejado.
+## Vuelve de los temas a las materias: la cámara regresa a la izquierda y la lista general
+## está donde se había dejado.
 func _close_group() -> void:
 	_group_open = ""
-	board.set_subjects_view(_top_view)
 	_go_subjects()
 
 func _top_cards() -> Array:
