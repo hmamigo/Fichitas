@@ -50,7 +50,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 - Filo dorado, placas color crema, marco azul del tablero.
 - La iluminación debe ser suave. Una versión anterior se veía con la luz exagerada, así que ante la duda, bajarla.
 - Todo elemento nuevo (menú, botón de volver, modo, materias, nivel completado, álbum, ayuda) debe parecer parte del mismo juego.
-- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón. **Excepción**: las fichas de las parejas en "Nivel completado" son las del álbum (`AlbumTile`) aunque no se tocan; la única acción de esa mesa es el botón de seguir.
+- Lo que se toca y lo que no se ven distinto: **lo tocable es una loseta dorada con relieve** (`Plaque` en 3D, `_enamel_tile` en 2D); **lo que solo informa va plano**, sin filo dorado ni grosor (`FlatLabel` pintado sobre la mesa; en 2D no hay equivalente porque no debe haber títulos). Un rótulo nuevo que no se toca no debe parecer un botón. **Excepción**: las fichas de las parejas en "Nivel completado" son las del álbum (`AlbumTile`) aunque no se tocan; la única acción de esa mesa es el botón de seguir. **Segunda excepción**: las fichas de ejemplo de "Cómo jugar" (`StationHelp.demos`) también son `AlbumTile` y no se tocan: se animan solas en bucle (Memoria y Asociación, con los toques marcados por anillos) y solo corren mientras la mesa está visible.
 - Los iconos de menús y materias son PNG a color de `assets/emoji/` (Noto Emoji); `UiTheme.icon()` los prefiere a los SVG de línea del mismo nombre.
 - El fondo de cubos se mezcla con la niebla del tablero (`FloorCubes.FADE`) y se aclara cerca de cada mesa: la mesa, las fichas y el texto mandan. Si un color de fondo compite con una loseta, bajar el fondo, no subir la loseta.
 
@@ -77,7 +77,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 | `GAME` | Tablero (x = 0) | Fichas sobre su mesa, con el título de la partida (materia, nivel y modo) y el avance "N de M" en una franja plana arriba; la capa 2D solo tiene "Atrás". | Tocar una loseta de modo o "Siguiente nivel". |
 | `WIN` | `StationWin` (x = +10) | Cabecera con trofeo y fichas de las parejas (las mismas del álbum; hasta 12 y "+N") y la loseta "Siguiente nivel". | Al emparejar todo. |
 | `ALBUM` | `StationAlbum` (x = -35) | Rótulo "Álbum" y una sección por materia con sus parejas (las dos fichas juntas) y dato curioso. Recuerda desplazamiento y zoom. | Loseta Álbum. |
-| `HELP` | `StationHelp` (x = -45) | Mesa "¿Cómo se juega?" con cuatro pasos en rótulos planos (elegir, modo, tocar parejas, desplazar/acercar). Solo informa. | Loseta Cómo jugar. |
+| `HELP` | `StationHelp` (x = -45) | Mesa "¿Cómo se juega?" con cuatro pasos en rótulos planos (elegir, modo, tocar parejas, desplazar/acercar) y, tras los pasos 2 y 3, una demo animada de 4 fichas (Memoria y Asociación, con las parejas de Animales). Solo informa. | Loseta Cómo jugar. |
 
 - Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
 - "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.
