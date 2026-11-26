@@ -352,6 +352,21 @@ static func box(bg: Color, border: Color, bottom: int, pad_top: int, pad_bottom:
 		s.shadow_offset = Vector2(0, shadow * 0.45)
 	return s
 
+## Focus indicator helper
+static func focus_box(color: Color = Color("ffc93c"), width: int = 4, radius: int = 18) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.border_color = color
+	s.border_width_left = width
+	s.border_width_right = width
+	s.border_width_top = width
+	s.border_width_bottom = width
+	s.set_corner_radius_all(radius)
+	s.content_margin_left = 6
+	s.content_margin_right = 6
+	s.content_margin_top = 6
+	s.content_margin_bottom = 6
+	return s
+
 ## Caja con la piel de botón: se estira en nueve trozos y se tiñe con `modulate_color`.
 static func _skin(tex: ImageTexture, tint: Color, pad_top: int, pad_bottom: int) -> StyleBoxTexture:
 	var s := StyleBoxTexture.new()
@@ -379,7 +394,7 @@ static func _button(th: Theme, type: String, base: Color, flat: ImageTexture, do
 	th.set_stylebox("pressed", type, _skin(down, base.darkened(0.07), 16, 8))
 	th.set_stylebox("hover_pressed", type, _skin(down, base.lightened(0.06), 16, 8))
 	th.set_stylebox("disabled", type, _skin(flat, Color("c8d1e4"), 11, 13))
-	th.set_stylebox("focus", type, StyleBoxEmpty.new())
+	th.set_stylebox("focus", type, focus_box())
 	_colors(th, type, ink)
 	th.set_color("font_disabled_color", type, INK_SOFT)
 
@@ -408,7 +423,7 @@ static func build() -> Theme:
 	th.set_stylebox("pressed", "Pill", box(BLUE_DARK, Color("173d78"), 4, 12, 10, 30))
 	th.set_stylebox("hover_pressed", "Pill", box(BLUE_DARK.lightened(0.08), Color("173d78"), 4, 12, 10, 30))
 	th.set_stylebox("disabled", "Pill", box(Color("eef1f7"), Color("d5dbe8"), 3, 10, 10, 30))
-	th.set_stylebox("focus", "Pill", StyleBoxEmpty.new())
+	th.set_stylebox("focus", "Pill", focus_box())
 	_colors(th, "Pill", INK)
 	th.set_color("font_pressed_color", "Pill", Color.WHITE)
 	th.set_color("font_hover_pressed_color", "Pill", Color.WHITE)

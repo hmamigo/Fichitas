@@ -332,8 +332,9 @@ func _back_tile(text: String, out_button: Array) -> Control:
 	back.flat = true
 	back.focus_mode = Control.FOCUS_ALL  # estilo vacío: navegable sin recuadro visible
 	back.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	for st in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 		back.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	back.add_theme_stylebox_override("focus", UiTheme.focus_box())
 	back.pressed.connect(func() -> void:
 		sfx.emit("tap")
 		back_pressed.emit())
