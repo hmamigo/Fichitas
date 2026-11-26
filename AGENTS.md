@@ -57,7 +57,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 ## Experiencia de uso (UX)
 
 - **Sonido y vibración al tocar**: toda loseta de una estación emite `sfx("tap")`, que suena y vibra corto. `Board` repite la señal de cada estación (`_relay_sfx`) y `main` la reproduce. Al agregar una estación, conectá su señal `sfx` a `Board._relay_sfx`.
-- **Las listas recuerdan dónde estabas**: Materias y Álbum guardan desplazamiento y zoom al cambiar de estación (`Board._view_mem`) y los restauran al volver; la primera visita empieza por arriba. El valor guardado se recorta solo con los límites de la mesa, así que nunca queda fuera.
+- **Las listas recuerdan dónde estabas**: Materias, Álbum y Cómo jugar guardan desplazamiento y zoom al cambiar de estación (`Board._view_mem`) y los restauran al volver; la primera visita empieza por arriba. El valor guardado se recorta solo con los límites de la mesa, así que nunca queda fuera.
 - **Aviso de desplazamiento**: la primera vez que se abre una lista larga, `main._show_pan_hint()` muestra "Deslizá para recorrer y usá dos dedos para acercar." y lo recuerda en `Progress.data["hint"]`.
 - **El tablero se limpia al llegar**: `Board._arrive()` retira las fichas recién al terminar el vuelo (si la estación destino no es la partida), así el mundo no se vacía antes de que la cámara se vaya. No hay que llamar `board.stop()` al salir de una estación.
 - **Contador de parejas**: la franja del título del tablero muestra "Nivel 2 · Memoria · 1 de 3". Se actualiza una vez por pareja (`Board.set_progress` + `FlatLabel.update`), no en cada frame.
@@ -77,7 +77,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 | `GAME` | Tablero (x = 0) | Fichas sobre su mesa, con el título de la partida (materia, nivel y modo) y el avance "N de M" en una franja plana arriba; la capa 2D solo tiene "Atrás". | Tocar una loseta de modo o "Siguiente nivel". |
 | `WIN` | `StationWin` (x = +10) | Cabecera con trofeo y fichas de las parejas (las mismas del álbum; hasta 12 y "+N") y la loseta "Siguiente nivel". | Al emparejar todo. |
 | `ALBUM` | `StationAlbum` (x = -35) | Rótulo "Álbum" y una sección por materia con sus parejas (las dos fichas juntas) y dato curioso. Recuerda desplazamiento y zoom. | Loseta Álbum. |
-| `HELP` | `StationHelp` (x = -45) | Mesa "¿Cómo se juega?" con cuatro pasos en rótulos planos (elegir, modo, tocar parejas, desplazar/acercar) y, tras los pasos 2 y 3, una demo animada de 4 fichas (Memoria y Asociación, con las parejas de Animales). Solo informa. | Loseta Cómo jugar. |
+| `HELP` | `StationHelp` (x = -45) | Mesa "¿Cómo se juega?" con cuatro pasos en rótulos planos (elegir, modo, tocar parejas, desplazar/acercar) y, tras los pasos 2 y 3, una demo animada de 4 fichas bajo "Jugá en Memoria" y bajo "O jugá en Asociación" (con las parejas de Animales). Solo informa; se recorre como Materias (paneo vertical, zoom y recuerda dónde quedó). | Loseta Cómo jugar. |
 
 - Elegir una materia, el recorrido general o el repaso **no** reparte fichas: `_prepare()` deja la sesión lista y `_go_mode()` viaja a `MODE`. La partida arranca recién en `_on_mode_chosen()`.
 - "Siguiente nivel" (`_on_next()`) prepara el nivel siguiente y entra directo al tablero, sin volver a preguntar el modo.

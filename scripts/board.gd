@@ -100,7 +100,7 @@ var floor_cubes: FloorCubes
 var _fly: Tween
 var _from: Dictionary = {}     # pose de la cámara al empezar un vuelo
 var _title_label: FlatLabel    # franja del título, para actualizar el contador sin rehornear la mesa
-var _view_mem: Dictionary = {} # "subjects"/"themes"/"album" -> {x, z, zoom}: dónde quedó cada lista
+var _view_mem: Dictionary = {} # "subjects"/"themes"/"album"/"help" -> {x, z, zoom}: dónde quedó cada lista
 var _t: float = 1.0            # mezcla del vuelo (0 = origen, 1 = estación)
 var _arc: float = 0.0          # alejamiento extra de la cámara a mitad del vuelo actual
 var _settled: bool = true      # la cámara ya llegó: se puede tocar
@@ -692,7 +692,7 @@ func _pose() -> Dictionary:
 	if station == "help" and help_station != null:
 		var h: Vector3 = help_station.position
 		return {
-			"target": Vector3(h.x + cam_x, h.y + help_station.LOOK_Y, h.z + cam_z),
+			"target": Vector3(h.x + cam_x, h.y, h.z + cam_z),
 			"dist": help_station.fit_distance() / zoom,
 			"tilt": help_station.TILT,
 			"yaw": 0.0,
@@ -756,7 +756,9 @@ func _pan_bounds(dist: float) -> Vector2:
 		return album_station.pan_bounds(dist)
 	if station == "win" and win_station != null:
 		return win_station.pan_bounds(dist)
-	if station == "menu" or station == "mode" or station == "help":
+	if station == "help" and help_station != null:
+		return help_station.pan_bounds(dist)
+	if station == "menu" or station == "mode":
 		return Vector2.ZERO
 	return _game_bounds(dist)
 
@@ -804,6 +806,9 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 	elif name == "album" and album_station != null:
 		# El álbum también empieza por arriba: la primera materia
 		cam_z = album_station.initial_z(album_station.fit_distance())
+	elif name == "help" and help_station != null:
+		# La ayuda también empieza por arriba, como las listas
+		cam_z = help_station.initial_z(help_station.fit_distance())
 	_arc = 0.0
 	if secs > 0.0 and start_at <= 0.0:
 		var travel: float = ((_from["target"] as Vector3) - (_pose()["target"] as Vector3)).length()
@@ -821,7 +826,7 @@ func fly_to_station(name: String, secs: float, start_at: float = 0.0) -> void:
 
 ## Guarda el desplazamiento de las listas largas antes de cambiar de estación.
 func _remember_view() -> void:
-	if station != "subjects" and station != "themes" and station != "album":
+	if station != "subjects" and station != "themes" and station != "album" and station != "help":
 		return
 	_view_mem[station] = {"x": cam_x, "z": cam_z, "zoom": zoom}
 
@@ -872,7 +877,7 @@ func _zoom_by(f: float) -> void:
 ## y la cámara ve más a lo largo en un móvil vertical, así que se mide con el viewport real.
 func _fit_floor_depth() -> void:
 	var need: float = 0.0
-	for st in [subject_station, theme_station, album_station]:
+	for st in [subject_station, theme_station, album_station, help_station]:
 		if st == null:
 			continue
 		var d: float = st.fit_distance()

@@ -279,6 +279,7 @@ func _go_help() -> void:
 	board.build_help(_help_pairs())
 	ui.show_help()
 	board.fly_to_station("help", 0.9 if board.station != "help" else 0.0)
+	_show_pan_hint()
 
 ## Dos parejas para las fichas de ejemplo de la ayuda: las de Animales (sin leer).
 func _help_pairs() -> Array:

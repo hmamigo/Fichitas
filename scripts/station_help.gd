@@ -11,12 +11,14 @@ const TITLE_H := 1.5           # cabecera (icono, título y una línea)
 const ROW_H := 1.14            # alto de cada paso
 const GAP := 0.16              # aire entre cabecera y pasos, y entre pasos
 const TILT := 0.17             # igual que la cámara del tablero
-const LOOK_Y := -0.5           # punto de mira bajo: la mesa alta queda centrada pese a la inclinación
 
-# Encuadre: manda el ancho (como en la victoria); la mesa es alta, así que lleva más
-# aire a los lados para que el borde cercano, agrandado por la inclinación, no toque el marco.
-const FIT_PAD_W := 1.9
-const FIT_PAD_H := 0.9
+# Encuadre y desplazamiento: los mismos valores que la mesa de Materias (`StationSubjects`),
+# así la ayuda se recorre igual: vertical, con zoom de dos dedos y recordando dónde quedó.
+const FIT_PAD_W := 0.15        # aire a los lados de la mesa al encuadrar el ancho
+const FIT_VIEW_H := 4.55       # alto que debe caber (2,6 tarjetas de 1,75, como Materias)
+const FIT_MARGIN := 1.6        # alejamiento sobre el ajuste justo
+const PAN_PAD_X := 0.10
+const PAN_PAD_Y := 0.11        # aire arriba y abajo al recorrer (fracción del alto visible)
 
 const DEMO_PITCH := 0.82        # ficha de ejemplo (igual que la victoria)
 const DEMO_H := 0.9             # alto de una fila de demo
@@ -35,10 +37,10 @@ func build(pairs: Array = []) -> void:
 	var rows: Array = [
 		{"name": "1 · Elegí qué practicar", "sub": "Materia, recorrido general o repaso.",
 			"icon": "cuaderno", "color": Color("4a8ff5")},
-		{"name": "2 · Elegí el modo", "sub": "Memoria: fichas boca abajo. Mirá:",
+		{"name": "2 · Jugá en Memoria", "sub": "Destapá fichas y encontrá las parejas.",
 			"icon": "cerebro", "color": Color("a78bfa"), "demo": "mem"},
-		{"name": "3 · Tocá las parejas", "sub": "Asociación: tocá una ficha y su pareja.",
-			"icon": "juego", "color": Color("ffc93c"), "demo": "assoc"},
+		{"name": "3 · O jugá en Asociación", "sub": "Tocá una ficha y luego su pareja.",
+			"icon": "dialogo", "color": Color("42cd84"), "demo": "assoc"},
 		{"name": "4 · Recorré la mesa", "sub": "Deslizá y pellizcá para acercar.",
 			"icon": "mobile_phone", "color": Color("42cd84")},
 	]
@@ -184,10 +186,24 @@ func clear() -> void:
 		_table = null
 	_height = 0.0
 
-## Distancia de cámara a la que cabe la mesa entera con aire alrededor.
+## Distancia de cámara para que quepa el ancho de la mesa (como en Materias).
 func fit_distance() -> float:
-	var need := Vector2(CARD_W + FIT_PAD_W, maxf(_height, 1.0) + FIT_PAD_H)
-	return CamView.distance_for(get_viewport(), need)
+	var need := Vector2(CARD_W + FIT_PAD_W, FIT_VIEW_H)
+	return CamView.distance_for(get_viewport(), need) * FIT_MARGIN
+
+## Cuánto se puede desplazar la cámara sin perder de vista la mesa.
+func pan_bounds(dist: float) -> Vector2:
+	if labels.is_empty():
+		return Vector2.ZERO
+	var view: Vector2 = CamView.visible_size(get_viewport(), dist)
+	var w: float = CARD_W + 0.5
+	var h: float = _height + 0.5
+	var extra: float = view.y * PAN_PAD_Y
+	return Vector2(maxf((w - view.x) * 0.5 + PAN_PAD_X, 0.0), maxf((h - view.y) * 0.5 + extra, 0.0))
+
+## Desplazamiento inicial: empezar por arriba (la cabecera).
+func initial_z(dist: float) -> float:
+	return -pan_bounds(dist).y
 
 ## Zona libre del suelo bajo la mesa, en coordenadas del mundo (la mesa es el origen).
 func clear_rect() -> Rect2:
