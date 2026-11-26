@@ -346,6 +346,8 @@ static func help_header(title: String, sub: String, w: int, h: int) -> Control:
 	v.add_child(_label(title, 40 * k, UiTheme.BLUE_DARK, true))
 	var sub_l := _label(sub, 27 * k, UiTheme.INK)
 	sub_l.custom_minimum_size.x = inner
+	sub_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sub_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(sub_l)
 	return root
 
@@ -403,6 +405,24 @@ static func help_row(title: String, text: String, icon: String, col: Color, w: i
 	track.add_theme_stylebox_override("panel", tb)
 	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.add_child(track)
+	return root
+
+## Pie de una demo de la ayuda: una línea chica y suave que resume lo que se acaba de ver.
+static func help_caption(text: String, w: int, h: int) -> Control:
+	var k: int = HELP_K
+	var root := _root(w * k, h * k)
+	var m := MarginContainer.new()
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.add_theme_constant_override("margin_left", 8 * k)
+	m.add_theme_constant_override("margin_right", 8 * k)
+	m.add_theme_constant_override("margin_top", 2 * k)
+	m.add_theme_constant_override("margin_bottom", 2 * k)
+	root.add_child(m)
+	var avail: float = float((w - 16) * k)
+	var size: int = UiTheme.fit_font_size(text, UiTheme.body_font(), 22 * k, 15 * k, avail)
+	var l := _label(text, size, UiTheme.INK_SOFT)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	m.add_child(l)
 	return root
 
 ## Botón de la victoria: la acción principal dorada del menú.

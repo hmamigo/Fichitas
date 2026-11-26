@@ -44,7 +44,7 @@ No hay pantallas 2D que se cambian. Todo ocurre sobre el mismo suelo de cubos de
 | **Tablero** | La partida, con su título (materia, nivel y modo) y el avance ("1 de 3") sobre la mesa. La cámara baja hasta la posición de juego. |
 | **Nivel completado** | Una mesa a la derecha del tablero, con el trofeo, las parejas del nivel (hasta 6 parejas, con las mismas fichas del álbum, boca abajo las no dominadas, y "+N") y el botón de seguir. |
 | **Álbum de datos curiosos** | Fichas iguales a las del juego, con cada pareja agrupada y la cámara moviéndose en vertical. |
-| **Cómo jugar** | Una mesa a la izquierda del álbum con los cuatro pasos (elegir, modo, tocar parejas, desplazar y acercar) en rótulos planos. |
+| **Cómo jugar** | Una mesa a la izquierda del álbum con cinco pasos (elegir, Memoria, Asociación, desplazar y acercar, sumar niveles) en rótulos planos, y una demo animada de cada modo con su pie de texto. |
 
 La cámara no rota libremente: solo hace zoom y se desplaza.
 

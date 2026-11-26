@@ -1,7 +1,7 @@
 class_name StationHelp
 extends Node3D
 ## Estación "¿Cómo jugar?": una mesa a la izquierda del álbum con la explicación en
-## cuatro pasos. Es solo información, así que todo va pintado plano sobre la mesa
+## cinco pasos. Es solo información, así que todo va pintado plano sobre la mesa
 ## (`FlatLabel`, como en el álbum): la única acción es el botón "Atrás" de la capa 2D.
 ## La cámara viaja hasta acá desde el menú y vuelve al tocar "Atrás".
 
@@ -21,7 +21,9 @@ const PAN_PAD_X := 0.10
 const PAN_PAD_Y := 0.11        # aire arriba y abajo al recorrer (fracción del alto visible)
 
 const DEMO_PITCH := 0.82        # ficha de ejemplo (igual que la victoria)
-const DEMO_H := 0.9             # alto de una fila de demo
+const DEMO_TILES_H := 0.92      # alto de la fila de fichas de ejemplo
+const CAPTION_H := 0.4          # pie chico debajo de cada demo
+const DEMO_H := DEMO_TILES_H + 0.02 + CAPTION_H
 const BLUE := Color("3b82f6")
 
 var labels: Array = []          # FlatLabel: cabecera y pasos (nada se toca)
@@ -35,14 +37,18 @@ var _height: float = 0.0
 func build(pairs: Array = []) -> void:
 	clear()
 	var rows: Array = [
-		{"name": "1 · Elegí qué practicar", "sub": "Materia, recorrido general o repaso.",
+		{"name": "1 · Elegí qué practicar", "sub": "Una materia, el recorrido general o el repaso.",
 			"icon": "cuaderno", "color": Color("4a8ff5")},
-		{"name": "2 · Jugá en Memoria", "sub": "Destapá fichas y encontrá las parejas.",
-			"icon": "cerebro", "color": Color("a78bfa"), "demo": "mem"},
-		{"name": "3 · O jugá en Asociación", "sub": "Tocá una ficha y luego su pareja.",
-			"icon": "dialogo", "color": Color("42cd84"), "demo": "assoc"},
-		{"name": "4 · Recorré la mesa", "sub": "Deslizá y pellizcá para acercar.",
-			"icon": "mobile_phone", "color": Color("42cd84")},
+		{"name": "2 · Memoria", "sub": "Boca abajo: destapá dos y buscá la pareja.",
+			"icon": "cerebro", "color": UiTheme.LAVENDER, "demo": "mem",
+			"cap": "Si no coinciden se tapan; si coinciden, ¡pareja!"},
+		{"name": "3 · Asociación", "sub": "A la vista: tocá una y después su pareja.",
+			"icon": "dialogo", "color": UiTheme.MINT, "demo": "assoc",
+			"cap": "Si no es su pareja tiembla; si acierta, ¡pareja!"},
+		{"name": "4 · Recorré la mesa", "sub": "Deslizá para ver más y pellizcá para acercar.",
+			"icon": "mobile_phone", "color": Color("0ea5e9")},
+		{"name": "5 · Sumá niveles", "sub": "Cada nivel trae más parejas. ¡Seguí jugando!",
+			"icon": "sprout", "color": Color("f59e0b")},
 	]
 	var n_demo: int = 2
 	_height = TITLE_H + float(rows.size()) * ROW_H + float(n_demo) * DEMO_H \
@@ -59,7 +65,7 @@ func build(pairs: Array = []) -> void:
 	head.setup(Vector2(CARD_W, TITLE_H))
 	head.position.z = z + TITLE_H * 0.5
 	add_child(head)
-	head.bake(Cards.help_header("¿Cómo se juega?", "Elegí materia y modo.", w, title_px), w * k, title_px * k)
+	head.bake(Cards.help_header("¿Cómo se juega?", "Elegí materia y modo, sin apuro.", w, title_px), w * k, title_px * k)
 	head.pop_in(0.0)
 	views.append_array(head.views())
 	labels.append(head)
@@ -78,7 +84,16 @@ func build(pairs: Array = []) -> void:
 		labels.append(lb)
 		z += ROW_H + GAP
 		if d.has("demo"):
-			_add_demo(str(d["demo"]), dp, z + DEMO_H * 0.5)
+			_add_demo(str(d["demo"]), dp, z)
+			var cap := FlatLabel.new()
+			cap.setup(Vector2(CARD_W, CAPTION_H))
+			cap.position.z = z + DEMO_TILES_H + 0.02 + CAPTION_H * 0.5
+			add_child(cap)
+			var cap_px: int = int(CAPTION_H * PPU)
+			cap.bake(Cards.help_caption(str(d["cap"]), w, cap_px), w * k, cap_px * k)
+			cap.pop_in(0.4 + 0.05 * float(i))
+			views.append_array(cap.views())
+			labels.append(cap)
 			z += DEMO_H + GAP
 	FaceTex.settle(views)
 	_sync_loops()
@@ -98,10 +113,13 @@ func _solid(c: Color) -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 ## Cuatro fichas en fila y una animación en bucle que muestra cómo se juega.
-func _add_demo(kind: String, dp: Array, z: float) -> void:
+## `top_z` es el borde de arriba del bloque de la demo (las fichas van en la franja de
+## arriba y el pie de texto, que arma `build`, queda debajo).
+func _add_demo(kind: String, dp: Array, top_z: float) -> void:
 	var p0: Dictionary = dp[0]
 	var p1: Dictionary = dp[1]
 	var mem: bool = kind == "mem"
+	var z: float = top_z + DEMO_TILES_H * 0.5
 	# memoria: [a0, a1, b0, b1] boca abajo; asociación: [a0, b1, a1, b0] a la vista
 	var set: Array = []
 	if mem:

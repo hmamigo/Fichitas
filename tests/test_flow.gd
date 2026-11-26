@@ -108,7 +108,7 @@ func _run() -> void:
 	main.board.menu_station.tap(hspot, main.board.cam)
 	await process_frame
 	check(main.state == main.S.HELP and main.board.station == "help" and main.ui.hud_bar.visible, "la loseta Cómo jugar abre la estación de ayuda")
-	check(main.board.help_station.labels.size() == 5, "la ayuda muestra la cabecera y los cuatro pasos en rótulos planos")
+	check(main.board.help_station.labels.size() == 8, "la ayuda muestra la cabecera, los cinco pasos y los dos pies de demo")
 	check(main.board.help_station.demos.size() == 8, "la ayuda tiene dos demos de 4 fichas de ejemplo")
 	await create_timer(1.2).timeout
 	var hvps: Vector2 = main.get_viewport().get_visible_rect().size
