@@ -367,9 +367,9 @@ func build_album(data: Array) -> void:
 	album_station.build(data)
 	_refresh_floor()
 
-## Ayuda "¿Cómo se juega?": la mesa solo tiene rótulos planos, así que no hay datos.
-func build_help() -> void:
-	help_station.build()
+## Ayuda "¿Cómo se juega?": rótulos planos y fichas de ejemplo animadas (`pairs`: dos parejas).
+func build_help(pairs: Array = []) -> void:
+	help_station.build(pairs)
 	_refresh_floor()
 
 ## Nivel completado: construye las losetas de la estación de victoria.

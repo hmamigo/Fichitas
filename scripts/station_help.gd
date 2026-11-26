@@ -18,24 +18,36 @@ const LOOK_Y := -0.5           # punto de mira bajo: la mesa alta queda centrada
 const FIT_PAD_W := 1.9
 const FIT_PAD_H := 0.9
 
+const DEMO_PITCH := 0.82        # ficha de ejemplo (igual que la victoria)
+const DEMO_H := 0.9             # alto de una fila de demo
+const BLUE := Color("3b82f6")
+
 var labels: Array = []          # FlatLabel: cabecera y pasos (nada se toca)
+var demos: Array = []           # AlbumTile: fichas de ejemplo animadas (tampoco se tocan)
+var _loops: Array = []          # animaciones en bucle de las demos
+var _shared: Dictionary = {}
 var _table: Node3D
 var _height: float = 0.0
 
-func build() -> void:
+## `pairs`: parejas {id, a, b} para las fichas de ejemplo (si faltan, se usan colores lisos).
+func build(pairs: Array = []) -> void:
 	clear()
 	var rows: Array = [
 		{"name": "1 · Elegí qué practicar", "sub": "Materia, recorrido general o repaso.",
 			"icon": "cuaderno", "color": Color("4a8ff5")},
-		{"name": "2 · Elegí el modo", "sub": "Memoria boca abajo. Asociación a la vista.",
-			"icon": "cerebro", "color": Color("a78bfa")},
-		{"name": "3 · Tocá las parejas", "sub": "Tocá una ficha y después su pareja.",
-			"icon": "juego", "color": Color("ffc93c")},
+		{"name": "2 · Elegí el modo", "sub": "Memoria: fichas boca abajo. Mirá:",
+			"icon": "cerebro", "color": Color("a78bfa"), "demo": "mem"},
+		{"name": "3 · Tocá las parejas", "sub": "Asociación: tocá una ficha y su pareja.",
+			"icon": "juego", "color": Color("ffc93c"), "demo": "assoc"},
 		{"name": "4 · Recorré la mesa", "sub": "Deslizá y pellizcá para acercar.",
 			"icon": "mobile_phone", "color": Color("42cd84")},
 	]
-	_height = TITLE_H + float(rows.size()) * ROW_H + float(rows.size()) * GAP
+	var n_demo: int = 2
+	_height = TITLE_H + float(rows.size()) * ROW_H + float(n_demo) * DEMO_H \
+		+ float(rows.size() + n_demo + 1) * GAP
 	_table = TileLook.table(self, CARD_W + 0.5, _height + 0.5)
+	_shared = AlbumTile.shared()
+	var dp: Array = _demo_pairs(pairs)
 	var views: Array = []
 	var w: int = int(CARD_W * PPU)
 	var k: int = Cards.HELP_K
@@ -63,9 +75,107 @@ func build() -> void:
 		views.append_array(lb.views())
 		labels.append(lb)
 		z += ROW_H + GAP
+		if d.has("demo"):
+			_add_demo(str(d["demo"]), dp, z + DEMO_H * 0.5)
+			z += DEMO_H + GAP
 	FaceTex.settle(views)
+	_sync_loops()
+
+## Dos parejas para las demos: las que pasa `main` o, si no hay, dos de colores lisos.
+func _demo_pairs(pairs: Array) -> Array:
+	if pairs.size() >= 2:
+		return pairs.slice(0, 2)
+	var out: Array = []
+	for c in [[Color("ff9fcb"), Color("8ee3b0")], [Color("9cc8ff"), Color("ffd966")]]:
+		out.append({"id": "d%d" % out.size(), "a": _solid(c[0]), "b": _solid(c[1])})
+	return out
+
+func _solid(c: Color) -> ImageTexture:
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	img.fill(c)
+	return ImageTexture.create_from_image(img)
+
+## Cuatro fichas en fila y una animación en bucle que muestra cómo se juega.
+func _add_demo(kind: String, dp: Array, z: float) -> void:
+	var p0: Dictionary = dp[0]
+	var p1: Dictionary = dp[1]
+	var mem: bool = kind == "mem"
+	# memoria: [a0, a1, b0, b1] boca abajo; asociación: [a0, b1, a1, b0] a la vista
+	var set: Array = []
+	if mem:
+		set = [[p0["a"], p0], [p1["a"], p1], [p0["b"], p0], [p1["b"], p1]]
+	else:
+		set = [[p0["a"], p0], [p1["b"], p1], [p1["a"], p1], [p0["b"], p0]]
+	var ts: Array = []
+	for i in 4:
+		var t := AlbumTile.new()
+		t.setup(_shared, set[i][0], not mem, DEMO_PITCH, set[i][1])
+		t.position = Vector3((float(i) - 1.5) * (DEMO_PITCH + 0.06), AlbumTile.REST, z)
+		add_child(t)
+		t.pop_in(0.3 + 0.05 * float(i))
+		ts.append(t)
+		demos.append(t)
+	var tw := create_tween().set_loops()
+	tw.tween_interval(1.2)
+	if mem:
+		# 1) dos fichas distintas: no es pareja, se vuelven a tapar
+		tw.tween_callback(func() -> void: ts[0].ping(BLUE); ts[0].flip_to(true))
+		tw.tween_interval(0.8)
+		tw.tween_callback(func() -> void: ts[1].ping(BLUE); ts[1].flip_to(true))
+		tw.tween_interval(1.0)
+		tw.tween_callback(func() -> void: ts[0].flip_to(false); ts[1].flip_to(false))
+		tw.tween_interval(0.9)
+		# 2) una ficha y su pareja: acierto
+		tw.tween_callback(func() -> void: ts[0].ping(BLUE); ts[0].flip_to(true))
+		tw.tween_interval(0.8)
+		tw.tween_callback(func() -> void: ts[2].ping(BLUE); ts[2].flip_to(true))
+		tw.tween_interval(0.7)
+		tw.tween_callback(func() -> void: ts[0].celebrate(); ts[2].celebrate())
+		tw.tween_interval(1.6)
+		tw.tween_callback(func() -> void:
+			for i in [0, 2]:
+				ts[i].reset_state()
+				ts[i].flip_to(false))
+		tw.tween_interval(0.6)
+	else:
+		# 1) se elige una ficha y se toca otra que no es su pareja: tiembla
+		tw.tween_callback(func() -> void: ts[0].ping(BLUE); ts[0].select(true))
+		tw.tween_interval(0.9)
+		tw.tween_callback(func() -> void: ts[1].ping(BLUE))
+		tw.tween_interval(0.3)
+		tw.tween_callback(func() -> void: ts[0].select(false); ts[0].shake(); ts[1].shake())
+		tw.tween_interval(1.1)
+		# 2) se elige la misma ficha y su pareja: acierto
+		tw.tween_callback(func() -> void: ts[0].ping(BLUE); ts[0].select(true))
+		tw.tween_interval(0.9)
+		tw.tween_callback(func() -> void: ts[3].ping(BLUE))
+		tw.tween_interval(0.3)
+		tw.tween_callback(func() -> void: ts[0].celebrate(); ts[3].celebrate())
+		tw.tween_interval(1.8)
+		tw.tween_callback(func() -> void: ts[0].reset_state(); ts[3].reset_state())
+	_loops.append(tw)
+
+## Las animaciones solo corren mientras la mesa se ve (no gastan nada en las demás estaciones).
+func _sync_loops() -> void:
+	for tw in _loops:
+		if (tw as Tween).is_valid():
+			if is_visible_in_tree():
+				(tw as Tween).play()
+			else:
+				(tw as Tween).pause()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED:
+		_sync_loops()
 
 func clear() -> void:
+	for tw in _loops:
+		if (tw as Tween).is_valid():
+			(tw as Tween).kill()
+	_loops.clear()
+	for t in demos:
+		(t as Node).queue_free()
+	demos.clear()
 	for l in labels:
 		(l as Node).queue_free()
 	labels.clear()

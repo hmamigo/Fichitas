@@ -276,9 +276,16 @@ func _pack_card(p: Dictionary) -> Dictionary:
 ## Ayuda: mesa 3D a la izquierda del álbum con los pasos para jugar. Solo informa.
 func _go_help() -> void:
 	state = S.HELP
-	board.build_help()
+	board.build_help(_help_pairs())
 	ui.show_help()
 	board.fly_to_station("help", 0.9 if board.station != "help" else 0.0)
+
+## Dos parejas para las fichas de ejemplo de la ayuda: las de Animales (sin leer).
+func _help_pairs() -> Array:
+	var p: Dictionary = _pack("ani")
+	if p.is_empty() and not packs.is_empty():
+		p = packs[0]
+	return (p["pairs"] as Array).slice(0, 2) if not p.is_empty() else []
 
 ## Álbum: mesa 3D con todas las parejas de cada materia; las dominadas, boca arriba.
 func _go_album() -> void:
