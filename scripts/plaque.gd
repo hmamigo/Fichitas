@@ -98,10 +98,14 @@ func press() -> void:
 	var up: float = maxf(PRESS_Y, rest_y + 0.05)
 	var shr: float = SEL_SCALE if selected else 1.0
 	_tw = create_tween()
+	_tw.set_parallel(true)
+	# Sube y se comprime un poco: el gesto se lee como una pulsación, no como un salto.
 	_tw.tween_property(self, "position:y", up, 0.07).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_tw.tween_property(self, "position:y", rest_y, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tw.tween_property(self, "scale", Vector3.ONE * shr * 0.97, 0.07) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tw.chain().tween_property(self, "position:y", rest_y, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Repone también la escala: al tocar un modo, `set_selected` acaba de empezarla
-	_tw.parallel().tween_property(self, "scale", Vector3.ONE * shr, 0.20).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tw.parallel().tween_property(self, "scale", Vector3.ONE * shr, 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 ## Marca la loseta como elegida (modo activo): se levanta y asoma la lámina dorada.
 func set_selected(on: bool, instant: bool = false) -> void:

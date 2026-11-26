@@ -195,7 +195,7 @@ func _toggle(text: String, icon_on: String, icon_off: String, parent: Control) -
 	b.text = text
 	b.toggle_mode = true
 	b.theme_type_variation = "Pill"
-	b.custom_minimum_size = Vector2(0, 76)
+	b.custom_minimum_size = Vector2(0, 92)
 	b.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.add_theme_constant_override("h_separation", 10)
 	b.add_theme_font_size_override("font_size", UiTheme.T_SMALL)
@@ -246,6 +246,16 @@ func _juice(b: Button) -> void:
 	b.button_down.connect(func() -> void: _juice_scale(b, 0.97, 0.08))
 	b.button_up.connect(func() -> void: _juice_scale(b, 1.0, 0.14))
 
+## Hunde o suelta una ficha 2D: cambia el relieve sin mover el nodo de su sitio.
+func _tile_press(tile: Control, down: bool) -> void:
+	var box: Variant = tile.get_meta("press_down" if down else "press_up", null)
+	if box is StyleBoxFlat:
+		tile.add_theme_stylebox_override("panel", box)
+	var face: Control = tile.get_meta("press_face", null)
+	var fbox: Variant = tile.get_meta("face_down" if down else "face_up", null)
+	if face != null and fbox is StyleBoxFlat:
+		face.add_theme_stylebox_override("panel", fbox)
+
 func _juice_scale(b: Control, s: float, secs: float) -> void:
 	var old: Variant = null
 	if b.has_meta("juice"):
@@ -272,6 +282,14 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: in
 	rs.shadow_size = 12
 	rs.shadow_offset = Vector2(0, 8)
 	rim.add_theme_stylebox_override("panel", rs)
+	# Estado pulsado: el filo inferior se achata y la sombra se acorta. Los márgenes del
+	# aro no cambian, así el rectángulo táctil queda quieto; el contenido baja con la cara.
+	var down := rs.duplicate() as StyleBoxFlat
+	down.border_width_bottom = 3
+	down.shadow_size = 5
+	down.shadow_offset = Vector2(0, 3)
+	rim.set_meta("press_up", rs)
+	rim.set_meta("press_down", down)
 	var face := PanelContainer.new()
 	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var fs := StyleBoxFlat.new()
@@ -282,13 +300,18 @@ func _enamel_tile(min_size: Vector2, face_col: Color, pad_h: int = 0, radius: in
 	fs.content_margin_left = pad_h
 	fs.content_margin_right = pad_h
 	face.add_theme_stylebox_override("panel", fs)
+	var fdown := fs.duplicate() as StyleBoxFlat
+	fdown.content_margin_top = fs.content_margin_top + 3
+	rim.set_meta("press_face", face)
+	rim.set_meta("face_up", fs)
+	rim.set_meta("face_down", fdown)
 	rim.add_child(face)
 	rim.resized.connect(func() -> void: rim.pivot_offset = rim.size * 0.5)
 	return rim
 
 ## Botón de volver: ficha esmaltada con un botón transparente encima que cubre toda la ficha.
 func _back_tile(text: String, out_button: Array) -> Control:
-	var back_tile := _enamel_tile(Vector2(0, 90), Color("dfeaff"), 16)
+	var back_tile := _enamel_tile(Vector2(0, 104), Color("dfeaff"), 16)
 	var bface := back_tile.get_child(0) as Control
 	var brow := HBoxContainer.new()
 	brow.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -314,10 +337,16 @@ func _back_tile(text: String, out_button: Array) -> Control:
 	back.pressed.connect(func() -> void:
 		sfx.emit("tap")
 		back_pressed.emit())
-	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.03, 0.12))
-	back.mouse_exited.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.16))
-	back.button_down.connect(func() -> void: _juice_scale(back_tile, 0.95, 0.08))
-	back.button_up.connect(func() -> void: _juice_scale(back_tile, 1.0, 0.14))
+	back.mouse_entered.connect(func() -> void: _juice_scale(back_tile, 1.02, 0.12))
+	back.mouse_exited.connect(func() -> void:
+		_juice_scale(back_tile, 1.0, 0.16)
+		_tile_press(back_tile, false))
+	back.button_down.connect(func() -> void:
+		_juice_scale(back_tile, 0.98, 0.08)
+		_tile_press(back_tile, true))
+	back.button_up.connect(func() -> void:
+		_juice_scale(back_tile, 1.0, 0.14)
+		_tile_press(back_tile, false))
 	back_tile.add_child(back)  # sobre toda la ficha, no solo sobre el texto
 	out_button.append(back)
 	return back_tile
@@ -681,6 +710,7 @@ func _build_fact() -> void:
 	close.pressed.connect(func() -> void:
 		sfx.emit("tap")
 		fact.visible = false)
+	_juice(close)
 	card.add_child(close)
 
 ## Aviso temporal fuera de las pantallas: así se puede mostrar sobre materias o álbum.

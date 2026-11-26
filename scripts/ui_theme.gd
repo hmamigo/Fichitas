@@ -381,6 +381,7 @@ static func _button(th: Theme, type: String, base: Color, flat: ImageTexture, do
 	th.set_stylebox("disabled", type, _skin(flat, Color("c8d1e4"), 11, 13))
 	th.set_stylebox("focus", type, StyleBoxEmpty.new())
 	_colors(th, type, ink)
+	th.set_color("font_disabled_color", type, INK_SOFT)
 
 static func build() -> Theme:
 	var th := Theme.new()
@@ -406,10 +407,12 @@ static func build() -> Theme:
 	th.set_stylebox("hover", "Pill", box(soft.lightened(0.35), line, 5, 10, 10, 30))
 	th.set_stylebox("pressed", "Pill", box(BLUE_DARK, Color("173d78"), 4, 12, 10, 30))
 	th.set_stylebox("hover_pressed", "Pill", box(BLUE_DARK.lightened(0.08), Color("173d78"), 4, 12, 10, 30))
+	th.set_stylebox("disabled", "Pill", box(Color("eef1f7"), Color("d5dbe8"), 3, 10, 10, 30))
 	th.set_stylebox("focus", "Pill", StyleBoxEmpty.new())
 	_colors(th, "Pill", INK)
 	th.set_color("font_pressed_color", "Pill", Color.WHITE)
 	th.set_color("font_hover_pressed_color", "Pill", Color.WHITE)
+	th.set_color("font_disabled_color", "Pill", INK_SOFT)
 	th.set_color("font_color", "Label", INK)
 	# Barra de desplazamiento fina y redondeada, sin flechas
 	var none := ImageTexture.create_from_image(Image.create_empty(2, 2, false, Image.FORMAT_RGBA8))

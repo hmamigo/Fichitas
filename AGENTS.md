@@ -57,6 +57,7 @@ Todo ocurre sobre el **mismo suelo de cubos de colores**. No se cambia de pantal
 ## Experiencia de uso (UX)
 
 - **Sonido y vibración al tocar**: toda loseta de una estación emite `sfx("tap")`, que suena y vibra corto. `Board` repite la señal de cada estación (`_relay_sfx`) y `main` la reproduce. Al agregar una estación, conectá su señal `sfx` a `Board._relay_sfx`.
+- **Botones con relieve**: los botones 2D (`_enamel_tile` y `Pill`) se hunden al pulsar (se achata el filo inferior, se acorta la sombra y el contenido baja) y vuelven al soltar; las losetas 3D (`Plaque`) suben con un pequeño *squash*. Objetivos táctiles: botón de volver 104 px lógicos y ajustes 92. Las variantes de `Button` y `Pill` tienen estado deshabilitado definido.
 - **Las listas recuerdan dónde estabas**: Materias, Álbum y Cómo jugar guardan desplazamiento y zoom al cambiar de estación (`Board._view_mem`) y los restauran al volver; la primera visita empieza por arriba. El valor guardado se recorta solo con los límites de la mesa, así que nunca queda fuera.
 - **Aviso de desplazamiento**: la primera vez que se abre una lista larga, `main._show_pan_hint()` muestra "Deslizá para recorrer y usá dos dedos para acercar." y lo recuerda en `Progress.data["hint"]`.
 - **El tablero se limpia al llegar**: `Board._arrive()` retira las fichas recién al terminar el vuelo (si la estación destino no es la partida), así el mundo no se vacía antes de que la cámara se vaya. No hay que llamar `board.stop()` al salir de una estación.
