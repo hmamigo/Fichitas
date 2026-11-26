@@ -541,22 +541,7 @@ func _build_hud() -> void:
 
 func _build_menu() -> void:
 	menu = _screen("none")  # sin fondo: detrás se ve el suelo de cubos 3D
-	# Velo oscuro: reduce ruido visual detrás del menú para mejorar legibilidad.
-	var veil := TextureRect.new()
-	veil.texture = UiTheme.radial_glow(256, Color("1b2a44"))
-	veil.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	veil.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	veil.modulate = Color(1, 1, 1, 0.55)
-	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	menu.add_child(veil)
 
-	# Superposición oscura sutil para resaltar la capa 2D.
-	var bg_overlay := ColorRect.new()
-	bg_overlay.color = Color(0, 0, 0, 0.45)
-	bg_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	menu.add_child(bg_overlay)
 
 	var m := MarginContainer.new()
 	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
