@@ -13,7 +13,6 @@ const CARD_H := Cards.ACTION_H
 const GAP := Cards.TILE_GAP
 const FACE_W := int(CARD_W * Cards.PX)
 const FACE_H := int(CARD_H * Cards.PX)
-const TILT := 0.17             # igual que la cámara del tablero
 
 # Encuadre de la cámara en esta mesa: las dos losetas, sin que toquen los bordes.
 const FIT_PAD_W := 2.6         # aire a los lados (la mesa completa mide 4,5 de ancho)

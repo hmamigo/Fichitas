@@ -18,7 +18,6 @@ const HEAD_H_LONG := 2.15      # mensaje largo (dos o tres líneas)
 const HEAD_LONG_CHARS := 32    # a partir de aquí el mensaje no entra en una línea
 const BTN_H := 0.82            # la acción principal, más baja: no compite con las fichas
 const BOTTOM_PAD := 0.18       # aire extra bajo el botón: la vista inclinada achica el borde cercano
-const TILT := 0.17             # igual que la cámara del tablero
 const LOOK_Y := -0.2           # punto de mira algo bajo el origen: la mesa queda centrada
 
 # Fichas de las parejas: las mismas del álbum, algo más chicas para que entren dos

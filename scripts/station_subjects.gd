@@ -13,7 +13,6 @@ const CARD_H := Cards.SUBJECT_H
 const LABEL_H := 1.0           # rótulo plano del grupo (no se toca)
 const GAP := Cards.TILE_GAP
 const TABLE_GAP := 1.5         # entre mesas (el marco sobresale 0,225 por lado)
-const TILT := 0.17             # igual que la cámara del tablero
 const FACE_W := int(CARD_W * Cards.PX)
 const FACE_H := int(CARD_H * Cards.PX)
 const FACE_LABEL_H := int(LABEL_H * Cards.PX)   # LABEL_H × PX

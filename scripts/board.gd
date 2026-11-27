@@ -10,7 +10,7 @@ signal sfx(sound: String)  # "flip", "tap", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TITLE_H := 0.9  # franja de la mesa con el título de la partida (rótulo plano, no se toca)
 const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del título
-const TILT := 0.3 #0.17    # inclinación de la cámara
+const TILT := 0.3     # inclinación de la cámara en radianes (0,3 ≈ 17°), igual en todas las estaciones
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
 # Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, temas, modo, tablero
@@ -670,7 +670,7 @@ func _pose() -> Dictionary:
 		return {
 			"target": Vector3(s.x + cam_x, s.y, s.z + cam_z),
 			"dist": lst.fit_distance() / zoom,
-			"tilt": lst.TILT,
+			"tilt": TILT,
 			"yaw": 0.0,
 		}
 	if station == "mode" and mode_station != null:
@@ -678,7 +678,7 @@ func _pose() -> Dictionary:
 		return {
 			"target": Vector3(m.x + cam_x, m.y, m.z + cam_z),
 			"dist": mode_station.fit_distance() / zoom,
-			"tilt": mode_station.TILT,
+			"tilt": TILT,
 			"yaw": 0.0,
 		}
 	if station == "album" and album_station != null:
@@ -686,7 +686,7 @@ func _pose() -> Dictionary:
 		return {
 			"target": Vector3(a.x + cam_x, a.y, a.z + cam_z),
 			"dist": album_station.fit_distance() / zoom,
-			"tilt": album_station.TILT,
+			"tilt": TILT,
 			"yaw": 0.0,
 		}
 	if station == "help" and help_station != null:
@@ -694,7 +694,7 @@ func _pose() -> Dictionary:
 		return {
 			"target": Vector3(h.x + cam_x, h.y, h.z + cam_z),
 			"dist": help_station.fit_distance() / zoom,
-			"tilt": help_station.TILT,
+			"tilt": TILT,
 			"yaw": 0.0,
 		}
 	if station == "win" and win_station != null:
@@ -702,7 +702,7 @@ func _pose() -> Dictionary:
 		return {
 			"target": Vector3(w.x + cam_x, w.y + win_station.LOOK_Y, w.z + cam_z),
 			"dist": win_station.fit_distance() / zoom,
-			"tilt": win_station.TILT,
+			"tilt": TILT,
 			"yaw": 0.0,
 		}
 	if station == "menu":

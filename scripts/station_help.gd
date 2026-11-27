@@ -10,7 +10,6 @@ const PPU := 128               # píxeles de diseño por unidad del mundo
 const TITLE_H := 1.5           # cabecera (icono, título y una línea)
 const ROW_H := 1.14            # alto de cada paso
 const GAP := 0.16              # aire entre cabecera y pasos, y entre pasos
-const TILT := 0.17             # igual que la cámara del tablero
 
 # Encuadre y desplazamiento: los mismos valores que la mesa de Materias (`StationSubjects`),
 # así la ayuda se recorre igual: vertical, con zoom de dos dedos y recordando dónde quedó.
