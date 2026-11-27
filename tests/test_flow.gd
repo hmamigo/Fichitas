@@ -155,6 +155,10 @@ func _run() -> void:
 		main.board.cam_z = zsign2 * main.board.album_station.pan_bounds(main.board.album_station.fit_distance()).y
 		await create_timer(0.5).timeout
 		check(_view_on_floor(main), "álbum: la vista cae sobre el suelo en el extremo %s" % ("superior" if zsign2 < 0.0 else "inferior"))
+	# El toque se hace con la cámara en la mesa de victoria: desde el álbum el botón
+	# queda muy fuera de cuadro, el rayo sale casi paralelo al plano y no lo alcanza.
+	main.board.fly_to_station("win", 0.0)
+	await create_timer(0.1).timeout
 	var wbtn: Plaque = main.board.win_station.tiles[0]
 	var wspot: Vector2 = main.board.cam.unproject_position(wbtn.global_position)
 	main.board.win_station.tap(wspot, main.board.cam)
