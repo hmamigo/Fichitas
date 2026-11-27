@@ -11,11 +11,11 @@ signal open_help
 signal open_album
 signal sfx(name: String)
 
-const CARD_W := 3.5
-const CARD_H := 1.0
-const GAP := 0.16
-const FACE_W := 448
-const FACE_H := 128
+const CARD_W := Cards.TILE_W
+const CARD_H := Cards.ACTION_H
+const GAP := Cards.TILE_GAP
+const FACE_W := int(CARD_W * Cards.PX)
+const FACE_H := int(CARD_H * Cards.PX)
 const FRAME_EXTRA := 1.0   # margen de la mesa (0,55) + filo del marco (0,45)
 const FRAME_Y := -0.165    # tapa del marco azul (el encuadre de la cámara la usa)
 

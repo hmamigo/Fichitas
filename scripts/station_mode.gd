@@ -8,11 +8,11 @@ extends Node3D
 signal chosen(mode: String)
 signal sfx(name: String)
 
-const CARD_W := 3.5
-const CARD_H := 1.35
-const GAP := 0.18
-const FACE_W := 448
-const FACE_H := 176
+const CARD_W := Cards.TILE_W
+const CARD_H := Cards.ACTION_H
+const GAP := Cards.TILE_GAP
+const FACE_W := int(CARD_W * Cards.PX)
+const FACE_H := int(CARD_H * Cards.PX)
 const TILT := 0.17             # igual que la cámara del tablero
 
 # Encuadre de la cámara en esta mesa: las dos losetas, sin que toquen los bordes.

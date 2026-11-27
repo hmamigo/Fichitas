@@ -8,15 +8,15 @@ signal chosen(id: String)      # "" = recorrido general, ":review" = repaso
 signal info(text: String)      # materia bloqueada: aviso para la interfaz
 signal sfx(name: String)
 
-const CARD_W := 3.5
-const CARD_H := 1.75
+const CARD_W := Cards.TILE_W
+const CARD_H := Cards.SUBJECT_H
 const LABEL_H := 1.0           # rótulo plano del grupo (no se toca)
-const GAP := 0.18
+const GAP := Cards.TILE_GAP
 const TABLE_GAP := 1.5         # entre mesas (el marco sobresale 0,225 por lado)
 const TILT := 0.17             # igual que la cámara del tablero
-const FACE_W := 448
-const FACE_H := 224
-const FACE_LABEL_H := 128      # LABEL_H × 128 px por unidad
+const FACE_W := int(CARD_W * Cards.PX)
+const FACE_H := int(CARD_H * Cards.PX)
+const FACE_LABEL_H := int(LABEL_H * Cards.PX)   # LABEL_H × PX
 
 # Encuadre de la cámara en esta mesa
 const FIT_PAD_W := 0.15        # aire a los lados de la tarjeta al encuadrar el ancho

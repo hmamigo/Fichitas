@@ -6,6 +6,17 @@ extends RefCounted
 
 static var _th: Theme
 
+# ---------- Patrón de las losetas del mundo ----------
+# Una sola fuente de verdad para el tamaño de las losetas: todas comparten ancho y separación,
+# y hay dos alturas (acción compacta y materia). Las estaciones (`StationMenu`, `StationMode`,
+# `StationSubjects`) leen estas constantes en vez de tener las suyas, así los botones siguen el
+# mismo patrón. La textura de cada cara mide `unidades × PX` píxeles.
+const PX := 128                 # píxeles de la cara por unidad del mundo
+const TILE_W := 3.5             # ancho de toda loseta
+const TILE_GAP := 0.16          # separación entre losetas de una misma mesa
+const ACTION_H := 1.0           # alto de las acciones (menú y paso de modo)
+const SUBJECT_H := 1.75         # alto de las tarjetas de materia
+
 # ---------- Calibración manual ----------
 # Todas las medidas de diseño en píxeles base (128 px = 1 unidad del mundo). Cambiá un valor
 # aquí y se aplica a todas las caras de ese tipo; no hay que buscar números dentro de las funciones.
