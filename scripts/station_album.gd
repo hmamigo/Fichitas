@@ -17,7 +17,7 @@ const HEAD_H := 1.2              # alto de la cabecera de cada materia
 const HEAD_GAP := 0.22           # aire entre la cabecera y sus fichas
 const SEC_GAP := 0.5             # aire entre secciones
 const PX := 133                  # píxeles de la cara horneada por unidad del mundo
-const TILT := 0.17               # igual que la cámara del tablero
+const TILT := 0.3#0.17               # igual que la cámara del tablero
 
 # Encuadre de la cámara en esta mesa
 const FIT_PAD_W := 0.4           # aire a los lados de la mesa al encuadrar el ancho

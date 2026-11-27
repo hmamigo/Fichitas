@@ -12,45 +12,45 @@ static var _th: Theme
 # `StationSubjects`) leen estas constantes en vez de tener las suyas, así los botones siguen el
 # mismo patrón. La textura de cada cara mide `unidades × PX` píxeles.
 const PX := 128                 # píxeles de la cara por unidad del mundo
-const TILE_W := 3.5             # ancho de toda loseta
-const TILE_GAP := 0.16          # separación entre losetas de una misma mesa
+const TILE_W := 4 #3.5        # ancho de toda loseta
+const TILE_GAP := 0.2 #0.16     # separación entre losetas de una misma mesa
 const ACTION_H := 1.0           # alto de las acciones (menú y paso de modo)
-const SUBJECT_H := 1.75         # alto de las tarjetas de materia
+const SUBJECT_H := 1.5 #1.75         # alto de las tarjetas de materia
 
 # ---------- Calibración manual ----------
 # Todas las medidas de diseño en píxeles base (128 px = 1 unidad del mundo). Cambiá un valor
 # aquí y se aplica a todas las caras de ese tipo; no hay que buscar números dentro de las funciones.
 
 # Acción (menú y paso de modo): icono a la izquierda; título y subtítulo en columna.
-const ACTION_PAD_X := 18        # margen lateral
+const ACTION_PAD_X := 30#18        # margen lateral
 const ACTION_PAD_Y := 8         # margen arriba y abajo
-const ACTION_ICON := 54         # lado del icono
+const ACTION_ICON := 60 #54         # lado del icono
 const ACTION_DOT := 30          # punto de color, si la acción lleva punto en vez de icono
-const ACTION_GAP := 14          # icono <-> texto
-const ACTION_TEXT_SEP := 4      # título <-> subtítulo
+const ACTION_GAP := 32 #14          # icono <-> texto
+const ACTION_TEXT_SEP := -10 #4      # título <-> subtítulo
 const ACTION_TITLE_MAX := 36    # tamaño de fuente del título (se encoge si no cabe)
 const ACTION_TITLE_MIN := 26
 const ACTION_SUB_MIN := 24      # el máximo del subtítulo es UiTheme.T_SMALL
 
 # Materia (lista de Materias).
-const SUBJECT_PAD_X := 12
-const SUBJECT_PAD_Y := 10
-const SUBJECT_GAP := 14         # insignia <-> texto
-const SUBJECT_TEXT_SEP := 3     # entre líneas de texto
+const SUBJECT_PAD_X := 30 #12
+const SUBJECT_PAD_Y := 8 #10
+const SUBJECT_GAP := 32 #14         # insignia <-> texto
+const SUBJECT_TEXT_SEP := -10 #3     # entre líneas de texto
 const SUBJECT_BADGE := 76       # lado de la insignia del icono
-const SUBJECT_BADGE_ICON := 48
+const SUBJECT_BADGE_ICON := 60 #48
 const SUBJECT_TEXT_RESERVED := 130.0   # ancho que quitan la insignia y los márgenes al título
 const SUBJECT_TITLE_MIN := 22
 const SUBJECT_BAR_H := 14
 
 # Rótulo plano (cabeceras de mesa): se escala con el alto (`sc` = h / 128).
-const LABEL_PAD_X := 8
-const LABEL_PAD_TOP := 2
-const LABEL_PAD_BOTTOM := 6
+const LABEL_PAD_X := 30 #8
+const LABEL_PAD_TOP := 8 #2
+const LABEL_PAD_BOTTOM := 8 #6
 const LABEL_ICON := 70
 const LABEL_GAP := 14           # icono <-> texto
 const LABEL_BAR_SEP := 8        # fila <-> barra
-const LABEL_TEXT_SEP := 0       # título <-> subtítulo
+const LABEL_TEXT_SEP := -10 #0       # título <-> subtítulo
 const LABEL_TITLE_MAX := 44
 const LABEL_TITLE_MIN := 20
 const LABEL_SUB_MAX := 30

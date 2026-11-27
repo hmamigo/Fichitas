@@ -10,7 +10,7 @@ signal sfx(sound: String)  # "flip", "tap", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TITLE_H := 0.9  # franja de la mesa con el título de la partida (rótulo plano, no se toca)
 const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del título
-const TILT := 0.17    # inclinación de la cámara
+const TILT := 0.3 #0.17    # inclinación de la cámara
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
 # Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, temas, modo, tablero
@@ -47,7 +47,7 @@ const CLEARCOAT := 0.8        # barniz de las caras
 const MOBILE_SCALE_3D := 0.75   # en móvil el 3D se dibuja a esta fracción de la resolución; la interfaz (2D) sigue nítida
 const SHADOW_REACH := 7.0      # hasta dónde llegan las sombras desde la mesa que mira la cámara: menos alcance, texeles más finos
 const FIT_ROWS := 3.5          # filas de fichas que se ven a la vez al empezar una ronda (la cuarta asoma: invita a deslizar)
-const PAN_PAD_Y := 0.08        # aire arriba y abajo al recorrer el tablero (fracción del alto visible)
+const PAN_PAD_Y := 0.12#0.08        # aire arriba y abajo al recorrer el tablero (fracción del alto visible)
 const GLIDE_SECS := 0.45      # lo que tarda la cámara en volver a la primera fila al pasar de ronda
 const SPARK_AMOUNT := 22       # estrellas por ficha
 const SPARK_LIFE := 0.80       # segundos que viven
