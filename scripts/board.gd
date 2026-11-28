@@ -10,7 +10,7 @@ signal sfx(sound: String)  # "flip", "tap", "ok", "err", "win"
 const ST := 1.12      # separación entre fichas
 const TITLE_H := 0.9  # franja de la mesa con el título de la partida (rótulo plano, no se toca)
 const TITLE_PPU := 128  # píxeles por unidad del mundo al hornear la franja del título
-const TILT := 0.3     # inclinación de la cámara en radianes (0,3 ≈ 17°), igual en todas las estaciones
+const TILT := 0.35     # inclinación de la cámara en radianes (0,3 ≈ 17°), igual en todas las estaciones
 const FOV := 35.0
 const MENU_DIST := 20.0   # distancia de la cámara en el menú: las 3 losetas (alto ≈ 4,3) ocupan ~1/3 del alto visible; calibrada a mano
 # Las estaciones van en fila a lo largo de X: ayuda, álbum, menú, materias, temas, modo, tablero
@@ -38,10 +38,10 @@ const MATCH_Y := -0.09  # las resueltas se hunden en la losa
 const FLASH_Y := 0.15      # altura del destello sobre las fichas pendientes
 const MATCH_ALPHA := 0.68  # opacidad de las fichas resueltas (un poco translúcidas)
 # Iluminación (ajustable en pruebas con las flechas ↑ ↓ del teclado; el valor sale en la consola)
-const LIGHT_ENERGY := 0.30    # luz direccional principal
+const LIGHT_ENERGY := 0.28#0.30    # luz direccional principal
 const FILL_ENERGY := 0.1     # luz de relleno (sin sombras)
-const AMBIENT_ENERGY := 0.20  # luz ambiental
-const SKY_ENERGY := 0.20      # brillo del entorno (reflejos)
+const AMBIENT_ENERGY := 0.18#0.20  # luz ambiental
+const SKY_ENERGY := 16#0.20      # brillo del entorno (reflejos)
 const CLEARCOAT := 0.8        # barniz de las caras
 # Chispas al emparejar (ajustables)
 const MOBILE_SCALE_3D := 0.75   # en móvil el 3D se dibuja a esta fracción de la resolución; la interfaz (2D) sigue nítida
